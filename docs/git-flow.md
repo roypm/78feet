@@ -11,7 +11,7 @@ Formato: `<emoji> <tipo>: <resumen en imperativo>`, en español, sin punto final
 🐛 fix: saldo de bono mal descontado
 ```
 
-El tipo sigue la convención de [`convenciones-tecnicas.md`](./convenciones-tecnicas.md) §12; el emoji
+El tipo sigue la convención de [`convenciones-tecnicas.md`](./grilling-results/convenciones-tecnicas.md) §12; el emoji
 va delante y sale de esta tabla:
 
 | Tipo | Emoji | Ejemplo |
