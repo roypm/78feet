@@ -85,7 +85,7 @@ export function planMaterializedInstances(params: {
         date,
         startAt: atBoxTime(date, template.startTime),
         endAt: atBoxTime(date, template.endTime),
-        title: template.title,
+        classTypeId: template.classTypeId,
         kind: template.kind,
         coachId: template.coachId,
         capacity: template.defaultCapacity,
@@ -96,8 +96,8 @@ export function planMaterializedInstances(params: {
   return planned;
 }
 
-function identityKey(instance: Pick<ClassInstance, "date" | "startAt" | "endAt" | "kind" | "title">): string {
-  return `${instance.date}|${instance.startAt.toISOString()}|${instance.endAt.toISOString()}|${instance.kind}|${instance.title}`;
+function identityKey(instance: Pick<ClassInstance, "date" | "startAt" | "endAt" | "classTypeId">): string {
+  return `${instance.date}|${instance.startAt.toISOString()}|${instance.endAt.toISOString()}|${instance.classTypeId}`;
 }
 
 function cloneInstance(instance: ClassInstance): ClassInstance {
@@ -123,6 +123,21 @@ function findSuccessor(
       instance.status === "scheduled" &&
       identityKey(instance) === identity,
   );
+}
+
+function followTraining(from: ClassInstance, to: ClassInstance): void {
+  if (to.trainingId) return;
+  if (!from.trainingId) return;
+  if (from.trainingClassTypeId !== to.classTypeId) return;
+  to.trainingId = from.trainingId;
+  to.trainingClassTypeId = from.trainingClassTypeId;
+}
+
+function alignTraining(instance: ClassInstance): void {
+  if (instance.trainingId && instance.trainingClassTypeId !== instance.classTypeId) {
+    instance.trainingId = null;
+    instance.trainingClassTypeId = null;
+  }
 }
 
 function moveActiveBookings(
@@ -160,8 +175,7 @@ function newSlotIdentity(instance: ClassInstance, template: ClassTemplate): stri
     date: instance.date,
     startAt: atBoxTime(instance.date, template.startTime),
     endAt: atBoxTime(instance.date, template.endTime),
-    kind: template.kind,
-    title: template.title,
+    classTypeId: template.classTypeId,
   });
 }
 
@@ -170,15 +184,17 @@ function identityChanged(instance: ClassInstance, template: ClassTemplate): bool
 }
 
 function applyTemplateValues(instance: ClassInstance, template: ClassTemplate): ClassInstance {
-  return {
+  const next: ClassInstance = {
     ...instance,
     startAt: atBoxTime(instance.date, template.startTime),
     endAt: atBoxTime(instance.date, template.endTime),
-    title: template.title,
+    classTypeId: template.classTypeId,
     kind: template.kind,
     coachId: template.coachId,
     capacity: template.defaultCapacity,
   };
+  alignTraining(next);
+  return next;
 }
 
 export function propagateTemplateChange(params: {
@@ -219,6 +235,7 @@ export function propagateTemplateChange(params: {
         successor.capacity >= activeCount(bookings, successor.id) + currentActive
       ) {
         summary.movedBookingCount += moveActiveBookings(bookings, instance.id, successor.id);
+        followTraining(instance, successor);
       } else {
         summary.cancelledBookingCount += cancelActiveBookings(bookings, instance.id, now);
       }
@@ -238,6 +255,7 @@ export function propagateTemplateChange(params: {
         successor.capacity >= activeCount(bookings, successor.id) + currentActive
       ) {
         summary.movedBookingCount += moveActiveBookings(bookings, instance.id, successor.id);
+        followTraining(instance, successor);
       } else {
         summary.cancelledBookingCount += cancelActiveBookings(bookings, instance.id, now);
       }

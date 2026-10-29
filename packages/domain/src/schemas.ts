@@ -162,8 +162,7 @@ export const templateWriteSchema = z.object({
   weekday: z.number().int().min(1).max(7),
   startTime: clockSchema,
   endTime: clockSchema,
-  title: z.string().trim().min(1, "El título es obligatorio"),
-  kind: classKindSchema,
+  classTypeId: z.string().uuid(),
   coachId: z.string().uuid().nullable().optional(),
   defaultCapacity: z.number().int().positive("El aforo tiene que ser mayor que cero"),
 });
@@ -171,6 +170,114 @@ export const templateWriteSchema = z.object({
 export const patchTemplateSchema = templateWriteSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });
+
+export const classTypeWriteSchema = z.object({
+  name: z.string().trim().min(1, "El nombre es obligatorio"),
+  kind: classKindSchema,
+});
+
+export const classTypePatchSchema = z
+  .object({
+    name: z.string().trim().min(1, "El nombre es obligatorio").optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });
+
+export const trainingPhaseSchema = z.object({
+  name: z.string().trim().min(1, "Cada fase necesita un nombre"),
+  blocks: z
+    .array(z.object({ body: z.string().trim().min(1, "Un bloque no puede estar vacío") }))
+    .min(1, "Cada fase necesita al menos un bloque"),
+});
+
+export const trainingWriteSchema = z.object({
+  name: z.string().trim().min(1, "El nombre es obligatorio"),
+  classTypeId: z.string().uuid(),
+  phases: z.array(trainingPhaseSchema).min(1, "Un entrenamiento necesita al menos una fase"),
+  confirmDetach: z.boolean().optional(),
+});
+
+export const trainingPatchSchema = z
+  .object({
+    name: z.string().trim().min(1, "El nombre es obligatorio").optional(),
+    classTypeId: z.string().uuid().optional(),
+    phases: z.array(trainingPhaseSchema).min(1, "Un entrenamiento necesita al menos una fase").optional(),
+    confirmDetach: z.boolean().optional(),
+  })
+  .refine((value) => value.name !== undefined || value.classTypeId !== undefined || value.phases !== undefined, {
+    message: "Nada para actualizar",
+  });
+
+export const trainingListQuerySchema = z.object({
+  classTypeId: z.string().uuid().optional(),
+});
+
+export const patchInstanceSchema = z
+  .object({
+    startTime: clockSchema.optional(),
+    endTime: clockSchema.optional(),
+    classTypeId: z.string().uuid().optional(),
+    coachId: z.string().uuid().nullable().optional(),
+    capacity: z.number().int().positive("El aforo tiene que ser mayor que cero").optional(),
+    status: instanceStatusSchema.optional(),
+    cancelReason: z.string().trim().min(1).nullable().optional(),
+    trainingId: z.string().uuid().nullable().optional(),
+    confirmCapacity: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).some((key) => key !== "confirmCapacity"), {
+    message: "Nada para actualizar",
+  });
+
+export const createInstanceSchema = z.object({
+  date: isoDateSchema,
+  startTime: clockSchema,
+  endTime: clockSchema,
+  classTypeId: z.string().uuid(),
+  coachId: z.string().uuid().nullable().optional(),
+  capacity: z.number().int().positive("El aforo tiene que ser mayor que cero"),
+});
+
+export const hoursWriteSchema = z.object({
+  openTime: clockSchema,
+  closeTime: clockSchema,
+});
+
+export const createStaffSchema = z.object({
+  loginId: z.string().trim().min(1, "El usuario es obligatorio"),
+  password: z.string().min(8, "La contraseña tiene que tener al menos 8 caracteres"),
+  firstName: z.string().trim().min(1, "El nombre es obligatorio"),
+  lastName: z.string().trim().min(1, "El apellido es obligatorio"),
+  role: z.enum(["coach", "admin"]),
+  dni: z.string().trim().min(1).nullable().optional(),
+});
+
+export const patchStaffSchema = z
+  .object({
+    status: userStatusSchema.optional(),
+    firstName: z.string().trim().min(1).optional(),
+    lastName: z.string().trim().min(1).optional(),
+    password: z.string().min(8, "La contraseña tiene que tener al menos 8 caracteres").optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });
+
+export const unpaidQuerySchema = z.object({
+  month: isoDateSchema.optional(),
+});
+
+export const createPaymentSchema = z.object({
+  userId: z.string().uuid(),
+  kind: z.enum(["monthly", "pack"]),
+  month: isoDateSchema.optional(),
+  amountCents: z.number().int().min(0),
+  method: z.string().trim().min(1).nullable().optional(),
+});
+
+export const adminDayQuerySchema = z.object({
+  date: isoDateSchema,
+});
+
+export const adminWeekQuerySchema = z.object({
+  from: isoDateSchema,
+});
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 export type SessionUser = z.infer<typeof sessionUserSchema>;
@@ -189,3 +296,13 @@ export type GrantCredits = z.infer<typeof grantCreditsSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type TemplateWrite = z.infer<typeof templateWriteSchema>;
 export type PatchTemplate = z.infer<typeof patchTemplateSchema>;
+export type ClassTypeWrite = z.infer<typeof classTypeWriteSchema>;
+export type ClassTypePatch = z.infer<typeof classTypePatchSchema>;
+export type TrainingWrite = z.infer<typeof trainingWriteSchema>;
+export type TrainingPatch = z.infer<typeof trainingPatchSchema>;
+export type PatchInstance = z.infer<typeof patchInstanceSchema>;
+export type CreateInstance = z.infer<typeof createInstanceSchema>;
+export type HoursWrite = z.infer<typeof hoursWriteSchema>;
+export type CreateStaff = z.infer<typeof createStaffSchema>;
+export type PatchStaff = z.infer<typeof patchStaffSchema>;
+export type CreatePayment = z.infer<typeof createPaymentSchema>;

@@ -21,8 +21,10 @@ function fromPlanned(planned: ReturnType<typeof planMaterializedInstances>[numbe
     date: planned.date,
     startAt: planned.startAt,
     endAt: planned.endAt,
-    title: planned.title,
+    classTypeId: planned.classTypeId,
     kind: planned.kind,
+    trainingId: null,
+    trainingClassTypeId: null,
     coachId: planned.coachId,
     capacity: planned.capacity,
     status: planned.status,
@@ -352,5 +354,40 @@ describe("template change from next Monday", () => {
     });
     expect(result.instances[0]?.startAt).toEqual(atBoxTime("2026-11-02", "18:00"));
     expect(result.instances[0]?.status).toBe("scheduled");
+  });
+
+  it("cancels bookings when the class type of the slot changes", () => {
+    const template = makeTemplate({
+      id: "tpl-wod",
+      weekday: 1,
+      startTime: "18:00",
+      endTime: "19:00",
+      kind: "directed",
+      classTypeId: "type-endurance",
+    });
+    const nextWeek = makeInstance({
+      id: "inst-next",
+      templateId: template.id,
+      date: "2026-11-02",
+      kind: "directed",
+      classTypeId: "type-wod",
+      trainingId: "tr-1",
+      trainingClassTypeId: "type-wod",
+      startAt: atBoxTime("2026-11-02", "18:00"),
+      endAt: atBoxTime("2026-11-02", "19:00"),
+    });
+    const bookings = [makeBooking({ instanceId: nextWeek.id, userId: "a", pool: "weekly_directed" })];
+    const result = propagateTemplateChange({
+      today: "2026-10-29",
+      templateId: template.id,
+      change: { type: "update", template },
+      instances: [nextWeek],
+      bookings,
+    });
+    expect(result.bookings[0]).toMatchObject({ status: "cancelled", quotaReturned: true });
+    expect(result.instances[0]).toMatchObject({
+      classTypeId: "type-endurance",
+      trainingId: null,
+    });
   });
 });

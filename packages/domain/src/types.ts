@@ -13,7 +13,7 @@ export type ClassTemplate = {
   weekday: number;
   startTime: string;
   endTime: string;
-  title: string;
+  classTypeId: string;
   kind: ClassKind;
   coachId: string | null;
   defaultCapacity: number;
@@ -26,11 +26,13 @@ export type ClassInstance = {
   date: string;
   startAt: Date;
   endAt: Date;
-  title: string;
+  classTypeId: string;
   kind: ClassKind;
   coachId: string | null;
   capacity: number;
   status: InstanceStatus;
+  trainingId: string | null;
+  trainingClassTypeId: string | null;
   editedAt: Date | null;
 };
 
@@ -70,7 +72,7 @@ export type PlannedInstance = {
   date: string;
   startAt: Date;
   endAt: Date;
-  title: string;
+  classTypeId: string;
   kind: ClassKind;
   coachId: string | null;
   capacity: number;
@@ -91,4 +93,9 @@ export type PropagationResult = {
   instances: ClassInstance[];
   bookings: Booking[];
   summary: PropagationSummary;
+};
+
+export type TrainingPhaseInput = {
+  name: string;
+  blocks: { body: string }[];
 };

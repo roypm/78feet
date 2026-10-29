@@ -12,24 +12,39 @@ export function resetIds(): void {
   seq = 0;
 }
 
+function defaultTypeId(kind: ClassTemplate["kind"] | ClassInstance["kind"]): string {
+  return kind === "open" ? "type-open" : "type-wod";
+}
+
 export function makeTemplate(
   overrides: Partial<ClassTemplate> &
-    Pick<ClassTemplate, "weekday" | "startTime" | "endTime" | "title" | "kind">,
+    Pick<ClassTemplate, "weekday" | "startTime" | "endTime"> & {
+      kind: ClassTemplate["kind"];
+      title?: string;
+    },
 ): ClassTemplate {
+  const { title: _title, ...rest } = overrides;
+  void _title;
   return {
     id: nextId("tpl"),
     coachId: "coach-1",
     defaultCapacity: 12,
     active: true,
-    ...overrides,
+    classTypeId: defaultTypeId(overrides.kind),
+    ...rest,
   };
 }
 
 export function makeInstance(
-  overrides: Partial<ClassInstance> & Pick<ClassInstance, "date" | "kind" | "title">,
+  overrides: Partial<ClassInstance> &
+    Pick<ClassInstance, "date" | "kind"> & {
+      title?: string;
+    },
 ): ClassInstance {
   const startTime = "18:00";
   const endTime = "19:00";
+  const { title: _title, ...rest } = overrides;
+  void _title;
   return {
     id: nextId("inst"),
     templateId: "tpl-1",
@@ -39,7 +54,10 @@ export function makeInstance(
     capacity: 12,
     status: "scheduled",
     editedAt: null,
-    ...overrides,
+    classTypeId: defaultTypeId(overrides.kind),
+    trainingId: null,
+    trainingClassTypeId: null,
+    ...rest,
   };
 }
 
