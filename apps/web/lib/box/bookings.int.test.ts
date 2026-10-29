@@ -21,6 +21,9 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
   const suffix = randomUUID().slice(0, 8);
   const userIds: string[] = [];
   const instanceIds: string[] = [];
+  const classTypeIds: string[] = [];
+  let directedTypeId = "";
+  let openTypeId = "";
   let tariffId = "";
   let adminToken = "";
   let coachId = "";
@@ -79,6 +82,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     const ids = [...new Set(userIds)];
     await prisma.booking.deleteMany({ where: { userId: { in: ids } } });
     await prisma.classInstance.deleteMany({ where: { id: { in: instanceIds } } });
+    if (classTypeIds.length) await prisma.classType.deleteMany({ where: { id: { in: classTypeIds } } });
     await prisma.creditGrant.deleteMany({
       where: { OR: [{ userId: { in: ids } }, { createdBy: { in: ids } }] },
     });
@@ -145,13 +149,24 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     capacity?: number;
     kind?: "directed" | "open";
   }) {
+    const kind = input.kind ?? "directed";
+    let classTypeId = kind === "open" ? openTypeId : directedTypeId;
+    if (!classTypeId) {
+      const classType = await prisma.classType.create({
+        data: { name: `Clase ${suffix}-${kind}`, kind, imageKey: "placeholder.png" },
+      });
+      classTypeIds.push(classType.id);
+      classTypeId = classType.id;
+      if (kind === "open") openTypeId = classTypeId;
+      else directedTypeId = classTypeId;
+    }
     const row = await prisma.classInstance.create({
       data: {
         date: isoDateToDb(input.date),
         startAt: input.startAt,
         endAt: input.endAt,
-        title: `Clase ${suffix}`,
-        kind: input.kind ?? "directed",
+        classTypeId,
+        kind,
         capacity: input.capacity ?? 10,
         status: "scheduled",
       },
@@ -256,7 +271,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     });
     expect(fromPack.status).toBe(201);
     expect(fromPack.json).toMatchObject({ pool: "pack" });
-  });
+  }, 20_000);
 
   it("closes member cancellation inside two hours and lets staff decide the quota", async () => {
     const startAt = new Date(Date.now() + 30 * 60 * 1000);

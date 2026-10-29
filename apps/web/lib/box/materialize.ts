@@ -4,35 +4,11 @@ import {
   localDateString,
   planMaterializedInstances,
 } from "@78feet/domain";
-import type { ClassTemplate as DomainTemplate } from "@78feet/domain";
 import { prisma } from "../db";
 import type { Db } from "./db";
 import { isUniqueViolation } from "./db";
-import { clockFromDb, isoDateFromDb, isoDateToDb } from "./time";
-
-function toDomainTemplate(row: {
-  id: string;
-  weekday: number;
-  startTime: Date;
-  endTime: Date;
-  title: string;
-  kind: "directed" | "open";
-  coachId: string | null;
-  defaultCapacity: number;
-  active: boolean;
-}): DomainTemplate {
-  return {
-    id: row.id,
-    weekday: row.weekday,
-    startTime: clockFromDb(row.startTime),
-    endTime: clockFromDb(row.endTime),
-    title: row.title,
-    kind: row.kind,
-    coachId: row.coachId,
-    defaultCapacity: row.defaultCapacity,
-    active: row.active,
-  };
-}
+import { toDomainTemplate } from "./map";
+import { isoDateFromDb, isoDateToDb } from "./time";
 
 export async function ensureInstances(
   db: Db,
@@ -43,6 +19,7 @@ export async function ensureInstances(
   if (from > to) return 0;
   const rows = await db.classTemplate.findMany({
     where: { active: true, ...(templateId ? { id: templateId } : {}) },
+    include: { classType: true },
   });
   const templates = rows.map(toDomainTemplate);
   if (templates.length === 0) return 0;
@@ -69,7 +46,7 @@ export async function ensureInstances(
           date: isoDateToDb(instance.date),
           startAt: instance.startAt,
           endAt: instance.endAt,
-          title: instance.title,
+          classTypeId: instance.classTypeId,
           kind: instance.kind,
           coachId: instance.coachId,
           capacity: instance.capacity,

@@ -1,7 +1,12 @@
 import { DomainError, apiErrorBody, type ErrorCode } from "@78feet/domain";
 
-export function jsonError(code: ErrorCode, status: number, message?: string): Response {
-  const error = new DomainError(code, message);
+export function jsonError(
+  code: ErrorCode,
+  status: number,
+  message?: string,
+  details?: Record<string, unknown>,
+): Response {
+  const error = new DomainError(code, message, details);
   return Response.json(apiErrorBody(error), { status });
 }
 

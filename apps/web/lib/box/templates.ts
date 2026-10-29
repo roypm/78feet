@@ -14,16 +14,20 @@ import {
 import { prisma } from "../db";
 import type { Db } from "./db";
 import { BoxError } from "./errors";
+import { requireClassType } from "./class-types";
+import { toDomainBooking, toDomainInstance, toDomainTemplate, typeView } from "./map";
 import { ensureInstances } from "./materialize";
-import { clockFromDb, clockToDb, isoDateFromDb, isoDateToDb, normalizeClock } from "./time";
+import { clockFromDb, clockToDb, isoDateToDb, normalizeClock } from "./time";
 
 export type TemplateView = {
   id: string;
   weekday: number;
   startTime: string;
   endTime: string;
-  title: string;
+  classTypeId: string;
   kind: "directed" | "open";
+  classTypeName: string;
+  imageUrl: string;
   coachId: string | null;
   defaultCapacity: number;
   active: boolean;
@@ -40,54 +44,25 @@ function toView(row: {
   weekday: number;
   startTime: Date;
   endTime: Date;
-  title: string;
-  kind: "directed" | "open";
+  classTypeId: string;
+  classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string };
   coachId: string | null;
   defaultCapacity: number;
   active: boolean;
 }): TemplateView {
+  const type = typeView(row.classType);
   return {
     id: row.id,
     weekday: row.weekday,
     startTime: clockFromDb(row.startTime),
     endTime: clockFromDb(row.endTime),
-    title: row.title,
-    kind: row.kind,
+    classTypeId: row.classTypeId,
+    kind: type.kind,
+    classTypeName: type.name,
+    imageUrl: type.imageUrl,
     coachId: row.coachId,
     defaultCapacity: row.defaultCapacity,
     active: row.active,
-  };
-}
-
-function toDomainTemplate(view: TemplateView): ClassTemplate {
-  return { ...view };
-}
-
-function toDomainInstance(row: {
-  id: string;
-  templateId: string | null;
-  date: Date;
-  startAt: Date;
-  endAt: Date;
-  title: string;
-  kind: "directed" | "open";
-  coachId: string | null;
-  capacity: number;
-  status: "scheduled" | "cancelled";
-  editedAt: Date | null;
-}): ClassInstance {
-  return {
-    id: row.id,
-    templateId: row.templateId,
-    date: isoDateFromDb(row.date),
-    startAt: row.startAt,
-    endAt: row.endAt,
-    title: row.title,
-    kind: row.kind,
-    coachId: row.coachId,
-    capacity: row.capacity,
-    status: row.status,
-    editedAt: row.editedAt,
   };
 }
 
@@ -104,8 +79,9 @@ async function assertNoOverlap(
 ): Promise<void> {
   const others = await prisma.classTemplate.findMany({
     where: { active: true, weekday: candidate.weekday },
+    include: { classType: true },
   });
-  const domainOthers = others.map((row) => toDomainTemplate(toView(row)));
+  const domainOthers = others.map((row) => toDomainTemplate(row));
   if (templateConflicts(candidate, domainOthers)) {
     throw new BoxError(409, "OVERLAP", "Esa hora se solapa con otra clase del mismo día");
   }
@@ -114,6 +90,7 @@ async function assertNoOverlap(
 export async function listTemplates(): Promise<TemplateView[]> {
   const rows = await prisma.classTemplate.findMany({
     where: { active: true },
+    include: { classType: true },
     orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
   });
   return rows.map(toView);
@@ -123,13 +100,14 @@ export async function createTemplate(input: TemplateWrite, now = new Date()) {
   const startTime = normalizeClock(input.startTime);
   const endTime = normalizeClock(input.endTime);
   assertValidTimeRange(startTime, endTime);
+  const classType = await requireClassType(input.classTypeId);
   await assertCoach(input.coachId);
   const candidate = {
     weekday: input.weekday,
     startTime,
     endTime,
-    title: input.title,
-    kind: input.kind,
+    classTypeId: classType.id,
+    kind: classType.kind,
     coachId: input.coachId ?? null,
     defaultCapacity: input.defaultCapacity,
   };
@@ -142,12 +120,12 @@ export async function createTemplate(input: TemplateWrite, now = new Date()) {
         weekday: candidate.weekday,
         startTime: clockToDb(candidate.startTime),
         endTime: clockToDb(candidate.endTime),
-        title: candidate.title,
-        kind: candidate.kind,
+        classTypeId: candidate.classTypeId,
         coachId: candidate.coachId,
         defaultCapacity: candidate.defaultCapacity,
         active: true,
       },
+      include: { classType: true },
     });
     const createdCount = await ensureInstances(tx, range.from, range.to, created.id);
     return { view: toView(created), createdCount };
@@ -156,21 +134,26 @@ export async function createTemplate(input: TemplateWrite, now = new Date()) {
 }
 
 export async function updateTemplate(id: string, patch: PatchTemplate, actorId: string, now = new Date()) {
-  const existing = await prisma.classTemplate.findUnique({ where: { id } });
+  const existing = await prisma.classTemplate.findUnique({ where: { id }, include: { classType: true } });
   if (!existing) throw new BoxError(404, "FORBIDDEN", "La plantilla no existe");
   if (!existing.active) {
     throw new BoxError(403, "FORBIDDEN", "Una plantilla dada de baja no se vuelve a activar");
   }
   const current = toView(existing);
-  const next: TemplateView = {
-    ...current,
+  const classType =
+    patch.classTypeId && patch.classTypeId !== current.classTypeId
+      ? await requireClassType(patch.classTypeId)
+      : existing.classType;
+  const next: ClassTemplate = {
+    id: current.id,
     weekday: patch.weekday ?? current.weekday,
     startTime: normalizeClock(patch.startTime ?? current.startTime),
     endTime: normalizeClock(patch.endTime ?? current.endTime),
-    title: patch.title ?? current.title,
-    kind: patch.kind ?? current.kind,
+    classTypeId: classType.id,
+    kind: classType.kind,
     coachId: patch.coachId === undefined ? current.coachId : patch.coachId,
     defaultCapacity: patch.defaultCapacity ?? current.defaultCapacity,
+    active: true,
   };
   assertValidTimeRange(next.startTime, next.endTime);
   await assertCoach(next.coachId);
@@ -179,29 +162,29 @@ export async function updateTemplate(id: string, patch: PatchTemplate, actorId: 
   const from = nextMondayDate(today);
   const to = horizonRange(today).to;
   return prisma.$transaction(async (tx) => {
-    await tx.classTemplate.update({
+    const updated = await tx.classTemplate.update({
       where: { id },
       data: {
         weekday: next.weekday,
         startTime: clockToDb(next.startTime),
         endTime: clockToDb(next.endTime),
-        title: next.title,
-        kind: next.kind,
+        classTypeId: next.classTypeId,
         coachId: next.coachId,
         defaultCapacity: next.defaultCapacity,
       },
+      include: { classType: true },
     });
     const summary = await propagate(tx, id, actorId, today, now, {
       type: "update",
-      template: toDomainTemplate(next),
+      template: next,
     });
     await ensureInstances(tx, from, to, id);
-    return { template: next, summary };
+    return { template: toView(updated), summary };
   });
 }
 
 export async function deleteTemplate(id: string, actorId: string, now = new Date()) {
-  const existing = await prisma.classTemplate.findUnique({ where: { id } });
+  const existing = await prisma.classTemplate.findUnique({ where: { id }, include: { classType: true } });
   if (!existing) throw new BoxError(404, "FORBIDDEN", "La plantilla no existe");
   const view = toView(existing);
   if (!existing.active) {
@@ -226,22 +209,10 @@ async function propagate(
   const from = isoDateToDb(nextMondayDate(today));
   const rows = await tx.classInstance.findMany({
     where: { date: { gte: from } },
-    include: { bookings: true },
+    include: { bookings: true, training: { select: { classTypeId: true } } },
   });
   const instances = rows.map(toDomainInstance);
-  const bookings = rows.flatMap((row) =>
-    row.bookings.map((booking) => ({
-      id: booking.id,
-      instanceId: booking.instanceId,
-      userId: booking.userId,
-      pool: booking.pool,
-      status: booking.status,
-      quotaReturned: booking.quotaReturned,
-      createdBy: booking.createdBy,
-      cancelledAt: booking.cancelledAt,
-      cancelledBy: booking.cancelledBy,
-    })),
-  );
+  const bookings = rows.flatMap((row) => row.bookings.map(toDomainBooking));
   const result = propagateTemplateChange({
     today,
     templateId,
@@ -259,11 +230,12 @@ async function propagate(
       data: {
         startAt: instance.startAt,
         endAt: instance.endAt,
-        title: instance.title,
+        classTypeId: instance.classTypeId,
         kind: instance.kind,
         coachId: instance.coachId,
         capacity: instance.capacity,
         status: instance.status,
+        trainingId: instance.trainingId,
         cancelReason:
           before.status !== "cancelled" && instance.status === "cancelled"
             ? "Cambio de plantilla"
@@ -298,11 +270,12 @@ function sameInstance(left: ClassInstance, right: ClassInstance): boolean {
   return (
     left.startAt.getTime() === right.startAt.getTime() &&
     left.endAt.getTime() === right.endAt.getTime() &&
-    left.title === right.title &&
+    left.classTypeId === right.classTypeId &&
     left.kind === right.kind &&
     left.coachId === right.coachId &&
     left.capacity === right.capacity &&
-    left.status === right.status
+    left.status === right.status &&
+    left.trainingId === right.trainingId
   );
 }
 

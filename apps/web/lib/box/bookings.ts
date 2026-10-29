@@ -11,6 +11,7 @@ import {
 import { prisma } from "../db";
 import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
+import { toDomainBooking, toDomainInstance } from "./map";
 import { isoDateFromDb } from "./time";
 
 type InstanceRow = {
@@ -19,12 +20,14 @@ type InstanceRow = {
   date: Date;
   startAt: Date;
   endAt: Date;
-  title: string;
+  classTypeId: string;
   kind: "directed" | "open";
   coachId: string | null;
   capacity: number;
   status: "scheduled" | "cancelled";
+  trainingId: string | null;
   editedAt: Date | null;
+  classType: { name: string };
 };
 
 type BookingRow = {
@@ -54,7 +57,7 @@ export type BookingView = {
   instance: {
     id: string;
     date: string;
-    title: string;
+    name: string;
     kind: "directed" | "open";
     startAt: string;
     endAt: string;
@@ -62,36 +65,6 @@ export type BookingView = {
     status: "scheduled" | "cancelled";
   };
 };
-
-function toDomainBooking(row: BookingRow): Booking {
-  return {
-    id: row.id,
-    instanceId: row.instanceId,
-    userId: row.userId,
-    pool: row.pool,
-    status: row.status,
-    quotaReturned: row.quotaReturned,
-    createdBy: row.createdBy,
-    cancelledAt: row.cancelledAt,
-    cancelledBy: row.cancelledBy,
-  };
-}
-
-function toDomainInstance(row: InstanceRow): ClassInstance {
-  return {
-    id: row.id,
-    templateId: row.templateId,
-    date: isoDateFromDb(row.date),
-    startAt: row.startAt,
-    endAt: row.endAt,
-    title: row.title,
-    kind: row.kind,
-    coachId: row.coachId,
-    capacity: row.capacity,
-    status: row.status,
-    editedAt: row.editedAt,
-  };
-}
 
 function toView(row: BookingRow, instance: InstanceRow): BookingView {
   return {
@@ -108,7 +81,7 @@ function toView(row: BookingRow, instance: InstanceRow): BookingView {
     instance: {
       id: instance.id,
       date: isoDateFromDb(instance.date),
-      title: instance.title,
+      name: instance.classType.name,
       kind: instance.kind,
       startAt: instance.startAt.toISOString(),
       endAt: instance.endAt.toISOString(),
@@ -134,7 +107,10 @@ export async function reserveForMember(params: {
         throw new BoxError(404, "FORBIDDEN", "La clase no existe");
       }
 
-      const instance = await tx.classInstance.findUnique({ where: { id: params.instanceId } });
+      const instance = await tx.classInstance.findUnique({
+        where: { id: params.instanceId },
+        include: { classType: { select: { name: true } } },
+      });
       if (!instance) throw new BoxError(404, "FORBIDDEN", "La clase no existe");
 
       const user = await tx.user.findUnique({ where: { id: params.memberId } });
@@ -161,7 +137,7 @@ export async function reserveForMember(params: {
           userId: user.id,
           OR: [{ status: "active" }, { quotaReturned: false }],
         },
-        include: { instance: true },
+        include: { instance: { include: { classType: { select: { name: true } } } } },
       });
 
       const domainInstance = toDomainInstance(instance);
@@ -218,7 +194,7 @@ export async function cancelMemberBooking(
 ): Promise<BookingView> {
   const existing = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { instance: true },
+    include: { instance: { include: { classType: { select: { name: true } } } } },
   });
   if (!existing || existing.status !== "active" || existing.userId !== actorId) {
     throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
@@ -244,7 +220,7 @@ export async function cancelStaffBooking(
 ): Promise<BookingView> {
   const existing = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { instance: true },
+    include: { instance: { include: { classType: { select: { name: true } } } } },
   });
   if (!existing || existing.status !== "active") {
     throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
@@ -280,7 +256,7 @@ export async function listUpcomingBookings(userId: string, now = new Date()): Pr
         },
       ],
     },
-    include: { instance: true },
+    include: { instance: { include: { classType: { select: { name: true } } } } },
     orderBy: { instance: { startAt: "asc" } },
   });
   return rows.map((row) => ({
@@ -307,7 +283,12 @@ export async function listBookingHistory(userId: string, now = new Date()): Prom
       instance: { startAt: { lte: now } },
     },
     include: {
-      instance: { include: { coach: { select: { firstName: true, lastName: true } } } },
+      instance: {
+        include: {
+          classType: { select: { name: true } },
+          coach: { select: { firstName: true, lastName: true } },
+        },
+      },
     },
     orderBy: [{ instance: { startAt: "desc" } }, { createdAt: "desc" }],
   });

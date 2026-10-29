@@ -166,7 +166,10 @@ export async function getMember(id: string) {
         orderBy: { startedAt: "desc" },
       },
       creditGrantsReceived: { orderBy: { createdAt: "desc" } },
-      bookingsAsMember: { include: { instance: true }, orderBy: { createdAt: "desc" } },
+      bookingsAsMember: {
+        include: { instance: { include: { classType: { select: { name: true } } } } },
+        orderBy: { createdAt: "desc" },
+      },
       paymentsReceived: { orderBy: { createdAt: "desc" } },
     },
   });
@@ -212,7 +215,7 @@ export async function getMember(id: string) {
       pool: booking.pool,
       quotaReturned: booking.quotaReturned,
       date: isoDateFromDb(booking.instance.date),
-      title: booking.instance.title,
+      name: booking.instance.classType.name,
       startAt: booking.instance.startAt.toISOString(),
     })),
     payments: user.paymentsReceived.map((payment) => ({

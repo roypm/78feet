@@ -19,6 +19,7 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
   const suffix = randomUUID().slice(0, 8);
   const userIds: string[] = [];
   const instanceIds: string[] = [];
+  const classTypeIds: string[] = [];
   let tariffId = "";
   let adminToken = "";
   let coachToken = "";
@@ -77,6 +78,7 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
     const ids = [...new Set(userIds)];
     await prisma.booking.deleteMany({ where: { userId: { in: ids } } });
     await prisma.classInstance.deleteMany({ where: { id: { in: instanceIds } } });
+    if (classTypeIds.length) await prisma.classType.deleteMany({ where: { id: { in: classTypeIds } } });
     await prisma.payment.deleteMany({ where: { userId: { in: ids } } });
     await prisma.creditGrant.deleteMany({
       where: { OR: [{ userId: { in: ids } }, { createdBy: { in: ids } }] },
@@ -114,12 +116,16 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
   it("lists the week, the roster and the tariff for a member", async () => {
     const today = localDateString(new Date());
     const startAt = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const classType = await prisma.classType.create({
+      data: { name: `WOD ${suffix}`, kind: "directed", imageKey: "placeholder.png" },
+    });
+    classTypeIds.push(classType.id);
     const row = await prisma.classInstance.create({
       data: {
         date: isoDateToDb(today),
         startAt,
         endAt: new Date(startAt.getTime() + 60 * 60 * 1000),
-        title: `WOD ${suffix}`,
+        classTypeId: classType.id,
         kind: "directed",
         capacity: 12,
         status: "scheduled",
@@ -142,9 +148,9 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
       memberToken,
     );
     expect(listed.status).toBe(200);
-    const classes = listed.json as unknown as { id: string; title: string; freeSpots: number; bookedByMe: boolean }[];
+    const classes = listed.json as unknown as { id: string; name: string; freeSpots: number; bookedByMe: boolean }[];
     const found = classes.find((item) => item.id === row.id);
-    expect(found).toMatchObject({ title: `WOD ${suffix}`, freeSpots: 12, bookedByMe: false });
+    expect(found).toMatchObject({ name: `WOD ${suffix}`, freeSpots: 12, bookedByMe: false });
 
     const before = await call(summary, "GET", "/api/v1/me/summary", memberToken);
     expect(before.status).toBe(200);

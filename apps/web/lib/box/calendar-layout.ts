@@ -1,6 +1,8 @@
 import type { CalendarClass } from "@/lib/box/calendar";
 import { BOX_CLOSE_TIME, BOX_OPEN_TIME, clockToMinutes } from "@78feet/domain";
 
+export type CalendarHours = { openTime: string; closeTime: string };
+
 export const BLOCK_INSET = 2;
 const MIN_BLOCK_MINUTES = 60;
 
@@ -29,26 +31,29 @@ function spanMinutes(item: CalendarClass): { start: number; end: number } {
   return { start, end };
 }
 
-export function calendarAxis(classes: CalendarClass[]): {
+export function calendarAxis(
+  classes: CalendarClass[],
+  hours: CalendarHours = { openTime: BOX_OPEN_TIME, closeTime: BOX_CLOSE_TIME },
+): {
   axisStart: number;
   axisEnd: number;
   hours: number[];
   ticks: number[];
 } {
-  let axisStart = clockToMinutes(BOX_OPEN_TIME);
-  let axisEnd = clockToMinutes(BOX_CLOSE_TIME);
+  let axisStart = clockToMinutes(hours.openTime);
+  let axisEnd = clockToMinutes(hours.closeTime);
   for (const item of classes) {
     const span = spanMinutes(item);
     axisStart = Math.min(axisStart, Math.floor(span.start / 60) * 60);
     axisEnd = Math.max(axisEnd, Math.ceil(span.end / 60) * 60);
   }
-  const hours: number[] = [];
+  const hourMarks: number[] = [];
   const ticks: number[] = [];
   for (let minutes = axisStart; minutes <= axisEnd; minutes += 15) {
     ticks.push(minutes);
-    if (minutes % 60 === 0) hours.push(minutes);
+    if (minutes % 60 === 0) hourMarks.push(minutes);
   }
-  return { axisStart, axisEnd, hours, ticks };
+  return { axisStart, axisEnd, hours: hourMarks, ticks };
 }
 
 export function blockBox(

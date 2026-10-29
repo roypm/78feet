@@ -22,3 +22,16 @@ export async function requireMember(): Promise<User> {
   if (user.role !== "member") redirect("/");
   return user;
 }
+
+export async function requireStaff(): Promise<User> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role !== "coach" && user.role !== "admin") redirect("/");
+  return user;
+}
+
+export async function requireAdmin(): Promise<User> {
+  const user = await requireStaff();
+  if (user.role !== "admin") redirect("/staff/hoy");
+  return user;
+}

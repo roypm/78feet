@@ -22,6 +22,7 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
   const userIds: string[] = [];
   const tariffIds: string[] = [];
   const templateIds: string[] = [];
+  const classTypeIds: string[] = [];
   let adminToken = "";
   let coachToken = "";
   let memberToken = "";
@@ -64,14 +65,22 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
       select: { id: true },
     });
     const ids = [...new Set([...userIds, ...users.map((user) => user.id)])];
-    const templates = await prisma.classTemplate.findMany({
-      where: { title: { contains: suffix } },
-      select: { id: true },
-    });
-    const templatesToDrop = [...new Set([...templateIds, ...templates.map((template) => template.id)])];
+    const templatesToDrop = [...new Set(templateIds)];
     await prisma.booking.deleteMany({ where: { userId: { in: ids } } });
-    await prisma.classInstance.deleteMany({ where: { templateId: { in: templatesToDrop } } });
-    await prisma.classTemplate.deleteMany({ where: { id: { in: templatesToDrop } } });
+    await prisma.classInstance.deleteMany({
+      where: {
+        OR: [
+          { templateId: { in: templatesToDrop } },
+          { classTypeId: { in: classTypeIds } },
+        ],
+      },
+    });
+    await prisma.classTemplate.deleteMany({
+      where: {
+        OR: [{ id: { in: templatesToDrop } }, { classTypeId: { in: classTypeIds } }],
+      },
+    });
+    if (classTypeIds.length) await prisma.classType.deleteMany({ where: { id: { in: classTypeIds } } });
     await prisma.creditGrant.deleteMany({
       where: { OR: [{ userId: { in: ids } }, { createdBy: { in: ids } }] },
     });
@@ -192,27 +201,32 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     expect(credits.status).toBe(201);
     expect(credits.json).toMatchObject({ balance: 4 });
 
+    const wodType = await prisma.classType.create({
+      data: { name: `WOD ${suffix}`, kind: "directed", imageKey: "placeholder.png" },
+    });
+    const openType = await prisma.classType.create({
+      data: { name: `Open ${suffix}`, kind: "open", imageKey: "placeholder.png" },
+    });
+    classTypeIds.push(wodType.id, openType.id);
     const template = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
       weekday: 1,
-      startTime: "18:00",
-      endTime: "19:00",
-      title: `WOD ${suffix}`,
-      kind: "directed",
+      startTime: "05:10",
+      endTime: "06:10",
+      classTypeId: wodType.id,
       defaultCapacity: 12,
     });
     expect(template.status).toBe(201);
     const templateId = (template.json as { template: { id: string; startTime: string } }).template.id;
     const createdCount = (template.json as { createdInstanceCount: number }).createdInstanceCount;
     expect(createdCount).toBeGreaterThan(0);
-    expect((template.json as { template: { startTime: string } }).template.startTime).toBe("18:00:00");
+    expect((template.json as { template: { startTime: string } }).template.startTime).toBe("05:10:00");
     templateIds.push(templateId);
 
     const overlap = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
       weekday: 1,
-      startTime: "18:30",
-      endTime: "19:30",
-      title: `Open ${suffix}`,
-      kind: "open",
+      startTime: "05:40",
+      endTime: "06:40",
+      classTypeId: openType.id,
       defaultCapacity: 10,
     });
     expect(overlap.status).toBe(409);
