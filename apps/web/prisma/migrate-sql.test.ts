@@ -1,0 +1,30 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { PGlite } from "@electric-sql/pglite";
+import { describe, expect, it } from "vitest";
+
+const root = dirname(fileURLToPath(import.meta.url));
+const sql = readFileSync(join(root, "migrations/20261029100000_init/migration.sql"), "utf8");
+
+describe("init migration", () => {
+  it("applies against Postgres, including partial unique indexes", async () => {
+    const db = new PGlite();
+    await db.exec(sql);
+    const indexes = await db.query<{ indexname: string }>(
+      `SELECT indexname FROM pg_indexes WHERE indexname IN (
+        'membership_one_current',
+        'payment_one_month',
+        'class_instance_template_date',
+        'booking_one_active'
+      ) ORDER BY indexname`,
+    );
+    expect(indexes.rows.map((row) => row.indexname)).toEqual([
+      "booking_one_active",
+      "class_instance_template_date",
+      "membership_one_current",
+      "payment_one_month",
+    ]);
+    await db.close();
+  });
+});

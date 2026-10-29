@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  member
+  coach
+  admin
+}
+
+enum UserStatus {
+  active
+  inactive
+}
+
+enum TariffKind {
+  monthly
+  pack
+}
+
+enum ClassKind {
+  directed
+  open
+}
+
+enum InstanceStatus {
+  scheduled
+  cancelled
+}
+
+enum BookingPool {
+  weekly_directed
+  weekly_open
+  pack
+}
+
+enum BookingStatus {
+  active
+  cancelled
+}
+
+enum PaymentKind {
+  monthly
+  pack
+}
+
+enum EndedReason {
+  change
+  cancelled
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  loginId      String     @unique @map("login_id")
+  passwordHash String     @map("password_hash")
+  role         Role
+  status       UserStatus
+  firstName    String     @map("first_name")
+  lastName     String     @map("last_name")
+  dni          String?
+  phone        String?
+  email        String?
+  failedLogins Int        @default(0) @map("failed_logins")
+  lockedUntil  DateTime?  @map("locked_until") @db.Timestamptz
+  tokenVersion Int        @default(0) @map("token_version")
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  memberships         Membership[]
+  creditGrantsReceived CreditGrant[]  @relation("CreditGrantRecipient")
+  creditGrantsCreated  CreditGrant[]  @relation("CreditGrantAuthor")
+  paymentsReceived     Payment[]      @relation("PaymentMember")
+  paymentsRecorded     Payment[]      @relation("PaymentAuthor")
+  coachedTemplates     ClassTemplate[]
+  coachedInstances     ClassInstance[]
+  bookingsAsMember     Booking[]      @relation("BookingMember")
+  bookingsCreated      Booking[]      @relation("BookingAuthor")
+  bookingsCancelled    Booking[]      @relation("BookingCanceller")
+
+  @@map("user")
+}
+
+model Tariff {
+  id              String     @id @default(uuid()) @db.Uuid
+  name            String
+  kind            TariffKind
+  priceCents      Int        @map("price_cents")
+  weeklyDirected  Int        @default(0) @map("weekly_directed")
+  weeklyOpen      Int        @default(0) @map("weekly_open")
+  packClasses     Int?       @map("pack_classes")
+  active          Boolean    @default(true)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  memberships     Membership[]
+
+  @@map("tariff")
+}
+
+model Membership {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  tariffId    String       @map("tariff_id") @db.Uuid
+  startedAt   DateTime     @map("started_at") @db.Timestamptz
+  endedAt     DateTime?    @map("ended_at") @db.Timestamptz
+  endedReason EndedReason? @map("ended_reason")
+  user        User         @relation(fields: [userId], references: [id])
+  tariff      Tariff       @relation(fields: [tariffId], references: [id])
+
+  @@index([userId])
+  /// Unique current membership: SQL index membership_one_current WHERE ended_at IS NULL
+  @@map("membership")
+}
+
+model CreditGrant {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  quantity   Int
+  paymentId  String?  @map("payment_id") @db.Uuid
+  note       String?
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user       User     @relation("CreditGrantRecipient", fields: [userId], references: [id])
+  author     User     @relation("CreditGrantAuthor", fields: [createdBy], references: [id])
+  payment    Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([userId])
+  @@map("credit_grant")
+}
+
+model Payment {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  kind        PaymentKind
+  month       DateTime?   @db.Date
+  amountCents Int         @map("amount_cents")
+  method      String?
+  recordedBy  String      @map("recorded_by") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  user        User        @relation("PaymentMember", fields: [userId], references: [id])
+  recorder    User        @relation("PaymentAuthor", fields: [recordedBy], references: [id])
+  creditGrants CreditGrant[]
+
+  @@index([userId, month])
+  /// Unique monthly payment: SQL index payment_one_month WHERE kind = 'monthly'
+  @@map("payment")
+}
+
+model ClassTemplate {
+  id               String        @id @default(uuid()) @db.Uuid
+  weekday          Int
+  startTime        DateTime      @map("start_time") @db.Time(0)
+  endTime          DateTime      @map("end_time") @db.Time(0)
+  title            String
+  kind             ClassKind
+  coachId          String?       @map("coach_id") @db.Uuid
+  defaultCapacity  Int           @map("default_capacity")
+  active           Boolean       @default(true)
+  coach            User?         @relation(fields: [coachId], references: [id])
+  instances        ClassInstance[]
+
+  @@map("class_template")
+}
+
+model ClassInstance {
+  id           String         @id @default(uuid()) @db.Uuid
+  templateId   String?        @map("template_id") @db.Uuid
+  date         DateTime       @db.Date
+  startAt      DateTime       @map("start_at") @db.Timestamptz
+  endAt        DateTime       @map("end_at") @db.Timestamptz
+  title        String
+  kind         ClassKind
+  coachId      String?        @map("coach_id") @db.Uuid
+  capacity     Int
+  status       InstanceStatus
+  editedAt     DateTime?      @map("edited_at") @db.Timestamptz
+  cancelReason String?        @map("cancel_reason")
+  template     ClassTemplate? @relation(fields: [templateId], references: [id])
+  coach        User?          @relation(fields: [coachId], references: [id])
+  bookings     Booking[]
+
+  @@index([date])
+  /// Unique template instance: SQL index class_instance_template_date WHERE template_id IS NOT NULL
+  @@map("class_instance")
+}
+
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  instanceId      String        @map("instance_id") @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  pool            BookingPool
+  status          BookingStatus
+  createdBy       String        @map("created_by") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  cancelledAt     DateTime?     @map("cancelled_at") @db.Timestamptz
+  cancelledBy     String?       @map("cancelled_by") @db.Uuid
+  quotaReturned   Boolean?      @map("quota_returned")
+  instance        ClassInstance @relation(fields: [instanceId], references: [id])
+  member          User          @relation("BookingMember", fields: [userId], references: [id])
+  createdByUser   User          @relation("BookingAuthor", fields: [createdBy], references: [id])
+  cancelledByUser User?         @relation("BookingCanceller", fields: [cancelledBy], references: [id])
+
+  @@index([userId])
+  @@index([instanceId])
+  /// Unique active booking: SQL index booking_one_active WHERE status = 'active'
+  @@map("booking")
+}
