@@ -84,14 +84,11 @@ async function Exceptions({ searchParams }: { searchParams: Promise<{ date?: str
             ))}
           </ul>
         )}
-        <section className="flex flex-col gap-3 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
-          <h2 className="font-medium">Añadir clase extra</h2>
-          {classTypes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Primero el admin tiene que crear un tipo de clase.</p>
-          ) : (
-            <ExtraClassForm date={date} classTypes={classTypes} coaches={coaches} />
-          )}
-        </section>
+        {classTypes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Primero el admin tiene que crear un tipo de clase.</p>
+        ) : (
+          <ExtraClassForm date={date} classTypes={classTypes} coaches={coaches} />
+        )}
       </ModuleBody>
     </ModulePage>
   );

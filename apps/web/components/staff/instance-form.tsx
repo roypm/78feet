@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, controlClass } from "@/components/staff/field";
+import { FormDialog } from "@/components/staff/form-dialog";
 
 type ClassType = { id: string; name: string; kind: "directed" | "open" };
 type Training = { id: string; name: string; classTypeId: string };
@@ -152,6 +154,7 @@ export function ExtraClassForm({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [open, setOpen] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -170,6 +173,7 @@ export function ExtraClassForm({
         }),
       });
       toast.success("Clase extra creada");
+      setOpen(false);
       router.push(`/staff/clases/${created.id}`);
       router.refresh();
     } catch (error) {
@@ -180,39 +184,47 @@ export function ExtraClassForm({
   }
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
-      <Field label="Inicio">
-        <Input name="startTime" type="time" required defaultValue="18:00" />
-      </Field>
-      <Field label="Fin">
-        <Input name="endTime" type="time" required defaultValue="19:00" />
-      </Field>
-      <Field label="Tipo">
-        <select name="classTypeId" required className={controlClass}>
-          {classTypes.map((type) => (
-            <option key={type.id} value={type.id}>
-              {type.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Coach">
-        <select name="coachId" className={controlClass} defaultValue="">
-          <option value="">Sin coach</option>
-          {coaches.map((coach) => (
-            <option key={coach.id} value={coach.id}>
-              {coach.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Aforo">
-        <Input name="capacity" type="number" min={1} required defaultValue={12} />
-      </Field>
-      <Button type="submit" className="min-h-11" disabled={pending || classTypes.length === 0}>
-        {pending ? "Creando…" : "Añadir clase extra"}
-      </Button>
-    </form>
+      <FormDialog
+        open={open}
+        onOpenChange={setOpen}
+        busy={pending}
+        trigger={<Button type="button" variant="outline" className="min-h-11" disabled={classTypes.length === 0}>Añadir clase extra</Button>}
+        title="Añadir clase extra"
+        description="La clase se añadirá al día seleccionado en Excepciones."
+      >
+        <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+          <Field label="Inicio">
+            <Input name="startTime" type="time" required defaultValue="18:00" />
+          </Field>
+          <Field label="Fin">
+            <Input name="endTime" type="time" required defaultValue="19:00" />
+          </Field>
+          <Field label="Tipo">
+            <select name="classTypeId" required className={controlClass}>
+              {classTypes.map((type) => (
+                <option key={type.id} value={type.id}>{type.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Coach">
+            <select name="coachId" className={controlClass} defaultValue="">
+              <option value="">Sin coach</option>
+              {coaches.map((coach) => <option key={coach.id} value={coach.id}>{coach.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Aforo">
+            <Input name="capacity" type="number" min={1} required defaultValue={12} />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="min-h-11" disabled={pending || classTypes.length === 0}>
+              {pending ? "Creando…" : "Añadir clase"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </FormDialog>
   );
 }
 

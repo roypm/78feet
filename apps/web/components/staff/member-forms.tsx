@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, controlClass } from "@/components/staff/field";
+import { FormDialog } from "@/components/staff/form-dialog";
 
 type Tariff = { id: string; name: string; active: boolean };
 
@@ -91,11 +93,13 @@ export function MemberActions({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [openAction, setOpenAction] = useState<"tariff" | "credits" | "password" | null>(null);
   const assignable = tariffs.filter((tariff) => tariff.active);
 
   async function changeTariff(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const tariffId = String(new FormData(event.currentTarget).get("tariffId"));
+    const formElement = event.currentTarget;
+    const tariffId = String(new FormData(formElement).get("tariffId"));
     const ok = window.confirm(
       "Este cambio cancela todas las reservas futuras del socio y devuelve el cupo/saldo. El socio se vuelve a apuntar con la tarifa nueva.",
     );
@@ -107,6 +111,8 @@ export function MemberActions({
         body: JSON.stringify({ tariffId }),
       });
       toast.success(`Tarifa cambiada. ${result.cancelledBookingCount} reservas canceladas.`);
+      formElement.reset();
+      setOpenAction(null);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo cambiar");
@@ -117,7 +123,8 @@ export function MemberActions({
 
   async function grant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     setPending(true);
     try {
       await api(`/api/v1/admin/members/${memberId}/credits`, {
@@ -128,6 +135,8 @@ export function MemberActions({
         }),
       });
       toast.success("Saldo recargado");
+      formElement.reset();
+      setOpenAction(null);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo recargar");
@@ -138,7 +147,8 @@ export function MemberActions({
 
   async function resetPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const password = String(new FormData(event.currentTarget).get("password"));
+    const formElement = event.currentTarget;
+    const password = String(new FormData(formElement).get("password"));
     setPending(true);
     try {
       await api(`/api/v1/admin/members/${memberId}/reset-password`, {
@@ -146,6 +156,8 @@ export function MemberActions({
         body: JSON.stringify({ password }),
       });
       toast.success("Contraseña reseteada");
+      formElement.reset();
+      setOpenAction(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo resetear");
     } finally {
@@ -187,38 +199,73 @@ export function MemberActions({
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={(event) => void changeTariff(event)} className="flex flex-col gap-3">
-        <h2 className="font-medium">Cambiar tarifa</h2>
-        <select name="tariffId" required defaultValue={currentTariffId ?? ""} className={controlClass}>
-          {assignable.map((tariff) => (
-            <option key={tariff.id} value={tariff.id}>
-              {tariff.name}
-            </option>
-          ))}
-        </select>
-        <Button type="submit" disabled={pending}>
-          Cambiar
-        </Button>
-      </form>
-      <form onSubmit={(event) => void grant(event)} className="flex flex-col gap-3">
-        <h2 className="font-medium">Cargar bono</h2>
-        <Field label="Clases">
-          <Input name="quantity" type="number" min={1} required defaultValue={5} />
-        </Field>
-        <Field label="Nota">
-          <Input name="note" />
-        </Field>
-        <Button type="submit" disabled={pending}>
-          Recargar
-        </Button>
-      </form>
-      <form onSubmit={(event) => void resetPassword(event)} className="flex flex-col gap-3">
-        <h2 className="font-medium">Resetear contraseña</h2>
-        <Input name="password" type="password" required minLength={8} />
-        <Button type="submit" disabled={pending}>
-          Resetear
-        </Button>
-      </form>
+      <div className="flex flex-wrap gap-2">
+      <FormDialog
+        open={openAction === "tariff"}
+        onOpenChange={(open) => setOpenAction(open ? "tariff" : null)}
+        busy={pending}
+        trigger={<Button type="button" variant="outline" className="min-h-11" disabled={pending || assignable.length === 0}>Cambiar tarifa</Button>}
+        title="Cambiar tarifa"
+        description="El cambio cancela las reservas futuras y devuelve su cupo o saldo. La persona tendrá que volver a apuntarse."
+      >
+        <form onSubmit={(event) => void changeTariff(event)} className="flex flex-col gap-4">
+          <Field label="Nueva tarifa">
+            <select name="tariffId" required defaultValue={currentTariffId ?? ""} className={controlClass}>
+              {assignable.map((tariff) => <option key={tariff.id} value={tariff.id}>{tariff.name}</option>)}
+            </select>
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="min-h-11" disabled={pending}>{pending ? "Cambiando…" : "Cambiar tarifa"}</Button>
+          </DialogFooter>
+        </form>
+      </FormDialog>
+      <FormDialog
+        open={openAction === "credits"}
+        onOpenChange={(open) => setOpenAction(open ? "credits" : null)}
+        busy={pending}
+        trigger={<Button type="button" variant="outline" className="min-h-11" disabled={pending}>Cargar bono</Button>}
+        title="Cargar bono"
+        description="Añadí clases al saldo de bono del socio."
+      >
+        <form onSubmit={(event) => void grant(event)} className="flex flex-col gap-4">
+          <Field label="Clases">
+            <Input name="quantity" type="number" min={1} required defaultValue={5} />
+          </Field>
+          <Field label="Nota">
+            <Input name="note" />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="min-h-11" disabled={pending}>{pending ? "Recargando…" : "Recargar saldo"}</Button>
+          </DialogFooter>
+        </form>
+      </FormDialog>
+      <FormDialog
+        open={openAction === "password"}
+        onOpenChange={(open) => setOpenAction(open ? "password" : null)}
+        busy={pending}
+        trigger={<Button type="button" variant="outline" className="min-h-11" disabled={pending}>Resetear contraseña</Button>}
+        title="Resetear contraseña"
+        description="Definí la nueva contraseña que usará el socio para entrar."
+      >
+        <form onSubmit={(event) => void resetPassword(event)} className="flex flex-col gap-4">
+          <Field label="Nueva contraseña">
+            <Input name="password" type="password" required minLength={8} autoComplete="new-password" />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="min-h-11" disabled={pending}>{pending ? "Guardando…" : "Resetear contraseña"}</Button>
+          </DialogFooter>
+        </form>
+      </FormDialog>
+      </div>
       <Button type="button" variant="secondary" disabled={pending} onClick={() => void payMonth()}>
         Marcar pago del mes
       </Button>
