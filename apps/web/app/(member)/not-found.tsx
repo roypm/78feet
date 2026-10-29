@@ -4,10 +4,11 @@ import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module
 export default function NotFound() {
   return (
     <ModulePage>
-      <ModuleHeader title="No encontramos esa clase" />
+      <ModuleHeader title="Página no encontrada" />
       <ModuleBody>
-        <Link href="/calendario" className="text-primary">
-          Volver al calendario
+        <p className="text-muted-foreground">El contenido puede haberse movido o ya no estar disponible.</p>
+        <Link href="/" className="text-primary">
+          Volver al inicio
         </Link>
       </ModuleBody>
     </ModulePage>
