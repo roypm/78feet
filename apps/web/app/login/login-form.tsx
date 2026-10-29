@@ -31,7 +31,7 @@ export function LoginForm() {
         setError(payload.error?.message ?? "No se pudo entrar");
         return;
       }
-      router.push(payload.user?.role === "member" ? "/calendario" : "/");
+      router.push(payload.user?.role === "member" ? "/calendario" : "/staff/hoy");
       router.refresh();
     } catch {
       setError("No se pudo entrar");

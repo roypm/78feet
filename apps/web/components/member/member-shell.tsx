@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, CreditCard, Footprints, History, Ticket, User } from "lucide-react";
+import { BookOpen, Calendar, CreditCard, Footprints, History, Ticket, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,18 +18,21 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarNavLink } from "@/components/sidebar-nav-link";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const links = [
   { href: "/calendario", label: "Calendario", icon: Calendar },
   { href: "/reservas", label: "Reservas", icon: Ticket },
   { href: "/historial", label: "Historial", icon: History },
+  { href: "/biblioteca", label: "Biblioteca", icon: BookOpen },
   { href: "/tarifa", label: "Tarifa", icon: CreditCard },
   { href: "/cuenta", label: "Cuenta", icon: User },
 ];
 
 function isCurrent(pathname: string, href: string): boolean {
   if (href === "/calendario") return pathname === href || pathname.startsWith("/clases");
+  if (href === "/biblioteca") return pathname.startsWith("/biblioteca");
   return pathname === href;
 }
 
@@ -47,7 +50,10 @@ function MemberFrame({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="78feet" render={<Link href="/calendario" />}>
+              <SidebarMenuButton
+                tooltip="78feet"
+                render={(props) => <Link {...props} href="/calendario" />}
+              >
                 <Footprints />
                 <span className="font-semibold">78feet</span>
               </SidebarMenuButton>
@@ -59,16 +65,13 @@ function MemberFrame({ children }: { children: React.ReactNode }) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {links.map((link) => (
-                  <SidebarMenuItem key={link.href}>
-                    <SidebarMenuButton
-                      isActive={isCurrent(pathname, link.href)}
-                      tooltip={link.label}
-                      render={<Link href={link.href} />}
-                    >
-                      <link.icon />
-                      <span>{link.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <SidebarNavLink
+                    key={link.href}
+                    href={link.href}
+                    label={link.label}
+                    icon={link.icon}
+                    active={isCurrent(pathname, link.href)}
+                  />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>

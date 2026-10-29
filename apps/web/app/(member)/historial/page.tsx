@@ -56,7 +56,7 @@ async function History() {
                       >
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{booking.instance.title}</p>
+                            <p className="truncate font-medium">{booking.instance.name}</p>
                             <p className="text-sm text-muted-foreground tabular-nums">
                               {formatDay(booking.instance.date)} · {formatTime(new Date(booking.instance.startAt))}–
                               {formatTime(new Date(booking.instance.endAt))}

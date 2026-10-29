@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { eachDate } from "@78feet/domain";
 import { requireMember } from "@/lib/auth/current";
 import { listCalendar } from "@/lib/box/calendar";
+import { getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
 import { CalendarBoard } from "@/components/member/calendar-board";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
@@ -33,13 +34,18 @@ async function Calendar({ searchParams }: { searchParams: Promise<{ semana?: str
   const now = new Date();
   const week = memberWeek(now, query.semana);
   const view = query.tipo === "open" ? "open" : "dirigidas";
-  const classes = (await listCalendar(user.id, week.start, week.end, now)).filter((item) =>
+  const [listed, hours] = await Promise.all([
+    listCalendar(user.id, week.start, week.end, now),
+    getBoxHours(),
+  ]);
+  const classes = listed.filter((item) =>
     view === "open" ? item.kind === "open" : item.kind === "directed",
   );
 
   return (
     <CalendarBoard
       view={view}
+      hours={hours}
       semana={query.semana ? week.start : undefined}
       today={week.today}
       week={{

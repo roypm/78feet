@@ -41,7 +41,7 @@ async function Bookings() {
             <li key={booking.id} className="flex flex-col gap-3 rounded-lg bg-card p-3 ring-1 ring-foreground/10">
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{booking.instance.title}</p>
+                  <p className="truncate font-medium">{booking.instance.name}</p>
                   <p className="text-sm text-muted-foreground tabular-nums">
                     {formatDay(booking.instance.date)} · {formatTime(new Date(booking.instance.startAt))}
                   </p>

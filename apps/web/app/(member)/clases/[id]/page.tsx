@@ -5,6 +5,7 @@ import { requireMember } from "@/lib/auth/current";
 import { getInstanceDetail } from "@/lib/box/calendar";
 import { BoxError } from "@/lib/box/errors";
 import { formatDay, formatTime, freeSpotLabel, kindLabel } from "@/lib/box/format";
+import { TrainingRead } from "@/components/box/training-read";
 import { BookButton } from "@/components/member/book-button";
 import { CancelBookingButton } from "@/components/member/cancel-button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +43,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   return (
     <ModulePage>
       <ModuleHeader
-        title={detail.title}
+        title={detail.name}
         eyebrow={
           <Link href="/calendario" className="text-sm text-primary">
             Calendario
@@ -55,6 +56,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         }
       >
         <div className="flex flex-col gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
           <p className="text-muted-foreground tabular-nums">
             {formatDay(detail.date)} · {formatTime(new Date(detail.startAt))}–{formatTime(new Date(detail.endAt))}
           </p>
@@ -80,6 +83,14 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             </ul>
           )}
         </section>
+        {detail.training ? (
+          <section className="flex flex-col gap-3 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
+            <Link href={`/biblioteca/${detail.training.id}`} className="font-medium text-primary">
+              {detail.training.name}
+            </Link>
+            <TrainingRead name={detail.training.name} phases={detail.training.phases} />
+          </section>
+        ) : null}
         <Action detail={detail} />
       </ModuleBody>
     </ModulePage>

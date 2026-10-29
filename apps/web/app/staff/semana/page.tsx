@@ -1,0 +1,61 @@
+import { Suspense } from "react";
+import { eachDate } from "@78feet/domain";
+import { requireStaff } from "@/lib/auth/current";
+import { listWeek } from "@/lib/box/staff-calendar";
+import { getBoxHours } from "@/lib/box/hours";
+import { memberWeek } from "@/lib/box/week";
+import { CalendarBoard } from "@/components/member/calendar-board";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+
+export default function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ semana?: string; tipo?: string }>;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <ModulePage>
+          <ModuleHeader dense title="Semana" />
+          <ModuleBody fill>
+            <p className="px-4 py-6 text-muted-foreground md:px-6">Cargando la semana…</p>
+          </ModuleBody>
+        </ModulePage>
+      }
+    >
+      <Week searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function Week({ searchParams }: { searchParams: Promise<{ semana?: string; tipo?: string }> }) {
+  await requireStaff();
+  const query = await searchParams;
+  const now = new Date();
+  const week = memberWeek(now, query.semana);
+  const view = query.tipo === "open" ? "open" : "dirigidas";
+  const [classes, hours] = await Promise.all([listWeek(week.start, now), getBoxHours()]);
+  const filtered = classes.filter((item) => (view === "open" ? item.kind === "open" : item.kind === "directed"));
+
+  return (
+    <CalendarBoard
+      view={view}
+      title="Semana"
+      basePath="/staff/semana"
+      classHrefPrefix="/staff/clases"
+      semana={query.semana ? week.start : undefined}
+      today={week.today}
+      hours={hours}
+      week={{
+        start: week.start,
+        canPrev: week.canPrev,
+        canNext: week.canNext,
+        prev: week.prev,
+        next: week.next,
+        weeks: week.weeks,
+      }}
+      days={eachDate(week.start, week.end)}
+      classes={filtered}
+    />
+  );
+}

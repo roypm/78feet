@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { CalendarClass } from "@/lib/box/calendar";
-import { BLOCK_INSET, blockBox, calendarAxis, clockLabel, columnHeight } from "@/lib/box/calendar-layout";
+import {
+  BLOCK_INSET,
+  blockBox,
+  calendarAxis,
+  clockLabel,
+  columnHeight,
+  type CalendarHours,
+} from "@/lib/box/calendar-layout";
 import { PX_PER_HOUR, PX_PER_HOUR_LARGE, PX_PER_HOUR_MEDIUM } from "@/lib/box/column";
 import { formatDayNumber, formatTime, formatWeekChip, formatWeekday, formatWeekRange } from "@/lib/box/format";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
@@ -26,12 +33,12 @@ type WeekNav = {
   weeks: { start: string; end: string }[];
 };
 
-function calendarHref(semana: string | undefined, view: CalendarView): string {
+function calendarHref(basePath: string, semana: string | undefined, view: CalendarView): string {
   const params = new URLSearchParams();
   if (semana) params.set("semana", semana);
   if (view === "open") params.set("tipo", "open");
   const query = params.toString();
-  return query ? `/calendario?${query}` : "/calendario";
+  return query ? `${basePath}?${query}` : basePath;
 }
 
 function useCalendarScale(): {
@@ -74,6 +81,12 @@ export function CalendarBoard({
   week,
   days,
   classes,
+  hours,
+  title = "Calendario",
+  basePath = "/calendario",
+  classHrefPrefix = "/clases",
+  emptyDirected = "No hay clases dirigidas esta semana.",
+  emptyOpen = "No hay opens esta semana.",
 }: {
   view: CalendarView;
   semana: string | undefined;
@@ -81,24 +94,30 @@ export function CalendarBoard({
   week: WeekNav;
   days: string[];
   classes: CalendarClass[];
+  hours?: CalendarHours;
+  title?: string;
+  basePath?: string;
+  classHrefPrefix?: string;
+  emptyDirected?: string;
+  emptyOpen?: string;
 }) {
   const { desktop, density, choose, pxPerHour } = useCalendarScale();
   const text = pxPerHour >= PX_PER_HOUR_LARGE ? "text-base" : pxPerHour > PX_PER_HOUR ? "text-sm" : "text-xs";
-  const axis = calendarAxis(classes);
+  const axis = calendarAxis(classes, hours);
   const height = columnHeight(classes, axis.axisStart, axis.axisEnd, pxPerHour);
 
   return (
     <ModulePage>
       <ModuleHeader
         dense
-        title="Calendario"
+        title={title}
         action={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex w-fit rounded-md bg-muted p-0.5" role="tablist" aria-label="Tipo de clase">
-              <ViewTab href={calendarHref(semana, "dirigidas")} active={view === "dirigidas"}>
+              <ViewTab href={calendarHref(basePath, semana, "dirigidas")} active={view === "dirigidas"}>
                 Dirigidas
               </ViewTab>
-              <ViewTab href={calendarHref(semana, "open")} active={view === "open"}>
+              <ViewTab href={calendarHref(basePath, semana, "open")} active={view === "open"}>
                 Open
               </ViewTab>
             </div>
@@ -121,7 +140,7 @@ export function CalendarBoard({
         <nav aria-label="Semanas" className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
           {week.canPrev ? (
             <Link
-              href={calendarHref(week.prev, view)}
+              href={calendarHref(basePath, week.prev, view)}
               prefetch={true}
               className="flex min-h-8 items-center px-1 text-sm text-primary"
             >
@@ -138,7 +157,7 @@ export function CalendarBoard({
                 return (
                   <Link
                     key={item.start}
-                    href={calendarHref(item.start, view)}
+                    href={calendarHref(basePath, item.start, view)}
                     prefetch={true}
                     aria-current={active ? "page" : undefined}
                     aria-label={`Semana del ${formatWeekRange(item.start, item.end)}`}
@@ -157,7 +176,7 @@ export function CalendarBoard({
           </div>
           {week.canNext ? (
             <Link
-              href={calendarHref(week.next, view)}
+              href={calendarHref(basePath, week.next, view)}
               prefetch={true}
               className="flex min-h-8 items-center justify-self-end px-1 text-sm text-primary"
             >
@@ -173,7 +192,7 @@ export function CalendarBoard({
       <ModuleBody fill>
         {classes.length === 0 ? (
           <p className="px-4 pt-4 text-muted-foreground md:px-6">
-            {view === "open" ? "No hay opens esta semana." : "No hay clases dirigidas esta semana."}
+            {view === "open" ? emptyOpen : emptyDirected}
           </p>
         ) : null}
         <div
@@ -240,6 +259,7 @@ export function CalendarBoard({
                           <ClassBlock
                             key={item.id}
                             item={item}
+                            href={`${classHrefPrefix}/${item.id}`}
                             text={text}
                             top={box.top + BLOCK_INSET}
                             height={Math.max(box.height - BLOCK_INSET * 2, side)}
@@ -308,12 +328,14 @@ function GridLines({ ticks, axisStart, pxPerHour }: { ticks: number[]; axisStart
 
 function ClassBlock({
   item,
+  href,
   top,
   height,
   width,
   text,
 }: {
   item: CalendarClass;
+  href: string;
   top: number;
   height: number;
   width: number;
@@ -324,20 +346,19 @@ function ClassBlock({
   const status = item.status === "cancelled" ? "Cancelada" : item.bookedByMe ? "Apuntado" : "";
   return (
     <Link
-      href={`/clases/${item.id}`}
+      href={href}
       prefetch={true}
-      title={item.title}
-      aria-label={`${item.title}, ${range}, ${occupancy}${status ? `, ${status}` : ""}`}
-      className="absolute z-10 flex min-w-0 touch-manipulation flex-col justify-center gap-0.5 overflow-hidden rounded-md bg-card px-1.5 py-1 ring-1 ring-foreground/10 transition-transform duration-150 ease-out active:scale-[0.97] [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted"
+      title={item.name}
+      aria-label={`${item.name}, ${range}, ${occupancy}${status ? `, ${status}` : ""}`}
+      className="absolute z-10 overflow-hidden rounded-md ring-1 ring-foreground/10 transition-transform duration-150 ease-out active:scale-[0.97]"
       style={{ top, height, left: BLOCK_INSET, width }}
     >
-      <p className={`truncate font-medium ${text}`}>{item.title}</p>
-      <p className={`shrink-0 tabular-nums ${text}`}>{occupancy}</p>
-      {status ? (
-        <p className={`truncate ${text} ${item.status === "cancelled" ? "text-destructive" : "font-medium text-primary"}`}>
-          {status}
-        </p>
-      ) : null}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={item.imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
+      <span className="absolute inset-x-0 bottom-0 flex flex-col items-center bg-black/55 px-1 py-0.5 text-center text-white">
+        <span className={`tabular-nums ${text}`}>{occupancy}</span>
+        {status ? <span className={`truncate ${text}`}>{status}</span> : null}
+      </span>
     </Link>
   );
 }
