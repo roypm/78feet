@@ -1,6 +1,8 @@
 export const BOX_TIME_ZONE = "Europe/Madrid";
-export const BOOKING_HORIZON_DAYS = 28;
+export const BOOKING_HORIZON_WEEKS = 4;
 export const MEMBER_CANCEL_LEAD_MS = 2 * 60 * 60 * 1000;
+export const BOX_OPEN_TIME = "07:00";
+export const BOX_CLOSE_TIME = "21:00";
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const CLOCK = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;
@@ -160,7 +162,9 @@ export function nextMondayDate(today: string): string {
 }
 
 export function horizonRange(today: string): { from: string; to: string } {
-  return { from: today, to: addDays(today, BOOKING_HORIZON_DAYS) };
+  const first = weekStartDate(today);
+  const last = addDays(first, (BOOKING_HORIZON_WEEKS - 1) * 7);
+  return { from: today, to: weekEndDate(last) };
 }
 
 export function eachDate(from: string, to: string): string[] {

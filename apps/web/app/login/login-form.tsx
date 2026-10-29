@@ -23,12 +23,15 @@ export function LoginForm() {
         credentials: "include",
         body: JSON.stringify({ loginId, password }),
       });
-      const payload = (await response.json()) as { error?: { message: string } };
+      const payload = (await response.json()) as {
+        error?: { message: string };
+        user?: { role: string };
+      };
       if (!response.ok) {
         setError(payload.error?.message ?? "No se pudo entrar");
         return;
       }
-      router.push("/");
+      router.push(payload.user?.role === "member" ? "/calendario" : "/");
       router.refresh();
     } catch {
       setError("No se pudo entrar");

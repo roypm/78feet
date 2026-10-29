@@ -8,6 +8,7 @@ import { POST as grantCredits } from "../../app/api/v1/admin/members/[id]/credit
 import { POST as bookAsMember } from "../../app/api/v1/bookings/route";
 import { DELETE as cancelAsMember } from "../../app/api/v1/bookings/[id]/route";
 import { GET as listMine } from "../../app/api/v1/me/bookings/route";
+import { GET as bookingHistory } from "../../app/api/v1/me/bookings/history/route";
 import { POST as bookAsStaff } from "../../app/api/v1/admin/bookings/route";
 import { DELETE as cancelAsStaff } from "../../app/api/v1/admin/bookings/[id]/route";
 import { reserveForMember } from "./bookings";
@@ -429,5 +430,66 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     expect(
       await prisma.booking.count({ where: { instanceId: instance.id, status: "active" } }),
     ).toBe(1);
+  });
+
+  it("lists past bookings in history and keeps upcoming classes out of it", async () => {
+    const september = await createInstance({
+      date: "2026-09-15",
+      startAt: new Date("2026-09-15T08:00:00.000Z"),
+      endAt: new Date("2026-09-15T09:00:00.000Z"),
+    });
+    await prisma.classInstance.update({ where: { id: september.id }, data: { coachId } });
+    const august = await createInstance({
+      date: "2026-08-03",
+      startAt: new Date("2026-08-03T16:00:00.000Z"),
+      endAt: new Date("2026-08-03T17:00:00.000Z"),
+    });
+    await prisma.classInstance.update({ where: { id: august.id }, data: { status: "cancelled" } });
+    const ahead = await createInstance(slot(openWeek(), 11));
+
+    const kept = await prisma.booking.create({
+      data: {
+        instanceId: september.id,
+        userId: memberId,
+        pool: "weekly_directed",
+        status: "active",
+        createdBy: memberId,
+      },
+    });
+    const dropped = await prisma.booking.create({
+      data: {
+        instanceId: august.id,
+        userId: memberId,
+        pool: "weekly_directed",
+        status: "cancelled",
+        quotaReturned: true,
+        cancelledAt: new Date("2026-08-01T10:00:00.000Z"),
+        cancelledBy: memberId,
+        createdBy: memberId,
+      },
+    });
+    const upcoming = await call(bookAsMember, "POST", "/api/v1/bookings", memberToken, { instanceId: ahead.id });
+    expect(upcoming.status).toBe(201);
+
+    const denied = await call(bookingHistory, "GET", "/api/v1/me/bookings/history", coachToken);
+    expect(denied.status).toBe(403);
+
+    const history = await call(bookingHistory, "GET", "/api/v1/me/bookings/history", memberToken);
+    expect(history.status).toBe(200);
+    const rows = history.json as unknown as {
+      id: string;
+      status: string;
+      boxCancelled: boolean;
+      coachName: string | null;
+      instance: { date: string };
+    }[];
+    expect(rows.map((row) => row.id)).toEqual([kept.id, dropped.id]);
+    expect(rows[0]).toMatchObject({ status: "active", boxCancelled: false, coachName: "Ciro Coach" });
+    expect(rows[1]).toMatchObject({ status: "cancelled", boxCancelled: true, coachName: null });
+
+    const listed = await call(listMine, "GET", "/api/v1/me/bookings", memberToken);
+    const upcomingRows = listed.json as unknown as { instanceId: string }[];
+    expect(upcomingRows.some((row) => row.instanceId === ahead.id)).toBe(true);
+    expect(upcomingRows.some((row) => row.instanceId === september.id || row.instanceId === august.id)).toBe(false);
   });
 });

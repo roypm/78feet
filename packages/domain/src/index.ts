@@ -54,8 +54,10 @@ export {
 } from "./schemas";
 export {
   BOX_TIME_ZONE,
-  BOOKING_HORIZON_DAYS,
+  BOOKING_HORIZON_WEEKS,
   MEMBER_CANCEL_LEAD_MS,
+  BOX_OPEN_TIME,
+  BOX_CLOSE_TIME,
   addDays,
   atBoxTime,
   clockIntervalsOverlap,

@@ -3,6 +3,7 @@ import {
   evaluateBooking,
   evaluateMemberCancellation,
   evaluateStaffCancellation,
+  memberCanCancel,
   type Booking,
   type BookingPool,
   type ClassInstance,
@@ -261,15 +262,59 @@ export async function cancelStaffBooking(
   return toView(updated, existing.instance);
 }
 
-export async function listUpcomingBookings(userId: string, now = new Date()): Promise<BookingView[]> {
+export type MemberBookingView = BookingView & {
+  canCancel: boolean;
+  boxCancelled: boolean;
+};
+
+export async function listUpcomingBookings(userId: string, now = new Date()): Promise<MemberBookingView[]> {
   const rows = await prisma.booking.findMany({
     where: {
       userId,
-      status: "active",
-      instance: { status: "scheduled", startAt: { gt: now } },
+      OR: [
+        { status: "active", instance: { status: "scheduled", startAt: { gt: now } } },
+        {
+          status: "cancelled",
+          quotaReturned: true,
+          instance: { status: "cancelled", startAt: { gt: now } },
+        },
+      ],
     },
     include: { instance: true },
     orderBy: { instance: { startAt: "asc" } },
   });
-  return rows.map((row) => toView(row, row.instance));
+  return rows.map((row) => ({
+    ...toView(row, row.instance),
+    canCancel: row.status === "active" && memberCanCancel(now, row.instance.startAt),
+    boxCancelled: row.instance.status === "cancelled",
+  }));
+}
+
+export type HistoryBookingView = MemberBookingView & {
+  coachName: string | null;
+};
+
+function personName(person: { firstName: string; lastName: string } | null): string | null {
+  if (!person) return null;
+  const name = `${person.firstName} ${person.lastName}`.trim();
+  return name.length > 0 ? name : null;
+}
+
+export async function listBookingHistory(userId: string, now = new Date()): Promise<HistoryBookingView[]> {
+  const rows = await prisma.booking.findMany({
+    where: {
+      userId,
+      instance: { startAt: { lte: now } },
+    },
+    include: {
+      instance: { include: { coach: { select: { firstName: true, lastName: true } } } },
+    },
+    orderBy: [{ instance: { startAt: "desc" } }, { createdAt: "desc" }],
+  });
+  return rows.map((row) => ({
+    ...toView(row, row.instance),
+    canCancel: row.status === "active" && memberCanCancel(now, row.instance.startAt),
+    boxCancelled: row.instance.status === "cancelled",
+    coachName: personName(row.instance.coach),
+  }));
 }

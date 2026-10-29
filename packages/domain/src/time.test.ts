@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   BOX_TIME_ZONE,
-  addDays,
   atBoxTime,
   horizonRange,
   localDateString,
@@ -38,11 +37,10 @@ describe("Europe/Madrid calendar", () => {
     expect(nextMondayDate("2026-11-01")).toBe("2026-11-02");
   });
 
-  it("opens the calendar from today through today + 28 days", () => {
-    expect(horizonRange("2026-10-29")).toEqual({
-      from: "2026-10-29",
-      to: addDays("2026-10-29", 28),
-    });
+  it("opens the current Monday–Sunday week and the next three, through that Sunday", () => {
+    expect(horizonRange("2026-10-29")).toEqual({ from: "2026-10-29", to: "2026-11-22" });
+    expect(horizonRange("2026-10-26")).toEqual({ from: "2026-10-26", to: "2026-11-22" });
+    expect(horizonRange("2026-11-01")).toEqual({ from: "2026-11-01", to: "2026-11-22" });
   });
 
   it("converts a class time after the spring DST jump", () => {
