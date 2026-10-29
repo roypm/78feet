@@ -17,6 +17,16 @@ antes de empezar a construir. Son el registro de origen.
 - `trd.md` — arquitectura, stack, modelo de datos, cómo funciona por dentro.
 - `app-flow.md` — pantallas y flujos del usuario.
 - `design-system.md` — colores, tipografía, espaciado, componentes.
+- `hoja-de-ruta.md` — orden de las llescas hasta v1, no el producto.
 
 Leer PRD y TRD antes de tocar dominio, API, modelo de datos o pantallas.
+Construir en el orden de la hoja de ruta; no saltar a pantallas si la llesca anterior no está hecha.
 No editar los originales del grilling. Editar el original solo si lo pido explícitamente.
+
+## UI
+
+Fuente de verdad visual: [`docs/design-system.md`](docs/design-system.md).
+Antes de tocar pantallas, componentes, estilos o toasts, seguir
+[`.cursor/skills/ui-78feet/SKILL.md`](.cursor/skills/ui-78feet/SKILL.md).
+Ahí se enrutan las skills de vendor (shadcn + Emil selectivo) en `.agents/skills/`.
+No instalar packs extra de diseño sin pedirlo.
