@@ -29,6 +29,9 @@ coverage/
 # Vercel
 .vercel
 
+# Neon CLI
+.neon.bak
+
 # Logs y sistema
 *.log
 .DS_Store
