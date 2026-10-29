@@ -113,7 +113,7 @@ El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la t
 - El nombre escrito lo usan el staff, el detalle de la clase y Mis reservas. En el bloque del calendario no se pinta: ahí está la imagen.
 - Cambiar la **imagen** de un tipo no cancela reservas.
 - No se borra un tipo que tenga clases de hoy en adelante, ni uno que tenga entrenamientos en la biblioteca. Las instancias pasadas siguen apuntando al tipo, para conservar nombre e imagen.
-- Se construye con el panel de staff. Hasta entonces el bloque muestra el nombre y la ocupación.
+- El admin lo mantiene desde el panel de staff. El bloque del calendario es la imagen del tipo y la ocupación.
 
 ### 5.2 Plantilla y semanas
 

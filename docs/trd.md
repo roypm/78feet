@@ -125,7 +125,7 @@ Invariante: único `(user_id, month)` cuando `kind = 'monthly'`.
 
 ### `class_type`
 
-Catálogo del admin. Se construye con el panel de staff. Hasta esa migración, plantilla e instancia siguen llevando `title` y `kind`.
+Catálogo del admin. El panel de staff lo mantiene. Plantilla e instancia apuntan a `class_type_id`; la instancia copia `kind` para el cupo.
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -381,7 +381,7 @@ cancelar(booking, actor):
 
 - Apertura `07:00`, cierre `21:00` (`BOX_OPEN_TIME`, `BOX_CLOSE_TIME` en `@78feet/domain`), en `Europe/Madrid`.
 - El mismo eje para Dirigidas y Open y para las cuatro semanas. No se recalcula con la primera o la última clase de la vista.
-- Todavía no hay tabla: el panel de staff (solo admin) las persistirá. Hasta entonces son constantes.
+- El admin las persiste en `box_settings`. Si no hay fila, valen las constantes `07:00` / `21:00`.
 - Si una instancia empieza antes de la apertura o acaba después del cierre, el eje se extiende a la hora en punto que la cubre.
 
 ### 4.8 Biblioteca
