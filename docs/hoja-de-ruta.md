@@ -11,7 +11,7 @@ Una llesca por pasada. Cada una deja el repo en un estado que se puede probar an
 | 0 | Esqueleto del monorepo | hecha | `apps/web` (Next.js) y `packages/domain` instalan, typecheckean y arrancan |
 | 1 | Reglas de dominio | hecha | Vitest cubre cupo, bono, cancelación, solapes y materialización (TRD §9) |
 | 2 | Prisma y sesión | hecha | Esquema migrado, login/logout/me, cookie JWT, seed del admin |
-| 3 | Datos del box | pendiente | Tarifas, socios, plantilla semanal y `ensureInstances` / cron |
+| 3 | Datos del box | hecha | Tarifas, socios, plantilla semanal y `ensureInstances` / cron |
 | 4 | Reservar y cancelar | pendiente | Socio y staff reservan/cancelan contra Postgres, con `FOR UPDATE` |
 | 5 | Pantallas del socio (web) | pendiente | Calendario, detalle, mis reservas, mi tarifa — [app-flow](./app-flow.md) |
 | 6 | Panel de staff | pendiente | Hoy, semana, excepciones, socios, impagos |
