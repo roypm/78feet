@@ -32,6 +32,11 @@ coverage/
 # Neon CLI
 .neon.bak
 
+# Uploads de tipos de clase (se conserva el placeholder)
+apps/web/public/uploads/class-types/*
+!apps/web/public/uploads/class-types/.gitkeep
+!apps/web/public/uploads/class-types/placeholder.png
+
 # Logs y sistema
 *.log
 .DS_Store

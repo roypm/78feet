@@ -72,31 +72,31 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  memberships         Membership[]
-  creditGrantsReceived CreditGrant[]  @relation("CreditGrantRecipient")
-  creditGrantsCreated  CreditGrant[]  @relation("CreditGrantAuthor")
-  paymentsReceived     Payment[]      @relation("PaymentMember")
-  paymentsRecorded     Payment[]      @relation("PaymentAuthor")
+  memberships          Membership[]
+  creditGrantsReceived CreditGrant[]   @relation("CreditGrantRecipient")
+  creditGrantsCreated  CreditGrant[]   @relation("CreditGrantAuthor")
+  paymentsReceived     Payment[]       @relation("PaymentMember")
+  paymentsRecorded     Payment[]       @relation("PaymentAuthor")
   coachedTemplates     ClassTemplate[]
   coachedInstances     ClassInstance[]
-  bookingsAsMember     Booking[]      @relation("BookingMember")
-  bookingsCreated      Booking[]      @relation("BookingAuthor")
-  bookingsCancelled    Booking[]      @relation("BookingCanceller")
+  bookingsAsMember     Booking[]       @relation("BookingMember")
+  bookingsCreated      Booking[]       @relation("BookingAuthor")
+  bookingsCancelled    Booking[]       @relation("BookingCanceller")
 
   @@map("user")
 }
 
 model Tariff {
-  id              String     @id @default(uuid()) @db.Uuid
-  name            String
-  kind            TariffKind
-  priceCents      Int        @map("price_cents")
-  weeklyDirected  Int        @default(0) @map("weekly_directed")
-  weeklyOpen      Int        @default(0) @map("weekly_open")
-  packClasses     Int?       @map("pack_classes")
-  active          Boolean    @default(true)
-  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  memberships     Membership[]
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String
+  kind           TariffKind
+  priceCents     Int          @map("price_cents")
+  weeklyDirected Int          @default(0) @map("weekly_directed")
+  weeklyOpen     Int          @default(0) @map("weekly_open")
+  packClasses    Int?         @map("pack_classes")
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  memberships    Membership[]
 
   @@map("tariff")
 }
@@ -117,32 +117,32 @@ model Membership {
 }
 
 model CreditGrant {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  quantity   Int
-  paymentId  String?  @map("payment_id") @db.Uuid
-  note       String?
-  createdBy  String   @map("created_by") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  user       User     @relation("CreditGrantRecipient", fields: [userId], references: [id])
-  author     User     @relation("CreditGrantAuthor", fields: [createdBy], references: [id])
-  payment    Payment? @relation(fields: [paymentId], references: [id])
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  quantity  Int
+  paymentId String?  @map("payment_id") @db.Uuid
+  note      String?
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user      User     @relation("CreditGrantRecipient", fields: [userId], references: [id])
+  author    User     @relation("CreditGrantAuthor", fields: [createdBy], references: [id])
+  payment   Payment? @relation(fields: [paymentId], references: [id])
 
   @@index([userId])
   @@map("credit_grant")
 }
 
 model Payment {
-  id          String      @id @default(uuid()) @db.Uuid
-  userId      String      @map("user_id") @db.Uuid
-  kind        PaymentKind
-  month       DateTime?   @db.Date
-  amountCents Int         @map("amount_cents")
-  method      String?
-  recordedBy  String      @map("recorded_by") @db.Uuid
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  user        User        @relation("PaymentMember", fields: [userId], references: [id])
-  recorder    User        @relation("PaymentAuthor", fields: [recordedBy], references: [id])
+  id           String        @id @default(uuid()) @db.Uuid
+  userId       String        @map("user_id") @db.Uuid
+  kind         PaymentKind
+  month        DateTime?     @db.Date
+  amountCents  Int           @map("amount_cents")
+  method       String?
+  recordedBy   String        @map("recorded_by") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  user         User          @relation("PaymentMember", fields: [userId], references: [id])
+  recorder     User          @relation("PaymentAuthor", fields: [recordedBy], references: [id])
   creditGrants CreditGrant[]
 
   @@index([userId, month])
@@ -150,18 +150,30 @@ model Payment {
   @@map("payment")
 }
 
+model ClassType {
+  id        String          @id @default(uuid()) @db.Uuid
+  name      String
+  kind      ClassKind
+  imageKey  String          @map("image_key")
+  templates ClassTemplate[]
+  instances ClassInstance[]
+  trainings Training[]
+
+  @@map("class_type")
+}
+
 model ClassTemplate {
-  id               String        @id @default(uuid()) @db.Uuid
-  weekday          Int
-  startTime        DateTime      @map("start_time") @db.Time(0)
-  endTime          DateTime      @map("end_time") @db.Time(0)
-  title            String
-  kind             ClassKind
-  coachId          String?       @map("coach_id") @db.Uuid
-  defaultCapacity  Int           @map("default_capacity")
-  active           Boolean       @default(true)
-  coach            User?         @relation(fields: [coachId], references: [id])
-  instances        ClassInstance[]
+  id              String          @id @default(uuid()) @db.Uuid
+  weekday         Int
+  startTime       DateTime        @map("start_time") @db.Time(0)
+  endTime         DateTime        @map("end_time") @db.Time(0)
+  classTypeId     String          @map("class_type_id") @db.Uuid
+  coachId         String?         @map("coach_id") @db.Uuid
+  defaultCapacity Int             @map("default_capacity")
+  active          Boolean         @default(true)
+  classType       ClassType       @relation(fields: [classTypeId], references: [id])
+  coach           User?           @relation(fields: [coachId], references: [id])
+  instances       ClassInstance[]
 
   @@map("class_template")
 }
@@ -172,20 +184,68 @@ model ClassInstance {
   date         DateTime       @db.Date
   startAt      DateTime       @map("start_at") @db.Timestamptz
   endAt        DateTime       @map("end_at") @db.Timestamptz
-  title        String
+  classTypeId  String         @map("class_type_id") @db.Uuid
   kind         ClassKind
   coachId      String?        @map("coach_id") @db.Uuid
   capacity     Int
   status       InstanceStatus
+  trainingId   String?        @map("training_id") @db.Uuid
   editedAt     DateTime?      @map("edited_at") @db.Timestamptz
   cancelReason String?        @map("cancel_reason")
   template     ClassTemplate? @relation(fields: [templateId], references: [id])
+  classType    ClassType      @relation(fields: [classTypeId], references: [id])
   coach        User?          @relation(fields: [coachId], references: [id])
+  training     Training?      @relation(fields: [trainingId], references: [id])
   bookings     Booking[]
 
   @@index([date])
   /// Unique template instance: SQL index class_instance_template_date WHERE template_id IS NOT NULL
   @@map("class_instance")
+}
+
+model Training {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String
+  classTypeId String          @map("class_type_id") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  classType   ClassType       @relation(fields: [classTypeId], references: [id])
+  phases      TrainingPhase[]
+  instances   ClassInstance[]
+
+  @@index([classTypeId])
+  @@map("training")
+}
+
+model TrainingPhase {
+  id         String          @id @default(uuid()) @db.Uuid
+  trainingId String          @map("training_id") @db.Uuid
+  name       String
+  position   Int
+  training   Training        @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  blocks     TrainingBlock[]
+
+  @@index([trainingId])
+  @@map("training_phase")
+}
+
+model TrainingBlock {
+  id       String        @id @default(uuid()) @db.Uuid
+  phaseId  String        @map("phase_id") @db.Uuid
+  body     String
+  position Int
+  phase    TrainingPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+  @@map("training_block")
+}
+
+model BoxSettings {
+  id        String   @id
+  openTime  DateTime @map("open_time") @db.Time(0)
+  closeTime DateTime @map("close_time") @db.Time(0)
+
+  @@map("box_settings")
 }
 
 model Booking {
