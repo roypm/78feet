@@ -123,6 +123,19 @@ Sin contadores mutables no hay deriva, y cancelar una reserva devuelve el saldo 
 Invariante: único `(user_id, month)` cuando `kind = 'monthly'`.
 "Impago del mes" = socio con membresía `monthly` vigente sin fila de pago para el mes en curso.
 
+### `class_type`
+
+Catálogo del admin. Se construye con el panel de staff. Hasta esa migración, plantilla e instancia siguen llevando `title` y `kind`.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | |
+| `name` | text | "Crossfit", "Endurance". Staff, detalle y Mis reservas. El bloque del calendario no lo pinta. |
+| `kind` | enum | `directed` \| `open`. Se fija al crear el tipo y no se cambia. |
+| `image_key` | text | archivo obligatorio, ya encuadrado. El binario no va en Postgres. Sustituirlo no cancela reservas. |
+
+Invariantes: sin `image_key` no hay tipo. El coach no inserta filas. No se borra un tipo con alguna instancia `scheduled` de hoy en adelante ni con algún entrenamiento (`CLASS_TYPE_IN_USE`); las pasadas siguen apuntándolo. El almacén del archivo se elige al implementar esa llesca, dentro del proyecto, sin un servicio nuevo de imágenes y sin recorte.
+
 ### `class_template`
 
 | Campo | Tipo | Notas |
@@ -130,9 +143,8 @@ Invariante: único `(user_id, month)` cuando `kind = 'monthly'`.
 | `id` | uuid | |
 | `weekday` | int | 1 = lunes … 7 = domingo |
 | `start_time`, `end_time` | time | hora local `Europe/Madrid` |
-| `title` | text | ej. "WOD", "Open" |
-| `kind` | enum | `directed` \| `open` |
-| `coach_id` | uuid, nullable | FK `user` (informativo, solo se muestra) |
+| `class_type_id` | uuid | FK `class_type`. La grilla sale del tipo. |
+| `coach_id` | uuid, nullable | FK `user`. Es del hueco, no del tipo. |
 | `default_capacity` | int | |
 | `active` | bool | |
 
@@ -144,14 +156,49 @@ Invariante: único `(user_id, month)` cuando `kind = 'monthly'`.
 | `template_id` | uuid, nullable | FK `class_template` |
 | `date` | date | fecha local |
 | `start_at`, `end_at` | timestamptz | |
-| `title`, `kind` | | copiados de la plantilla |
+| `class_type_id` | uuid | FK `class_type` |
+| `kind` | enum | copia del tipo, para el cupo. No se edita aparte. |
 | `coach_id` | uuid, nullable | |
 | `capacity` | int | |
 | `status` | enum | `scheduled` \| `cancelled` |
+| `training_id` | uuid, nullable | FK `training`. Como máximo uno. El tipo del entrenamiento y el de la clase coinciden; si no, queda `null`. |
 | `edited_at` | timestamptz, nullable | si no es `null`, la regeneración no la toca |
 | `cancel_reason` | text, nullable | |
 
-Invariante: único `(template_id, date)`.
+Invariante: único `(template_id, date)`. El nombre y la imagen se leen del tipo, no se copian. `training_id` no se copia al materializar: una instancia nueva nace sin entrenamiento.
+
+### `training`
+
+Ficha reutilizable de la biblioteca. Solo tipos `directed`.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | |
+| `name` | text | obligatorio. Puede repetirse. |
+| `class_type_id` | uuid | FK `class_type` con `kind = directed`. |
+| `created_at`, `updated_at` | timestamptz | la lista ordena por `updated_at` descendente. Cualquier guardado de nombre, tipo, fases o bloques lo actualiza. |
+
+No hay autor, borrador ni versiones. Borrar pone `training_id` a `null` en las clases que lo señalaban. Cambiar `class_type_id` hace lo mismo en las clases cuyo tipo ya no coincide. Las reservas no se tocan. Si ese cambio soltaría alguna clase, el staff confirma antes y ve el número.
+
+### `training_phase`
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | |
+| `training_id` | uuid | FK `training`, cascade |
+| `name` | text | obligatorio. Puede repetirse dentro del entrenamiento. |
+| `position` | int | orden de lectura, desde 0 |
+
+### `training_block`
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | |
+| `phase_id` | uuid | FK `training_phase`, cascade |
+| `body` | text | obligatorio, no vacío. Texto plano: se guardan los saltos de línea. Sin marcado. |
+| `position` | int | orden dentro de la fase, desde 0 |
+
+Invariante: un entrenamiento tiene al menos una fase y cada fase al menos un bloque. No se puede guardar a medias.
 
 ### `booking`
 
@@ -178,13 +225,14 @@ Invariantes:
 ### `class_exception`
 
 No hace falta una tabla: una excepción es una edición sobre la fila de `class_instance`
-(`status = 'cancelled'`, `start_at`/`end_at`/`coach_id`/`capacity` distintos) con `edited_at` marcado.
+(`status = 'cancelled'`, `start_at`/`end_at`/`class_type_id`/`coach_id`/`capacity` distintos) con `edited_at` marcado.
+`class_type_id` solo puede ser un tipo ya creado. Cambiarlo cancela las reservas activas con cupo devuelto.
 
 ## 4. Reglas de dominio
 
 ### 4.1 Materialización y cambios de plantilla
 
-- Horizonte: **hoy → hoy + 28 días** (4 semanas), en `Europe/Madrid`.
+- Horizonte: desde hoy hasta el domingo de la cuarta semana (la semana en curso y las tres siguientes, lunes a domingo), en `Europe/Madrid`.
 - Un **cron diario** de Vercel (`/api/v1/cron/materialize`) genera las instancias que falten
   desde las plantillas activas. Idempotente gracias a `(template_id, date)`.
 - Además, la lectura del calendario llama a la misma función `ensureInstances(from, to)` antes de
@@ -204,7 +252,7 @@ for each inst in affected:
     new = valores nuevos de la plantilla (o "eliminada")
 
     if inst fue eliminada:
-        successor = instancia con misma date, start_at, end_at, kind y title,
+        successor = instancia con misma date, start_at, end_at y class_type_id,
                     status = 'scheduled', id != inst.id
         if successor and successor.capacity >= activeBookings(successor) + activeBookings(inst):
             moveBookings(inst, successor)        # cada reserva conserva su pool
@@ -212,13 +260,13 @@ for each inst in affected:
             cancelBookings(inst, quota_returned = true)
         inst.status = 'cancelled'
 
-    else if cambió date, start_at, end_at, kind o title:
+    else if cambió date, start_at, end_at o class_type_id:
         successor = (mismo criterio, buscando el hueco nuevo)
         if successor and hay aforo:
             moveBookings(inst, successor)
         else:
             cancelBookings(inst, quota_returned = true)
-        aplicar(inst, new)                       # hora, título, tipo, coach, aforo
+        aplicar(inst, new)                       # hora, tipo, kind, coach, aforo
 
     else if new.capacity < activeBookings(inst):
         cancelBookings(inst, quota_returned = true)
@@ -229,13 +277,15 @@ for each inst in affected:
         inst.capacity = new.capacity             # solo sube o se mantiene
 ```
 
-- **"Idéntica"** = misma `date`, `start_at`, `end_at`, `kind` y `title`. `coach_id` y `capacity`
+- **"Idéntica"** = misma `date`, `start_at`, `end_at` y `class_type_id`. `coach_id` y `capacity`
   no forman parte de la identidad: cambiar el coach o subir el aforo no toca reservas.
+  Cambiar `image_key` o `name` del tipo tampoco: no pasa por esta propagación.
 - Toda reserva cancelada por estas reglas se cancela con `quota_returned = true`.
 - La respuesta del endpoint incluye un resumen para el staff: clases canceladas, reservas canceladas
   y reservas mudadas, para que pueda avisar por WhatsApp.
 - Si el cambio deja un aforo menor que las reservas y no hay sucesor con lugar, se cancelan **todas**
   las reservas de esa clase. No se elige a quién echar.
+- Al mudarse las reservas a un sucesor, si ese sucesor no tiene `training_id` y el de origen sí, y los tipos coinciden, el sucesor señala el mismo entrenamiento. Si el sucesor ya tiene uno, se queda con el suyo. La instancia cancelada conserva el suyo. Si `aplicar` deja un tipo que no coincide con el entrenamiento, `training_id` pasa a `null`.
 
 ### 4.2 Cálculo de cupo
 
@@ -327,11 +377,26 @@ cancelar(booking, actor):
   confirmación explícita y muestra cuántas reservas se van a cancelar.
 - `end_at` > `start_at`.
 
+### 4.7 Eje del calendario
+
+- Apertura `07:00`, cierre `21:00` (`BOX_OPEN_TIME`, `BOX_CLOSE_TIME` en `@78feet/domain`), en `Europe/Madrid`.
+- El mismo eje para Dirigidas y Open y para las cuatro semanas. No se recalcula con la primera o la última clase de la vista.
+- Todavía no hay tabla: el panel de staff (solo admin) las persistirá. Hasta entonces son constantes.
+- Si una instancia empieza antes de la apertura o acaba después del cierre, el eje se extiende a la hora en punto que la cubre.
+
+### 4.8 Biblioteca
+
+- Un entrenamiento pertenece a un tipo `directed`. Open no tiene filas.
+- La clase lo ve en vivo: el detalle lee las fases y los bloques actuales, no una copia.
+- Asociar o quitar `training_id` no cancela reservas. Cambiar el `class_type_id` de la instancia sigue cancelándolas, y además suelta el entrenamiento si el tipo ya no coincide.
+- Una clase `cancelled` sigue exponiendo su `training_id`.
+- El socio lista y lee. El coach y el admin crean, editan y borran cualquiera. El miembro no escribe.
+
 ## 5. API
 
 Todos los endpoints devuelven JSON y usan los esquemas zod de `packages/domain`.
 Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_EXHAUSTED`,
-`OVERLAP`, `CANCELLATION_CLOSED`, `NO_MEMBERSHIP`, `FORBIDDEN`).
+`OVERLAP`, `CANCELLATION_CLOSED`, `NO_MEMBERSHIP`, `FORBIDDEN`, `CLASS_TYPE_IN_USE`).
 
 **Público / sesión**
 
@@ -345,11 +410,14 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| GET | `/api/v1/calendar?from&to` | instancias con plazas libres y si el socio está apuntado |
-| GET | `/api/v1/instances/:id` | detalle + roster (`Nombre I.`) |
+| GET | `/api/v1/calendar?from&to` | instancias con imagen del tipo, ocupación y si el socio está apuntado |
+| GET | `/api/v1/instances/:id` | detalle (imagen, nombre, coach) + roster (`Nombre I.`) + entrenamiento asociado, si hay |
+| GET | `/api/v1/trainings?classTypeId` | biblioteca: nombre y tipo, del último editado al más antiguo. Sin `classTypeId`, todos |
+| GET | `/api/v1/trainings/:id` | ficha: fases y bloques en orden |
 | POST | `/api/v1/bookings` | reservar `{ instanceId }` |
 | DELETE | `/api/v1/bookings/:id` | cancelar (regla de 2 h) |
 | GET | `/api/v1/me/bookings` | próximas reservas |
+| GET | `/api/v1/me/bookings/history` | reservas cuya clase ya empezó, de la más reciente a la más antigua |
 | GET | `/api/v1/me/summary` | tarifa, cupos usados/límite, saldo de bono, estado del mes |
 
 **Staff**
@@ -359,8 +427,13 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | GET | `/api/v1/admin/day?date` | clases del día con roster | coach, admin |
 | GET | `/api/v1/admin/week?from` | ocupación `usadas/capacidad` | coach, admin |
 | GET | `/api/v1/admin/templates` | ver plantilla semanal | coach, admin |
-| POST/PATCH/DELETE | `/api/v1/admin/templates` | editar plantilla semanal; devuelve resumen de reservas canceladas y mudadas | admin |
-| PATCH | `/api/v1/admin/instances/:id` | excepción: cancelar, mover, cambiar aforo/coach | coach, admin |
+| GET | `/api/v1/admin/class-types` | ver catálogo para colocarlo en el plano | coach, admin |
+| POST/PATCH | `/api/v1/admin/class-types` | crear y editar nombre e imagen. `kind` no se cambia | admin |
+| DELETE | `/api/v1/admin/class-types/:id` | borrar solo si no tiene clases de hoy en adelante ni entrenamientos | admin |
+| GET/POST | `/api/v1/admin/trainings` | listado y alta. El alta elige cualquier tipo dirigido | coach, admin |
+| PATCH/DELETE | `/api/v1/admin/trainings/:id` | editar o borrar. Borrar, o cambiar el tipo si suelta clases, exige `confirmDetach` cuando el número es mayor que cero y devuelve cuántas clases quedan sin plan | coach, admin |
+| POST/PATCH/DELETE | `/api/v1/admin/templates` | editar plantilla semanal (`classTypeId`, no un título libre); devuelve resumen de reservas canceladas y mudadas | admin |
+| PATCH | `/api/v1/admin/instances/:id` | excepción: cancelar, mover, cambiar tipo/aforo/coach, asociar o quitar `trainingId` del mismo tipo | coach, admin |
 | GET/POST/PATCH | `/api/v1/admin/members` | alta, edición y listado de socios | coach, admin |
 | GET | `/api/v1/admin/members/:id` | ficha: membresía, pagos, créditos, reservas | coach, admin |
 | POST | `/api/v1/admin/members/:id/tariff` | cambiar tarifa | coach, admin |
@@ -393,9 +466,9 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 - **Web** (`apps/web`): panel del staff (escritorio primero, responsive) y las mismas pantallas del
   socio para quien entre desde el navegador. Server Components para lectura, route handlers para mutaciones.
-- **App** (`apps/mobile`): solo socios. Expo Router con cuatro pestañas: Calendario, Mis reservas,
-  Mi tarifa, Cuenta. Consume la misma API con `packages/domain`.
-- Sin estado offline, sin push, sin cámara.
+- **App** (`apps/mobile`): solo socios. Expo Router con seis pestañas: Calendario, Mis reservas,
+  Historial, Biblioteca, Mi tarifa, Cuenta. Consume la misma API con `packages/domain`.
+- Sin estado offline, sin push, sin cámara. La imagen del tipo es un archivo que sube el admin, ya encuadrado; nadie la saca desde la app.
 
 ## 8. Tiempo
 
@@ -412,7 +485,8 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
   - cancelación con y sin devolución,
   - cancelación de instancia que devuelve todo,
   - solapamiento de reservas y de horarios,
-  - generación idempotente de instancias.
+  - generación idempotente de instancias,
+  - cambiar el tipo de un hueco cancela las reservas; cambiar la imagen del tipo no.
 - **API**: integración contra Postgres real (Neon branch o local), sin mocks de base.
 - **UI**: sin suite E2E en v1; smoke manual por flujo antes de cada release.
 - Un test que no puede fallar cuando la regla se rompe no cuenta como test.

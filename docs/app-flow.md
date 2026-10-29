@@ -10,30 +10,35 @@ Este documento es la versión vigente.
 
 ## 1. Navegación
 
-- **App (socios):** Expo Router con cuatro pestañas — Calendario, Mis reservas, Mi tarifa, Cuenta
-  (TRD §7). El detalle de clase se abre desde el calendario.
+- **App (socios):** Expo Router con seis pestañas — Calendario, Mis reservas, Historial, Biblioteca, Mi tarifa, Cuenta
+  (TRD §7). El detalle de clase se abre desde el calendario o desde la biblioteca.
+- **Web (socios):** las mismas pantallas. El sidebar es Calendario, Reservas, Historial, Biblioteca, Tarifa y Cuenta.
 - **Web (staff):** panel responsive, escritorio primero.
 - **Navegación:** "Estado de pago" vive dentro de "Mi tarifa" (semáforo discreto, sin importes).
 
 ## 2. Pantallas del socio (app Android/iOS)
 
-1. **Calendario**: semana visible con navegación, plazas libres por clase, distinción dirigida/open.
-2. **Detalle de clase**: hora, coach, plazas, roster ("Marta G."), botón reservar o cancelar (deshabilitado dentro de las 2 h).
+1. **Calendario**: semana visible con navegación. El horizonte son cuatro semanas completas de lunes a domingo (la actual y las tres siguientes). Anterior y Siguiente las recorren, y entre ellos hay un selector para saltar a cualquiera. Bajo el título, un selector Dirigidas / Open. El eje de reloj es compartido y fijo, de 07:00 a 21:00, en las dos vistas y en las cuatro semanas; si una clase cae fuera, se alarga para cubrirla. Línea principal en cada hora en punto y línea secundaria en los cuartos (:15, :30, :45). El bloque ocupa su duración (2 h mide el doble que 1 h); uno de menos de 1 h no baja de esa altura. La franja la marca el eje; el tipo lo marca el selector. «Apuntado» y «Cancelada» caben dentro sin estirar el bloque. Hasta el catálogo de tipos, el bloque muestra el nombre y `4/12`. Con el catálogo, el bloque es la imagen y `4/12` centrado abajo, sin nombre.
+2. **Detalle de clase**: hora, coach, plazas, roster ("Marta G."), botón reservar o cancelar (deshabilitado dentro de las 2 h). Con el catálogo, también la imagen y el nombre del tipo. Si la clase tiene entrenamiento, debajo va el nombre (abre la ficha) y las fases con sus bloques. Si no tiene, esa parte no aparece. Una clase cancelada sigue mostrando el plan. El bloque del calendario no lleva el texto.
 3. **Mis reservas**: próximas reservas con opción de cancelar.
-4. **Mi tarifa**: nombre y precio de la tarifa, `dirigidas usadas/límite`, `opens usados/límite`, saldo de bono.
-5. **Estado de pago**: semáforo del mes en curso.
-6. **Mi cuenta**: datos personales en solo lectura; cualquier cambio lo hace el staff. Sin cambio de contraseña.
+4. **Historial**: reservas cuya clase ya empezó, agrupadas por mes (el más reciente arriba). Cada una muestra nombre, día, hora de inicio y fin, dirigida u open, coach si lo hay, y si se canceló. No dice si el socio asistió.
+5. **Biblioteca**: entrenamientos de tipos dirigidos. Al entrar, el filtro está en Todos; además lista cada tipo dirigido que tenga al menos uno. La lista va por el último editado, sin páginas. Cada ficha muestra el nombre y el tipo, sin imagen, fecha ni autor. Al abrirla se leen las fases y los bloques en orden. Solo lectura.
+6. **Mi tarifa**: nombre y precio de la tarifa, `dirigidas usadas/límite`, `opens usados/límite`, saldo de bono.
+7. **Estado de pago**: semáforo del mes en curso.
+8. **Mi cuenta**: datos personales en solo lectura; cualquier cambio lo hace el staff. Sin cambio de contraseña.
 
 ## 3. Pantallas del staff (web, también usable desde el móvil)
 
 1. **Hoy**: clases del día con roster.
-2. **Semana**: ocupación por clase en formato `9/12`.
-3. **Plantilla semanal**: alta y edición de bloques dirigida/open, con validación de solapamientos.
-4. **Excepciones**: cancelar o modificar una instancia concreta.
+2. **Semana**: la misma cuadrícula de reloj que el calendario del socio, con ocupación `9/12`.
+3. **Plantilla semanal**: el admin mantiene el catálogo de tipos (nombre, imagen, grilla). En el plano se elige un tipo y se configuran aforo, inicio, fin y coach, con validación de solapamientos.
+4. **Excepciones**: cancelar o modificar una instancia concreta (hora, coach, aforo o un tipo ya creado). También asociar o quitar un entrenamiento del mismo tipo.
 5. **Socios**: alta, edición, asignar tarifa, cargar saldo de bono, resetear contraseña, dar de baja.
 6. **Tarifas**: catálogo (nombre, precio, dirigidas/semana, opens/semana, clases del bono).
 7. **Impagos del mes**: listado de socios mensuales sin pago registrado.
 8. **Reservas**: crear o cancelar a nombre de un socio, eligiendo si el cupo vuelve.
+9. **Horario del box**: el admin fija la hora de apertura y de cierre del eje del calendario. Hoy son 07:00 y 21:00, fijas en código hasta que exista esta pantalla.
+10. **Biblioteca**: el mismo listado y el mismo filtro que ve el socio. Desde aquí el coach y el admin crean y editan. Al crear, el tipo se elige entre todos los tipos dirigidos. No se asocia a una clase desde la ficha. Borrar, o cambiar el tipo si eso suelta clases, pide confirmación y dice cuántas se quedan sin plan.
 
 ## 4. Flujos principales
 
@@ -63,3 +68,18 @@ Sin modal de confirmación, sin lista de espera, sin actualización en tiempo re
 5. El socio ve en su app la nueva tarifa, cupo y saldo; sus reservas futuras desaparecen de "Mis reservas".
 
 El aviso al socio es previo y humano (PRD). Si N = 0, la advertencia se muestra igual.
+
+### Leer un entrenamiento (socio)
+
+1. Biblioteca → el filtro abre en Todos.
+2. Puede quedar en Todos o elegir un tipo dirigido que tenga entrenamientos.
+3. Toca una ficha → ve el nombre, el tipo, las fases y los bloques. No puede editar.
+
+Desde el detalle de una clase, el nombre del entrenamiento abre la misma ficha.
+
+### Asociar un entrenamiento (staff)
+
+1. Excepciones → la clase, pasada o futura.
+2. Elige un entrenamiento del mismo tipo, o ninguno.
+3. La clase queda señalando esa ficha. Las reservas no cambian.
+4. El socio lo ve en el detalle, debajo de la hora, el coach, las plazas, el roster y el botón.

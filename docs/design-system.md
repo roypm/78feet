@@ -26,15 +26,17 @@ Claro + oscuro desde el día 1. Los tokens se definen con variables CSS y se con
 
 ### Neutros (fondos, texto, bordes)
 
-Escala de Tailwind (`gray`):
+Cuatro superficies, cada una con su color. El menú es frío, el lienzo del contenido es cálido en claro y más claro que el menú en oscuro, la cabecera del módulo es una banda propia y las cards son el plano más alto.
 
-| Token | Claro | Oscuro |
-|---|---|---|
-| `--color-bg` | `gray-50` / `#FAFAFA` | `gray-950` / `#0A0A0A` |
-| `--color-surface` | `#FFFFFF` | `gray-900` |
-| `--color-border` | `gray-200` | `gray-800` |
-| `--color-text` | `gray-900` | `gray-50` |
-| `--color-text-muted` | `gray-500` | `gray-400` |
+| Token | Rol | Claro | Oscuro |
+|---|---|---|---|
+| `--color-sidebar` | Menú | `#E4EBF3` | `#0E1620` |
+| `--color-bg` | Lienzo del contenido | `#F4F1EB` | `#1C2838` |
+| `--color-header` | Cabecera del módulo | `#FFFFFF` | `#2C3E54` |
+| `--color-surface` | Cards y bloques | `#FFFFFF` | `#3A516C` |
+| `--color-border` | Líneas | `#DDD6CC` | `#4A5E78` |
+| `--color-text` | Texto | `#111827` | `#F9FAFB` |
+| `--color-text-muted` | Texto secundario | `#6B7280` | `#B6C2CE` |
 
 ### Semánticos
 
