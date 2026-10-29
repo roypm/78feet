@@ -14,6 +14,7 @@ import {
   Footprints,
   LayoutTemplate,
   Ticket,
+  Tag,
   Users,
   Wallet,
 } from "lucide-react";
@@ -39,6 +40,7 @@ const links = [
   { href: "/staff/hoy", label: "Hoy", icon: CalendarDays },
   { href: "/staff/semana", label: "Semana", icon: Calendar },
   { href: "/staff/plantilla", label: "Plantilla", icon: LayoutTemplate, admin: true },
+  { href: "/staff/tipos", label: "Tipos de clase", icon: Tag, admin: true },
   { href: "/staff/excepciones", label: "Excepciones", icon: CalendarClock },
   { href: "/staff/socios", label: "Socios", icon: Users },
   { href: "/staff/tarifas", label: "Tarifas", icon: CreditCard, admin: true },
