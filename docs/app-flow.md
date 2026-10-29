@@ -15,6 +15,8 @@ Este documento es la versión vigente.
 - **Web (socios):** las mismas pantallas. El sidebar es Calendario, Reservas, Historial, Biblioteca, Tarifa y Cuenta.
 - **Web (staff):** panel responsive, escritorio primero.
 - **Navegación:** "Estado de pago" vive dentro de "Mi tarifa" (semáforo discreto, sin importes).
+- **Entrada web:** `/` lleva al calendario del socio o a Hoy del staff según el rol; sin sesión, lleva a `/login`. Si alguien con sesión abre `/login`, vuelve a su inicio correspondiente.
+- **Acceso y páginas inexistentes:** las pantallas de socio y staff requieren sesión y rol autorizado. Los 404 conservan el contexto del área cuando sea posible y ofrecen una ruta de vuelta.
 
 ## 2. Pantallas del socio (app Android/iOS)
 
@@ -31,14 +33,15 @@ Este documento es la versión vigente.
 
 1. **Hoy**: clases del día con roster.
 2. **Semana**: la misma cuadrícula de reloj que el calendario del socio, con ocupación `9/12`.
-3. **Plantilla semanal**: el admin mantiene el catálogo de tipos (nombre, imagen, grilla). En el plano se elige un tipo y se configuran aforo, inicio, fin y coach, con validación de solapamientos.
-4. **Excepciones**: cancelar o modificar una instancia concreta (hora, coach, aforo o un tipo ya creado). También asociar o quitar un entrenamiento del mismo tipo.
-5. **Socios**: alta, edición, asignar tarifa, cargar saldo de bono, resetear contraseña, dar de baja.
-6. **Tarifas**: catálogo (nombre, precio, dirigidas/semana, opens/semana, clases del bono).
-7. **Impagos del mes**: listado de socios mensuales sin pago registrado.
-8. **Reservas**: crear o cancelar a nombre de un socio, eligiendo si el cupo vuelve.
-9. **Horario del box**: el admin fija la hora de apertura y de cierre del eje del calendario. Hoy son 07:00 y 21:00, fijas en código hasta que exista esta pantalla.
-10. **Biblioteca**: el mismo listado y el mismo filtro que ve el socio. Desde aquí el coach y el admin crean y editan. Al crear, el tipo se elige entre todos los tipos dirigidos. No se asocia a una clase desde la ficha. Borrar, o cambiar el tipo si eso suelta clases, pide confirmación y dice cuántas se quedan sin plan.
+3. **Plantilla semanal**: la plantilla se muestra en una grilla de lunes a domingo con el mismo eje horario que Semana; cada bloque indica tipo, hora, aforo y coach. En escritorio se ven los siete días y en móvil se elige un día. Al tocar un espacio libre se añade un hueco; al tocar uno existente se edita o quita, con validación de solapamientos.
+4. **Tipos de clase**: el admin mantiene el catálogo de nombre, imagen obligatoria y grilla (dirigida u open). Un tipo no cambia de grilla.
+5. **Excepciones**: cancelar o modificar una instancia concreta (hora, coach, aforo o un tipo ya creado). También asociar o quitar un entrenamiento del mismo tipo.
+6. **Socios**: alta, edición, asignar tarifa, cargar saldo de bono, resetear contraseña, dar de baja.
+7. **Tarifas**: catálogo (nombre, precio, dirigidas/semana, opens/semana, clases del bono).
+8. **Impagos del mes**: listado de socios mensuales sin pago registrado.
+9. **Reservas**: crear o cancelar a nombre de un socio, eligiendo si el cupo vuelve.
+10. **Horario del box**: el admin fija la hora de apertura y de cierre del eje del calendario. Hoy son 07:00 y 21:00, fijas en código hasta que exista esta pantalla.
+11. **Biblioteca**: el mismo listado y el mismo filtro que ve el socio. Desde aquí el coach y el admin crean y editan. Al crear, el tipo se elige entre todos los tipos dirigidos. No se asocia a una clase desde la ficha. Borrar, o cambiar el tipo si eso suelta clases, pide confirmación y dice cuántas se quedan sin plan.
 
 ## 4. Flujos principales
 
