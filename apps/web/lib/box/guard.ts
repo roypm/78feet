@@ -13,7 +13,7 @@ export async function readBody(request: Request): Promise<unknown> {
   }
 }
 
-export function staffHandler(
+export function sessionHandler(
   roles: readonly Role[],
   run: (user: User, request: Request, params: Record<string, string>) => Promise<unknown>,
   successStatus = 200,
@@ -35,3 +35,5 @@ export function staffHandler(
     }
   };
 }
+
+export const staffHandler = sessionHandler;

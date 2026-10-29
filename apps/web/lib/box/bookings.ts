@@ -1,0 +1,275 @@
+import {
+  DomainError,
+  evaluateBooking,
+  evaluateMemberCancellation,
+  evaluateStaffCancellation,
+  type Booking,
+  type BookingPool,
+  type ClassInstance,
+} from "@78feet/domain";
+import { prisma } from "../db";
+import { isUniqueViolation } from "./db";
+import { BoxError } from "./errors";
+import { isoDateFromDb } from "./time";
+
+type InstanceRow = {
+  id: string;
+  templateId: string | null;
+  date: Date;
+  startAt: Date;
+  endAt: Date;
+  title: string;
+  kind: "directed" | "open";
+  coachId: string | null;
+  capacity: number;
+  status: "scheduled" | "cancelled";
+  editedAt: Date | null;
+};
+
+type BookingRow = {
+  id: string;
+  instanceId: string;
+  userId: string;
+  pool: BookingPool;
+  status: "active" | "cancelled";
+  quotaReturned: boolean | null;
+  createdBy: string;
+  createdAt: Date;
+  cancelledAt: Date | null;
+  cancelledBy: string | null;
+};
+
+export type BookingView = {
+  id: string;
+  instanceId: string;
+  userId: string;
+  pool: BookingPool;
+  status: "active" | "cancelled";
+  quotaReturned: boolean | null;
+  createdBy: string;
+  createdAt: string;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  instance: {
+    id: string;
+    date: string;
+    title: string;
+    kind: "directed" | "open";
+    startAt: string;
+    endAt: string;
+    capacity: number;
+    status: "scheduled" | "cancelled";
+  };
+};
+
+function toDomainBooking(row: BookingRow): Booking {
+  return {
+    id: row.id,
+    instanceId: row.instanceId,
+    userId: row.userId,
+    pool: row.pool,
+    status: row.status,
+    quotaReturned: row.quotaReturned,
+    createdBy: row.createdBy,
+    cancelledAt: row.cancelledAt,
+    cancelledBy: row.cancelledBy,
+  };
+}
+
+function toDomainInstance(row: InstanceRow): ClassInstance {
+  return {
+    id: row.id,
+    templateId: row.templateId,
+    date: isoDateFromDb(row.date),
+    startAt: row.startAt,
+    endAt: row.endAt,
+    title: row.title,
+    kind: row.kind,
+    coachId: row.coachId,
+    capacity: row.capacity,
+    status: row.status,
+    editedAt: row.editedAt,
+  };
+}
+
+function toView(row: BookingRow, instance: InstanceRow): BookingView {
+  return {
+    id: row.id,
+    instanceId: row.instanceId,
+    userId: row.userId,
+    pool: row.pool,
+    status: row.status,
+    quotaReturned: row.quotaReturned,
+    createdBy: row.createdBy,
+    createdAt: row.createdAt.toISOString(),
+    cancelledAt: row.cancelledAt?.toISOString() ?? null,
+    cancelledBy: row.cancelledBy,
+    instance: {
+      id: instance.id,
+      date: isoDateFromDb(instance.date),
+      title: instance.title,
+      kind: instance.kind,
+      startAt: instance.startAt.toISOString(),
+      endAt: instance.endAt.toISOString(),
+      capacity: instance.capacity,
+      status: instance.status,
+    },
+  };
+}
+
+export async function reserveForMember(params: {
+  memberId: string;
+  instanceId: string;
+  createdBy: string;
+  now?: Date;
+}): Promise<BookingView> {
+  const now = params.now ?? new Date();
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "class_instance" WHERE id = ${params.instanceId}::uuid FOR UPDATE
+      `;
+      if (locked.length === 0) {
+        throw new BoxError(404, "FORBIDDEN", "La clase no existe");
+      }
+
+      const instance = await tx.classInstance.findUnique({ where: { id: params.instanceId } });
+      if (!instance) throw new BoxError(404, "FORBIDDEN", "La clase no existe");
+
+      const user = await tx.user.findUnique({ where: { id: params.memberId } });
+      if (!user || user.role !== "member") {
+        throw new BoxError(404, "FORBIDDEN", "El socio no existe");
+      }
+      if (user.status !== "active") {
+        throw new BoxError(403, "FORBIDDEN", "El socio está de baja");
+      }
+
+      const membership = await tx.membership.findFirst({
+        where: { userId: user.id, endedAt: null },
+        include: { tariff: true },
+      });
+      const grants = await tx.creditGrant.findMany({
+        where: { userId: user.id },
+        select: { userId: true, quantity: true },
+      });
+      const onInstance = await tx.booking.findMany({
+        where: { instanceId: instance.id, status: "active" },
+      });
+      const own = await tx.booking.findMany({
+        where: {
+          userId: user.id,
+          OR: [{ status: "active" }, { quotaReturned: false }],
+        },
+        include: { instance: true },
+      });
+
+      const domainInstance = toDomainInstance(instance);
+      const bookings = new Map<string, Booking>();
+      const instancesById = new Map<string, Pick<ClassInstance, "date" | "startAt" | "endAt">>();
+      instancesById.set(domainInstance.id, domainInstance);
+      for (const row of onInstance) bookings.set(row.id, toDomainBooking(row));
+      for (const row of own) {
+        bookings.set(row.id, toDomainBooking(row));
+        instancesById.set(row.instance.id, toDomainInstance(row.instance));
+      }
+
+      const decision = evaluateBooking({
+        now,
+        instance: domainInstance,
+        membership: membership
+          ? { userId: membership.userId, tariffId: membership.tariffId, endedAt: membership.endedAt }
+          : null,
+        tariff: membership
+          ? {
+              id: membership.tariff.id,
+              kind: membership.tariff.kind,
+              weeklyDirected: membership.tariff.weeklyDirected,
+              weeklyOpen: membership.tariff.weeklyOpen,
+            }
+          : null,
+        userId: user.id,
+        bookings: [...bookings.values()],
+        instancesById,
+        grants,
+      });
+
+      const created = await tx.booking.create({
+        data: {
+          instanceId: instance.id,
+          userId: user.id,
+          pool: decision.pool,
+          status: "active",
+          createdBy: params.createdBy,
+        },
+      });
+      return toView(created, instance);
+    }, { timeout: 20_000 });
+  } catch (error) {
+    if (isUniqueViolation(error)) throw new DomainError("OVERLAP");
+    throw error;
+  }
+}
+
+export async function cancelMemberBooking(
+  bookingId: string,
+  actorId: string,
+  now = new Date(),
+): Promise<BookingView> {
+  const existing = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { instance: true },
+  });
+  if (!existing || existing.status !== "active" || existing.userId !== actorId) {
+    throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
+  }
+  const decision = evaluateMemberCancellation(now, existing.instance.startAt);
+  const updated = await prisma.booking.update({
+    where: { id: existing.id },
+    data: {
+      status: "cancelled",
+      quotaReturned: decision.quotaReturned,
+      cancelledAt: now,
+      cancelledBy: actorId,
+    },
+  });
+  return toView(updated, existing.instance);
+}
+
+export async function cancelStaffBooking(
+  bookingId: string,
+  actorId: string,
+  returnQuota: boolean,
+  now = new Date(),
+): Promise<BookingView> {
+  const existing = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { instance: true },
+  });
+  if (!existing || existing.status !== "active") {
+    throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
+  }
+  const decision = evaluateStaffCancellation(returnQuota);
+  const updated = await prisma.booking.update({
+    where: { id: existing.id },
+    data: {
+      status: "cancelled",
+      quotaReturned: decision.quotaReturned,
+      cancelledAt: now,
+      cancelledBy: actorId,
+    },
+  });
+  return toView(updated, existing.instance);
+}
+
+export async function listUpcomingBookings(userId: string, now = new Date()): Promise<BookingView[]> {
+  const rows = await prisma.booking.findMany({
+    where: {
+      userId,
+      status: "active",
+      instance: { status: "scheduled", startAt: { gt: now } },
+    },
+    include: { instance: true },
+    orderBy: { instance: { startAt: "asc" } },
+  });
+  return rows.map((row) => toView(row, row.instance));
+}

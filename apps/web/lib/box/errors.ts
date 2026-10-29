@@ -13,12 +13,14 @@ export class BoxError extends Error {
   }
 }
 
+const conflictCodes = new Set<ErrorCode>(["FULL", "QUOTA_EXHAUSTED", "OVERLAP", "NO_MEMBERSHIP"]);
+
 export function errorResponse(error: unknown): Response | null {
   if (error instanceof BoxError) {
     return jsonError(error.code, error.status, error.message);
   }
   if (error instanceof DomainError) {
-    const status = error.code === "OVERLAP" || error.code === "NO_MEMBERSHIP" ? 409 : 403;
+    const status = conflictCodes.has(error.code) ? 409 : 403;
     return jsonError(error.code, status, error.message);
   }
   return null;

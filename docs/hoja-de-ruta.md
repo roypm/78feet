@@ -12,7 +12,7 @@ Una llesca por pasada. Cada una deja el repo en un estado que se puede probar an
 | 1 | Reglas de dominio | hecha | Vitest cubre cupo, bono, cancelación, solapes y materialización (TRD §9) |
 | 2 | Prisma y sesión | hecha | Esquema migrado, login/logout/me, cookie JWT, seed del admin |
 | 3 | Datos del box | hecha | Tarifas, socios, plantilla semanal y `ensureInstances` / cron |
-| 4 | Reservar y cancelar | pendiente | Socio y staff reservan/cancelan contra Postgres, con `FOR UPDATE` |
+| 4 | Reservar y cancelar | hecha | Socio y staff reservan/cancelan contra Postgres, con `FOR UPDATE` |
 | 5 | Pantallas del socio (web) | pendiente | Calendario, detalle, mis reservas, mi tarifa — [app-flow](./app-flow.md) |
 | 6 | Panel de staff | pendiente | Hoy, semana, excepciones, socios, impagos |
 | 7 | App Expo | pendiente | Cuatro pestañas del socio, mismo cliente de `@78feet/domain`, Android primero |

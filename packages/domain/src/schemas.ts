@@ -52,6 +52,11 @@ export const createBookingRequestSchema = z.object({
   instanceId: z.string().uuid(),
 });
 
+export const createAdminBookingRequestSchema = z.object({
+  instanceId: z.string().uuid(),
+  userId: z.string().uuid(),
+});
+
 export const cancelAdminBookingQuerySchema = z.object({
   returnQuota: z.enum(["true", "false"]).optional(),
 });
@@ -173,6 +178,7 @@ export type LoginResponse = z.infer<typeof loginResponseSchema>;
 export type MeResponse = z.infer<typeof meResponseSchema>;
 export type CalendarQuery = z.infer<typeof calendarQuerySchema>;
 export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
+export type CreateAdminBookingRequest = z.infer<typeof createAdminBookingRequestSchema>;
 export type ApiErrorBody = z.infer<typeof apiErrorSchema>;
 export type TariffWrite = z.infer<typeof tariffWriteSchema>;
 export type PatchTariff = z.infer<typeof patchTariffSchema>;
