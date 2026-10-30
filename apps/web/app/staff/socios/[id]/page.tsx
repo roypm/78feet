@@ -1,12 +1,15 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { getMember } from "@/lib/box/members";
 import { listTariffs } from "@/lib/box/tariffs";
 import { BoxError } from "@/lib/box/errors";
-import { formatPrice } from "@/lib/box/format";
-import { MemberActions } from "@/components/staff/member-forms";
+import { memberFullName } from "@/lib/box/format";
+import { getMemberSummary } from "@/lib/box/summary";
+import { MemberProfile } from "@/components/staff/member-profile";
+import { Badge } from "@/components/ui/badge";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -14,7 +17,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader title="Socio" />
+          <ModuleHeader title="Perfil de socio" />
           <ModuleBody>
             <p className="text-muted-foreground">Cargando el socio…</p>
           </ModuleBody>
@@ -27,57 +30,67 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 }
 
 async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireStaff();
+  const staff = await requireStaff();
   const { id } = await params;
-  let member;
-  try {
-    member = await getMember(id);
-  } catch (error) {
-    if (error instanceof BoxError && error.status === 404) notFound();
-    throw error;
-  }
-  const tariffs = await listTariffs();
+  const monthStart = `${localDateString(new Date()).slice(0, 7)}-01`;
+
+  const [member, tariffs, summary] = await Promise.all([
+    (async () => {
+      try {
+        return await getMember(id);
+      } catch (error) {
+        if (error instanceof BoxError && error.status === 404) notFound();
+        throw error;
+      }
+    })(),
+    listTariffs(),
+    getMemberSummary(id),
+  ]);
+
+  const profileMember = {
+    id: member.id,
+    firstName: member.firstName,
+    lastName: member.lastName,
+    dni: member.dni,
+    phone: member.phone,
+    email: member.email,
+    loginId: member.loginId,
+    status: member.status,
+    membership: member.membership
+      ? {
+          tariffId: member.membership.tariffId,
+          tariffName: member.membership.tariffName,
+          tariffKind: member.membership.tariffKind,
+          priceCents: member.membership.priceCents,
+        }
+      : null,
+  };
 
   return (
     <ModulePage>
       <ModuleHeader
-        title={`${member.firstName} ${member.lastName}`}
+        title="Perfil de socio"
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            <span>
+              {memberFullName(member.firstName, member.lastName)} · {member.dni ?? member.loginId}
+            </span>
+            {member.status === "inactive" ? <Badge variant="outline">De baja</Badge> : null}
+          </span>
+        }
         eyebrow={
           <Link href="/staff/socios" className="text-sm text-primary">
             Socios
           </Link>
         }
       />
-      <ModuleBody>
-        <dl className="flex flex-col gap-3 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
-          <div>
-            <dt className="text-sm text-muted-foreground">DNI</dt>
-            <dd>{member.dni}</dd>
-          </div>
-          {member.phone ? (
-            <div>
-              <dt className="text-sm text-muted-foreground">Teléfono</dt>
-              <dd>{member.phone}</dd>
-            </div>
-          ) : null}
-          {member.membership ? (
-            <div>
-              <dt className="text-sm text-muted-foreground">Tarifa</dt>
-              <dd>
-                {member.membership.tariffName} · {formatPrice(member.membership.priceCents)}
-              </dd>
-            </div>
-          ) : null}
-          <div>
-            <dt className="text-sm text-muted-foreground">Saldo de bono</dt>
-            <dd>{member.credits.balance}</dd>
-          </div>
-        </dl>
-        <MemberActions
-          memberId={member.id}
+      <ModuleBody width="full" inset="content">
+        <MemberProfile
+          member={profileMember}
+          summary={summary}
           tariffs={tariffs}
-          currentTariffId={member.membership?.tariffId ?? null}
-          canDeactivate={user.role === "admin" && member.status === "active"}
+          monthStart={monthStart}
+          isAdmin={staff.role === "admin"}
         />
       </ModuleBody>
     </ModulePage>

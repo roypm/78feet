@@ -30,9 +30,10 @@ async function Unpaid() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Impagos">
-        <p className="text-sm text-muted-foreground">{formatMonth(unpaid.month)}</p>
-      </ModuleHeader>
+      <ModuleHeader
+        title="Impagos"
+        description={`Socios con cuota sin marcar pagada · ${formatMonth(unpaid.month)}`}
+      />
       <ModuleBody width="full">
         {unpaid.members.length === 0 ? (
           <p className="text-muted-foreground">Nadie con impago este mes.</p>

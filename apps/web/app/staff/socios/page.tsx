@@ -1,12 +1,17 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { requireStaff } from "@/lib/auth/current";
 import { listMembers } from "@/lib/box/members";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { listTariffs } from "@/lib/box/tariffs";
+import { CreateMemberAltaButton } from "@/components/staff/member-forms";
+import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
+import { MembersTable } from "@/components/staff/members-table";
+import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
 
-export default function Page() {
+export default function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ estado?: string }>;
+}) {
   return (
     <Suspense
       fallback={
@@ -18,51 +23,48 @@ export default function Page() {
         </ModulePage>
       }
     >
-      <Members />
+      <Members searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Members() {
+async function Members({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   await requireStaff();
-  const members = await listMembers("active");
+  const query = await searchParams;
+  const inactive = query.estado === "baja";
+  const [members, tariffs] = await Promise.all([
+    listMembers(inactive ? "inactive" : "active"),
+    listTariffs(),
+  ]);
 
   return (
     <ModulePage>
       <ModuleHeader
         title="Socios"
-        action={
-          <Button nativeButton={false} render={<Link href="/staff/socios/nuevo" />}>
-            Alta
-          </Button>
+        description={inactive ? "Socios dados de baja. Podés reactivarlos desde su perfil." : "Socios activos del box."}
+        tabs={
+          <FilterTabs aria-label="Estado del socio">
+            <FilterTabLink href="/staff/socios" active={!inactive}>
+              Activos
+            </FilterTabLink>
+            <FilterTabLink href="/staff/socios?estado=baja" active={inactive}>
+              Dados de baja
+            </FilterTabLink>
+          </FilterTabs>
         }
       />
-      <ModuleBody width="full">
+      <ModuleBody width="full" inset="content">
+        {!inactive ? (
+          <ModulePrimaryAction>
+            <CreateMemberAltaButton tariffs={tariffs} />
+          </ModulePrimaryAction>
+        ) : null}
         {members.length === 0 ? (
-          <p className="text-muted-foreground">Todavía no hay socios.</p>
+          <p className="text-muted-foreground">
+            {inactive ? "No hay socios dados de baja." : "Todavía no hay socios."}
+          </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>DNI</TableHead>
-                <TableHead>Tarifa</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell>
-                    <Link href={`/staff/socios/${member.id}`} className="text-primary">
-                      {member.firstName} {member.lastName}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="tabular-nums">{member.dni}</TableCell>
-                  <TableCell>{member.membership?.tariffName ?? "—"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <MembersTable members={members} />
         )}
       </ModuleBody>
     </ModulePage>

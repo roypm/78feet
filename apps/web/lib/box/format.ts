@@ -89,6 +89,19 @@ export function formatMonth(isoMonth: string): string {
   return capitalize(monthFormat.format(atBoxTime(`${year}-${month}-01`, "12:00")));
 }
 
+const recordedAtFormat = new Intl.DateTimeFormat("es-ES", {
+  timeZone: "Europe/Madrid",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export function formatRecordedAt(isoDateTime: string): string {
+  return recordedAtFormat.format(new Date(isoDateTime)).replace(".", "");
+}
+
 export function formatPrice(cents: number): string {
   return moneyFormat.format(cents / 100);
 }
@@ -101,4 +114,12 @@ export function freeSpotLabel(free: number): string {
 
 export function kindLabel(kind: "directed" | "open"): string {
   return kind === "directed" ? "Dirigida" : "Open";
+}
+
+export function kindGroupLabel(kind: "directed" | "open"): string {
+  return kind === "directed" ? "Dirigidas" : "Open";
+}
+
+export function memberFullName(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim();
 }
