@@ -1,13 +1,24 @@
 import type { MemberPaymentRow } from "@/lib/box/payments";
 import { paymentMethodLabel } from "@/lib/box/payments";
-import { formatMonth, formatPrice, formatRecordedAt } from "@/lib/box/format";
+import {
+  billingPeriodKindLabel,
+  subscriptionPeriodLabel,
+  type PaymentBilling,
+} from "@78feet/domain";
+import { formatPrice, formatRecordedAt } from "@/lib/box/format";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function paymentConcept(payment: MemberPaymentRow): string {
-  if (payment.kind === "monthly" && payment.month) {
-    return `Cuota mensual · ${formatMonth(payment.month)}`;
+  if (payment.billingPeriod === "one_time") {
+    return "Pago único";
   }
-  return "Pago bono";
+  if (payment.periodStart) {
+    return `${billingPeriodKindLabel(payment.billingPeriod)} · ${subscriptionPeriodLabel(
+      payment.billingPeriod as Exclude<PaymentBilling, "one_time">,
+      payment.periodStart,
+    )}`;
+  }
+  return billingPeriodKindLabel(payment.billingPeriod);
 }
 
 export function MemberPaymentsTable({ payments }: { payments: MemberPaymentRow[] }) {

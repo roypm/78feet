@@ -1,9 +1,13 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { consumptionModelLabel } from "@78feet/domain";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MemberListSearch } from "@/components/staff/member-list-search";
 import { memberFullName } from "@/lib/box/format";
+import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
 import { cn } from "cn";
 
 export type MemberListRow = {
@@ -15,9 +19,9 @@ export type MemberListRow = {
   email: string | null;
   membership: {
     tariffName: string;
-    tariffKind: "monthly" | "pack";
+    consumptionModel: import("@78feet/domain").TariffConsumption;
+    billingPeriod: import("@78feet/domain").TariffBilling;
   } | null;
-  /** Saldo de bono (desborde), independiente del nombre de la tarifa. */
   packBalance: number;
 };
 
@@ -28,8 +32,8 @@ function memberAriaLabel(member: MemberListRow): string {
     member.dni,
     member.phone,
     member.email,
-    member.membership?.tariffKind === "monthly" ? "Mensual" : member.membership?.tariffName,
-    member.membership?.tariffKind === "monthly" && member.packBalance > 0 ? `${member.packBalance} bono` : null,
+    member.membership ? consumptionModelLabel(member.membership.consumptionModel) : null,
+    member.membership && member.packBalance > 0 ? `${member.packBalance} bono` : null,
   ].filter((part): part is string => Boolean(part));
   return parts.join(", ");
 }
@@ -45,25 +49,25 @@ function TariffLabels({
     return <span className="text-sm text-muted-foreground">—</span>;
   }
 
-  if (membership.tariffKind === "monthly") {
+  if (membership.consumptionModel === "pack") {
     return (
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-        <Badge variant="secondary" className="shrink-0" title={membership.tariffName}>
-          Mensual
-        </Badge>
-        {packBalance > 0 ? (
-          <Badge variant="outline" className="shrink-0 tabular-nums" title="Saldo de bono">
-            {packBalance} bono
-          </Badge>
-        ) : null}
-      </div>
+      <Badge variant="outline" className="max-w-full truncate" title={membership.tariffName}>
+        {membership.tariffName}
+      </Badge>
     );
   }
 
   return (
-    <Badge variant="outline" className="max-w-full truncate" title={membership.tariffName}>
-      {membership.tariffName}
-    </Badge>
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+      <Badge variant="secondary" className="shrink-0" title={membership.tariffName}>
+        {consumptionModelLabel(membership.consumptionModel)}
+      </Badge>
+      {packBalance > 0 ? (
+        <Badge variant="outline" className="shrink-0 tabular-nums" title="Saldo de bono">
+          {packBalance} bono
+        </Badge>
+      ) : null}
+    </div>
   );
 }
 
@@ -85,12 +89,38 @@ function CellText({
 
 export function MembersTable({ members }: { members: MemberListRow[] }) {
   const router = useRouter();
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(
+    () =>
+      members.filter((member) =>
+        matchesMemberSearch(
+          query,
+          memberHaystack([
+            member.firstName,
+            member.lastName,
+            member.dni,
+            member.phone,
+            member.email,
+            member.membership?.tariffName,
+          ]),
+        ),
+      ),
+    [members, query],
+  );
 
   function openMember(id: string) {
     router.push(`/staff/socios/${id}`);
   }
 
   return (
+    <div className="flex flex-col gap-3">
+      <MemberListSearch value={query} onChange={setQuery} />
+      {filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {members.length === 0 ? null : "Ningún socio coincide con la búsqueda."}
+        </p>
+      ) : null}
+      {filtered.length > 0 ? (
     <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
       <Table className="min-w-[20rem] md:min-w-[44rem]">
         <TableHeader>
@@ -103,7 +133,7 @@ export function MembersTable({ members }: { members: MemberListRow[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {members.map((member) => {
+          {filtered.map((member) => {
             const fullName = memberFullName(member.firstName, member.lastName);
             const phone = member.phone ?? "—";
             const email = member.email ?? "—";
@@ -154,6 +184,8 @@ export function MembersTable({ members }: { members: MemberListRow[] }) {
           })}
         </TableBody>
       </Table>
+    </div>
+      ) : null}
     </div>
   );
 }

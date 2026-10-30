@@ -3,8 +3,9 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import type { SubscriptionBilling } from "@78feet/domain";
 import { api } from "@/lib/box/api";
-import { formatMonth, formatPrice } from "@/lib/box/format";
+import { formatPrice } from "@/lib/box/format";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -33,11 +34,15 @@ function parseEurosInput(raw: string): number | null {
 
 export function MarkPaidButton({
   userId,
-  month,
+  billingPeriod,
+  periodStart,
+  periodLabel,
   amountCents,
 }: {
   userId: string;
-  month: string;
+  billingPeriod: SubscriptionBilling;
+  periodStart: string;
+  periodLabel: string;
   amountCents: number;
 }) {
   const router = useRouter();
@@ -64,8 +69,8 @@ export function MarkPaidButton({
         method: "POST",
         body: JSON.stringify({
           userId,
-          kind: "monthly",
-          month,
+          billingPeriod,
+          periodStart,
           amountCents: parsed,
           method,
         }),
@@ -91,11 +96,12 @@ export function MarkPaidButton({
         </Button>
       }
       title="Registrar pago"
-      description={`Cuota mensual · ${formatMonth(month)}. Tarifa ${formatPrice(amountCents)}.`}
+      description={`${periodLabel}. Tarifa ${formatPrice(amountCents)}.`}
     >
       <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
-        <Field label="Mes">
-          <Input readOnly value={formatMonth(month)} className="bg-muted/40" />
+        <input type="hidden" name="periodStart" value={periodStart} />
+        <Field label="Periodo">
+          <Input readOnly value={periodLabel} className="bg-muted/40" />
         </Field>
         <Field label="Importe cobrado (€)">
           <Input

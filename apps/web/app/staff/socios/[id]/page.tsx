@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { getMember } from "@/lib/box/members";
 import { listTariffs } from "@/lib/box/tariffs";
@@ -32,8 +31,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
   const staff = await requireStaff();
   const { id } = await params;
-  const monthStart = `${localDateString(new Date()).slice(0, 7)}-01`;
-
   const [member, tariffs, summary] = await Promise.all([
     (async () => {
       try {
@@ -60,7 +57,8 @@ async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
       ? {
           tariffId: member.membership.tariffId,
           tariffName: member.membership.tariffName,
-          tariffKind: member.membership.tariffKind,
+          consumptionModel: member.membership.consumptionModel,
+          billingPeriod: member.membership.billingPeriod,
           priceCents: member.membership.priceCents,
         }
       : null,
@@ -89,7 +87,6 @@ async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
           member={profileMember}
           summary={summary}
           tariffs={tariffs}
-          monthStart={monthStart}
           isAdmin={staff.role === "admin"}
         />
       </ModuleBody>

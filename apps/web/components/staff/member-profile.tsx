@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import type { MemberSummary } from "@/lib/box/summary";
-import { localDateString, weekEndDate, weekStartDate } from "@78feet/domain";
-import { formatMonth, formatPrice, formatWeekRange, memberFullName } from "@/lib/box/format";
+import { billingPeriodKindLabel, localDateString, usesPeriodicQuota, weekEndDate, weekStartDate } from "@78feet/domain";
+import { formatPrice, formatWeekRange, memberFullName } from "@/lib/box/format";
 import { MarkPaidButton } from "@/components/staff/mark-paid-button";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -22,7 +22,8 @@ type Tariff = {
   id: string;
   name: string;
   active: boolean;
-  kind: "monthly" | "pack";
+  consumptionModel: import("@78feet/domain").TariffConsumption;
+  billingPeriod: import("@78feet/domain").TariffBilling;
   priceCents: number;
   packClasses: number | null;
 };
@@ -39,7 +40,8 @@ export type MemberProfileData = {
   membership: {
     tariffId: string;
     tariffName: string;
-    tariffKind: "monthly" | "pack";
+    consumptionModel: import("@78feet/domain").TariffConsumption;
+    billingPeriod: import("@78feet/domain").TariffBilling;
     priceCents: number;
   } | null;
 };
@@ -94,13 +96,11 @@ export function MemberProfile({
   member,
   summary,
   tariffs,
-  monthStart,
   isAdmin,
 }: {
   member: MemberProfileData;
   summary: MemberSummary;
   tariffs: Tariff[];
-  monthStart: string;
   isAdmin: boolean;
 }) {
   const router = useRouter();
@@ -108,7 +108,10 @@ export function MemberProfile({
   const [openAction, setOpenAction] = useState<"tariff" | "password" | "edit" | null>(null);
   const assignable = tariffs.filter((tariff) => tariff.active);
   const bonoPacks = tariffs
-    .filter((tariff) => tariff.active && tariff.kind === "pack" && tariff.packClasses != null && tariff.packClasses > 0)
+    .filter(
+      (tariff) =>
+        tariff.active && tariff.consumptionModel === "pack" && tariff.packClasses != null && tariff.packClasses > 0,
+    )
     .sort((left, right) => (left.packClasses ?? 0) - (right.packClasses ?? 0));
   const active = member.status === "active";
   const { tariff, quota } = summary;
@@ -119,8 +122,10 @@ export function MemberProfile({
   const openAvailable = Math.max(0, quota.openLimit - quota.openUsed + (quota.openAdjustment ?? 0));
   const weekLabel = formatWeekRange(weekStartDate(localDateString(new Date())), weekEndDate(localDateString(new Date())));
   const showBonoSection =
-    tariff?.kind === "monthly" || tariff?.kind === "pack" || quota.packBalance > 0;
-  const showConsumosSection = tariff?.kind === "monthly";
+    (tariff && usesPeriodicQuota(tariff.consumptionModel)) ||
+    tariff?.consumptionModel === "pack" ||
+    quota.packBalance > 0;
+  const showConsumosSection = tariff ? usesPeriodicQuota(tariff.consumptionModel) : false;
 
   async function changeTariff(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -406,8 +411,11 @@ export function MemberProfile({
                   <span className="font-medium">{tariff.name}</span>
                   <span className="text-sm tabular-nums text-muted-foreground">{formatPrice(tariff.priceCents)}</span>
                 </div>
-                {tariff.kind === "pack" ? (
-                  <p className="text-sm text-muted-foreground">Las reservas consumen el saldo de bono; no hay cupo semanal.</p>
+                {tariff.consumptionModel === "pack" ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-muted-foreground">Las reservas consumen el saldo de bono; no hay cupo semanal.</p>
+                    <FieldRow label="Facturación" value={billingPeriodKindLabel(tariff.billingPeriod)} />
+                  </div>
                 ) : (
                   <>
                     <dl className="flex flex-col gap-2">
@@ -421,17 +429,29 @@ export function MemberProfile({
                           </span>
                         }
                       />
+                      <FieldRow
+                        label="Facturación"
+                        value={billingPeriodKindLabel(tariff.billingPeriod)}
+                      />
                     </dl>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-muted-foreground">{formatMonth(monthStart)}</span>
-                      {summary.payment === "paid" ? (
-                        <Badge className="bg-success text-white">Mes pagado</Badge>
-                      ) : active ? (
-                        <MarkPaidButton userId={member.id} month={monthStart} amountCents={tariff.priceCents} />
-                      ) : (
-                        <Badge variant="outline">Pendiente</Badge>
-                      )}
-                    </div>
+                    {summary.payment ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-muted-foreground">{summary.payment.periodLabel}</span>
+                        {summary.payment.status === "paid" ? (
+                          <Badge className="bg-success text-white">Pagado</Badge>
+                        ) : active ? (
+                          <MarkPaidButton
+                            userId={member.id}
+                            billingPeriod={summary.payment.billingPeriod}
+                            periodStart={summary.payment.periodStart}
+                            periodLabel={summary.payment.periodLabel}
+                            amountCents={tariff.priceCents}
+                          />
+                        ) : (
+                          <Badge variant="outline">Pendiente</Badge>
+                        )}
+                      </div>
+                    ) : null}
                   </>
                 )}
               </div>

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
+import { billingPeriodKindLabel, consumptionModelLabel, usesPeriodicQuota } from "@78feet/domain";
 import { formatPrice } from "@/lib/box/format";
 import { getMemberSummary } from "@/lib/box/summary";
 import { Badge } from "@/components/ui/badge";
@@ -41,10 +42,15 @@ async function Tariff() {
             <CardDescription className="tabular-nums">{formatPrice(tariff.priceCents)}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <Badge variant="secondary" className="w-fit">
-              {tariff.kind === "monthly" ? "Mensual" : "Bono"}
-            </Badge>
-            {tariff.kind === "monthly" ? (
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="w-fit">
+                {consumptionModelLabel(tariff.consumptionModel)}
+              </Badge>
+              <Badge variant="outline" className="w-fit">
+                {billingPeriodKindLabel(tariff.billingPeriod)}
+              </Badge>
+            </div>
+            {usesPeriodicQuota(tariff.consumptionModel) ? (
               <>
                 <p className="tabular-nums">
                   Dirigidas {summary.quota.directedUsed}/{summary.quota.directedLimit}
@@ -56,16 +62,16 @@ async function Tariff() {
             ) : null}
             <p className="tabular-nums">Saldo de bono {summary.quota.packBalance}</p>
             {summary.payment ? (
-              <p className="flex items-center gap-2">
-                <span>Este mes</span>
+              <p className="flex flex-wrap items-center gap-2">
+                <span>{summary.payment.periodLabel}</span>
                 <Badge
                   className={
-                    summary.payment === "paid"
+                    summary.payment.status === "paid"
                       ? "bg-success text-white"
                       : "bg-warning text-primary-foreground"
                   }
                 >
-                  {summary.payment === "paid" ? "Pagado" : "Pendiente"}
+                  {summary.payment.status === "paid" ? "Pagado" : "Pendiente"}
                 </Badge>
               </p>
             ) : null}
