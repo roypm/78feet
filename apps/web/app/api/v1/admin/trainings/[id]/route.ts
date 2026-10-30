@@ -11,7 +11,7 @@ function requireId(params: Record<string, string>): string {
 }
 
 export const GET = staffHandler(["coach", "admin"], async (_user, _request, params) =>
-  getTraining(requireId(params)),
+  getTraining(requireId(params), { includeAssignmentInfo: true }),
 );
 
 export const PATCH = staffHandler(["coach", "admin"], async (_user, request, params) =>

@@ -51,6 +51,7 @@ async function TrainingDetail({ params }: { params: Promise<{ id: string }> }) {
           name={training.name}
           classTypeName={training.classType.name}
           phases={training.phases}
+          showHeading={false}
         />
       </ModuleBody>
     </ModulePage>

@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { getTraining } from "@/lib/box/trainings";
-import { listClassTypes } from "@/lib/box/class-types";
 import { BoxError } from "@/lib/box/errors";
-import { TrainingForm } from "@/components/staff/training-form";
+import { TrainingRead } from "@/components/box/training-read";
+import { TrainingDeleteButton } from "@/components/staff/training-delete-button";
+import { Button } from "@/components/ui/button";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -30,13 +31,11 @@ async function TrainingDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let training;
   try {
-    training = await getTraining(id);
+    training = await getTraining(id, { includeAssignmentInfo: true });
   } catch (error) {
     if (error instanceof BoxError && error.status === 404) notFound();
     throw error;
   }
-  const types = (await listClassTypes()).filter((type) => type.kind === "directed");
-
   return (
     <ModulePage>
       <ModuleHeader
@@ -49,17 +48,20 @@ async function TrainingDetail({ params }: { params: Promise<{ id: string }> }) {
         }
       />
       <ModuleBody>
-        <TrainingForm
-          types={types}
-          training={{
-            id: training.id,
-            name: training.name,
-            classTypeId: training.classTypeId,
-            phases: training.phases.map((phase) => ({
-              name: phase.name,
-              blocks: phase.blocks.map((block) => ({ body: block.body })),
-            })),
-          }}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button nativeButton={false} variant="outline" className="min-h-11" render={<Link href={`/staff/biblioteca/${training.id}/editar`} />}>
+            Editar
+          </Button>
+          <TrainingDeleteButton trainingId={training.id} />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Se asigna desde la ficha de cada clase. Los cambios de nombre y contenido se reflejan en las clases vinculadas, también en las pasadas; al cambiar el tipo, las clases incompatibles pierden el plan.
+        </p>
+        <TrainingRead
+          name={training.name}
+          classTypeName={training.classType.name}
+          phases={training.phases}
+          showHeading={false}
         />
       </ModuleBody>
     </ModulePage>

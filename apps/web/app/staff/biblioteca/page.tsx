@@ -1,9 +1,10 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { requireStaff } from "@/lib/auth/current";
-import { listTrainingFilterTypes, listTrainings } from "@/lib/box/trainings";
+import { listStaffTrainings, listTrainingFilterTypes } from "@/lib/box/trainings";
 import { Button } from "@/components/ui/button";
 import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
+import { TrainingLibraryTable } from "@/components/staff/training-library-table";
 import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
 
 export default function Page({
@@ -31,7 +32,7 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
   await requireStaff();
   const query = await searchParams;
   const classTypeId = query.tipo && query.tipo !== "todos" ? query.tipo : undefined;
-  const [trainings, types] = await Promise.all([listTrainings(classTypeId), listTrainingFilterTypes()]);
+  const [trainings, types] = await Promise.all([listStaffTrainings(classTypeId), listTrainingFilterTypes()]);
 
   return (
     <ModulePage>
@@ -55,29 +56,13 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
           </FilterTabs>
         }
       />
-      <ModuleBody inset="content">
+      <ModuleBody width="full" inset="content">
         <ModulePrimaryAction>
           <Button nativeButton={false} variant="outline" className="min-h-11" render={<Link href="/staff/biblioteca/nuevo" />}>
             Nuevo entrenamiento
           </Button>
         </ModulePrimaryAction>
-        {trainings.length === 0 ? (
-          <p className="text-muted-foreground">Todavía no hay entrenamientos.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {trainings.map((item) => (
-              <li key={item.id}>
-                <Link
-                  href={`/staff/biblioteca/${item.id}`}
-                  className="flex flex-col gap-1 rounded-lg bg-card p-3 ring-1 ring-foreground/10"
-                >
-                  <span className="font-medium">{item.name}</span>
-                  <span className="text-sm text-muted-foreground">{item.classTypeName}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <TrainingLibraryTable trainings={trainings} hasTypeFilter={Boolean(classTypeId)} />
       </ModuleBody>
     </ModulePage>
   );

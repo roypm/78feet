@@ -26,7 +26,6 @@ function trainingView(
     classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string };
     phases: { id: string; name: string; position: number; blocks: { id: string; body: string; position: number }[] }[];
   },
-  linkedCount?: number,
 ) {
   return {
     id: row.id,
@@ -45,7 +44,6 @@ function trainingView(
         position: block.position,
       })),
     })),
-    ...(linkedCount === undefined ? {} : { linkedCount }),
   };
 }
 
@@ -73,6 +71,21 @@ export async function listTrainings(classTypeId?: string) {
   return rows.map(trainingCard);
 }
 
+export async function listStaffTrainings(classTypeId?: string) {
+  const rows = await prisma.training.findMany({
+    where: classTypeId ? { classTypeId } : undefined,
+    include: {
+      classType: true,
+      phases: { select: { name: true, position: true }, orderBy: { position: "asc" } },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+  return rows.map((row) => ({
+    ...trainingCard(row),
+    phaseNames: row.phases.map((phase) => phase.name),
+  }));
+}
+
 export async function listTrainingFilterTypes() {
   const rows = await prisma.classType.findMany({
     where: { kind: "directed", trainings: { some: {} } },
@@ -81,14 +94,31 @@ export async function listTrainingFilterTypes() {
   return rows.map(typeView);
 }
 
-export async function getTraining(id: string) {
+type StaffTrainingView = ReturnType<typeof trainingView> & {
+  hasAssignedClasses: boolean;
+};
+
+export function getTraining(id: string, options: { includeAssignmentInfo: true }): Promise<StaffTrainingView>;
+export function getTraining(id: string, options?: { includeAssignmentInfo?: false }): Promise<ReturnType<typeof trainingView>>;
+export async function getTraining(
+  id: string,
+  { includeAssignmentInfo = false }: { includeAssignmentInfo?: boolean } = {},
+): Promise<ReturnType<typeof trainingView> | StaffTrainingView> {
   const row = await prisma.training.findUnique({
     where: { id },
     include: trainingInclude,
   });
   if (!row) throw new BoxError(404, "FORBIDDEN", "El entrenamiento no existe");
-  const linkedCount = await prisma.classInstance.count({ where: { trainingId: id } });
-  return trainingView(row, linkedCount);
+  const view = trainingView(row);
+  if (!includeAssignmentInfo) return view;
+  const assignedClass = await prisma.classInstance.findFirst({
+    where: { trainingId: id },
+    select: { id: true },
+  });
+  return {
+    ...view,
+    hasAssignedClasses: assignedClass !== null,
+  };
 }
 
 async function replacePhases(db: Db, trainingId: string, phases: TrainingWrite["phases"]) {
@@ -116,7 +146,7 @@ export async function createTraining(input: TrainingWrite) {
     await replacePhases(tx, created.id, input.phases);
     return tx.training.findUniqueOrThrow({ where: { id: created.id }, include: trainingInclude });
   });
-  return trainingView(row, 0);
+  return trainingView(row);
 }
 
 export async function updateTraining(id: string, patch: TrainingPatch) {
@@ -159,8 +189,7 @@ export async function updateTraining(id: string, patch: TrainingPatch) {
     }
     return tx.training.findUniqueOrThrow({ where: { id }, include: trainingInclude });
   });
-  const linkedCount = await prisma.classInstance.count({ where: { trainingId: id } });
-  return { training: trainingView(row, linkedCount), detachedCount: wouldDetach };
+  return { training: trainingView(row), detachedCount: wouldDetach };
 }
 
 export async function deleteTraining(id: string, confirmDetach = false) {
