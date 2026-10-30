@@ -31,17 +31,16 @@ Este documento es la versión vigente.
 
 ## 3. Pantallas del staff (web, también usable desde el móvil)
 
-1. **Hoy**: clases del día con roster.
-2. **Semana**: cabecera con **Dirigidas / Open** y texto explicativo; selector de semana encima de la grilla (como Plantilla). Misma densidad de columnas y bloques que la plantilla; ocupación `9/12`. Tocá un bloque para ir al detalle de la clase.
+1. **Hoy**: clases del día con roster. Tocá una para el detalle.
+2. **Semana**: cabecera con **Dirigidas / Open** y texto explicativo; selector de semana encima de la grilla (como Plantilla). Misma densidad de columnas y bloques que la plantilla; ocupación `9/12`. Tocá un bloque para ir al **detalle de la clase**: roster, excepciones sobre la instancia, **añadir socio** y **quitar socio** (con o sin devolver cupo).
 3. **Plantilla semanal**: selector **Dirigidas / Open** en la cabecera (como Semana). Cada vista muestra su grilla de lunes a domingo con el mismo eje horario que Semana; cada bloque indica tipo, hora, aforo y coach. En móvil se elige además el día. Al tocar un espacio libre se añade un hueco al borrador; al tocar uno existente se edita o quita. **Aplicar plantilla** confirma y publica desde el lunes siguiente (ambas plantillas en un solo borrador); **Cancelar cambio** descarta el borrador y vuelve al último estado aplicado.
 4. **Tipos de clase**: el admin mantiene el catálogo de nombre, imagen obligatoria y grilla (dirigida u open). Un tipo no cambia de grilla.
-5. **Excepciones**: listado en rejilla compacta (como Tipos de clase) de anomalías desde hoy — clases extra (sin plantilla), instancias de plantilla modificadas o canceladas. Tocá una fila para ir al detalle; botón para añadir clase extra en cualquier fecha futura (también fuera del horizonte de Semana). No sustituye a Semana ni a Hoy.
+5. **Excepciones**: listado en rejilla compacta (como Tipos de clase) de anomalías desde hoy — clases extra (sin plantilla), instancias de plantilla modificadas o canceladas. Tocá una fila para ir al detalle (mismas acciones de roster que en Semana). Botón para añadir clase extra en cualquier fecha futura (también fuera del horizonte de Semana). No sustituye a Semana ni a Hoy.
 6. **Socios**: alta, edición, asignar tarifa, cargar saldo de bono, resetear contraseña, dar de baja.
 7. **Tarifas**: catálogo (nombre, precio, dirigidas/semana, opens/semana, clases del bono).
 8. **Impagos del mes**: listado de socios mensuales sin pago registrado.
-9. **Reservas**: crear o cancelar a nombre de un socio, eligiendo si el cupo vuelve.
-10. **Horario del box**: el admin fija la hora de apertura y de cierre del eje del calendario. Hoy son 07:00 y 21:00, fijas en código hasta que exista esta pantalla.
-11. **Biblioteca**: el mismo listado y el mismo filtro que ve el socio. Desde aquí el coach y el admin crean y editan. Al crear, el tipo se elige entre todos los tipos dirigidos. No se asocia a una clase desde la ficha. Borrar, o cambiar el tipo si eso suelta clases, pide confirmación y dice cuántas se quedan sin plan.
+9. **Horario del box**: el admin fija la hora de apertura y de cierre del eje del calendario. Hoy son 07:00 y 21:00, fijas en código hasta que exista esta pantalla.
+10. **Biblioteca**: el mismo listado y el mismo filtro que ve el socio. Desde aquí el coach y el admin crean y editan. Al crear, el tipo se elige entre todos los tipos dirigidos. No se asocia a una clase desde la ficha. Borrar, o cambiar el tipo si eso suelta clases, pide confirmación y dice cuántas se quedan sin plan.
 
 ## 4. Flujos principales
 
@@ -86,3 +85,12 @@ Desde el detalle de una clase, el nombre del entrenamiento abre la misma ficha.
 2. Elige un entrenamiento del mismo tipo, o ninguno.
 3. La clase queda señalando esa ficha. Las reservas no cambian.
 4. El socio lo ve en el detalle, debajo de la hora, el coach, las plazas, el roster y el botón.
+
+### Apuntar o quitar socio (staff)
+
+1. **Semana** (o **Hoy** si es hoy, o **Excepciones** si la fecha cae fuera del horizonte de Semana) → tocá la clase.
+2. En el detalle, **Añadir socio** abre el selector de socios activos (mismas reglas de cupo y plazas que la app del socio).
+3. En la tabla de apuntados, **Quitar y devolver** o **Sin devolver** (el staff decide si el cupo o el saldo vuelve; PRD §7).
+4. Toast de confirmación y la grilla de Semana refleja la nueva ocupación al volver.
+
+La ruta `/staff/reservas` redirige a Semana; no hay módulo aparte.

@@ -63,10 +63,11 @@ identificador de login es `login_id` y no el DNI.
 |---|---|---|
 | `id` | uuid | |
 | `name` | text | |
-| `kind` | enum | `monthly` \| `pack` |
+| `consumption_model` | enum | `weekly_quota` \| `pack` |
+| `billing_period` | enum | `monthly` \| `quarterly` \| `semiannual` \| `annual` \| `none` \| `one_time` |
 | `price_cents` | int | |
-| `weekly_directed` | int | solo `monthly` |
-| `weekly_open` | int | solo `monthly` |
+| `weekly_directed` | int | solo `weekly_quota` |
+| `weekly_open` | int | solo `weekly_quota` |
 | `pack_classes` | int, nullable | tamaño por defecto del bono, solo `pack` |
 | `active` | bool | las inactivas no se asignan pero se conservan |
 | `created_at` | timestamptz | |
@@ -113,15 +114,15 @@ Sin contadores mutables no hay deriva, y cancelar una reserva devuelve el saldo 
 |---|---|---|
 | `id` | uuid | |
 | `user_id` | uuid | |
-| `kind` | enum | `monthly` \| `pack` |
-| `month` | date, nullable | primer día del mes cubierto; solo `monthly` |
+| `billing_period` | enum | `monthly` \| `quarterly` \| `semiannual` \| `annual` \| `one_time` |
+| `period_start` | date, nullable | inicio del periodo cubierto; null en `one_time` |
 | `amount_cents` | int | |
 | `method` | text, nullable | `cash` \| `bizum` \| `transfer` \| `card` \| otro |
 | `recorded_by` | uuid | FK `user` (staff) |
 | `created_at` | timestamptz | |
 
-Invariante: único `(user_id, month)` cuando `kind = 'monthly'`.
-"Impago del mes" = socio con membresía `monthly` vigente sin fila de pago para el mes en curso.
+Invariante: único `(user_id, billing_period, period_start)` cuando el periodo no es `one_time`.
+"Impago" = socio con tarifa de suscripción vigente sin fila de pago para el periodo en curso (según `billing_period` de la tarifa).
 
 ### `class_type`
 
@@ -326,7 +327,7 @@ reservar(u, instance):
   require no solape con otra reserva activa de u, sino 409 OVERLAP
   require plazas libres (ver 4.4), sino 409 FULL
 
-  if membership.kind == 'monthly':
+  if membership.consumption_model == 'weekly_quota':
       limit = kind == 'directed' ? tariff.weekly_directed : tariff.weekly_open
       if used(week(instance), kind) < limit:
           pool = kind == 'directed' ? 'weekly_directed' : 'weekly_open'
@@ -334,7 +335,7 @@ reservar(u, instance):
           pool = 'pack'
       else:
           409 QUOTA_EXHAUSTED
-  else:  # tarifa pack
+  else:  # consumption_model pack
       require pack_balance(u) > 0, sino 409 QUOTA_EXHAUSTED
       pool = 'pack'
 ```
@@ -466,6 +467,8 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 - **Web** (`apps/web`): panel del staff (escritorio primero, responsive) y las mismas pantallas del
   socio para quien entre desde el navegador. Server Components para lectura, route handlers para mutaciones.
+  Reservas staff: detalle de instancia (`/staff/clases/:id`), enlazado desde Semana, Hoy o Excepciones; usa
+  `POST/DELETE /api/v1/admin/bookings`. `/staff/reservas` redirige a Semana.
 - **App** (`apps/mobile`): solo socios. Expo Router con seis pestañas: Calendario, Mis reservas,
   Historial, Biblioteca, Mi tarifa, Cuenta. Consume la misma API con `packages/domain`.
 - Sin estado offline, sin push, sin cámara. La imagen del tipo es un archivo que sube el admin, ya encuadrado; nadie la saca desde la app.

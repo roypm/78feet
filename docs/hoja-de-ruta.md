@@ -14,7 +14,7 @@ Una llesca por pasada. Cada una deja el repo en un estado que se puede probar an
 | 3 | Datos del box | hecha | Tarifas, socios, plantilla semanal y `ensureInstances` / cron |
 | 4 | Reservar y cancelar | hecha | Socio y staff reservan/cancelan contra Postgres, con `FOR UPDATE` |
 | 5 | Pantallas del socio (web) | hecha | Calendario, detalle, mis reservas, historial, mi tarifa — [app-flow](./app-flow.md) |
-| 6 | Panel de staff | hecha | Hoy, semana, excepciones, catálogo de tipos de clase, socios, impagos, horario de apertura y cierre del calendario, y Biblioteca (staff y socio) |
+| 6 | Panel de staff | hecha | Hoy, semana, detalle de clase (roster y reservas staff), excepciones, catálogo de tipos de clase, socios, impagos, horario de apertura y cierre del calendario, y Biblioteca (staff y socio) |
 | 7 | App Expo | pendiente | Seis pestañas del socio (incluye Historial y Biblioteca), mismo cliente de `@78feet/domain`, Android primero |
 
 Fuera de esta lista (v1): pagos online, notificaciones, asistencia, lista de espera, iOS, Docker.

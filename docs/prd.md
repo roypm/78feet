@@ -60,11 +60,13 @@ Reglas:
 
 ### 4.1 Tipos de tarifa
 
-| Tipo | Precio | Cupo | Comportamiento |
-|---|---|---|---|
-| **Mensual** | € / mes | N dirigidas + M opens por semana | El cupo se renueva solo cada semana. No vence. |
-| **Bono** | pago único | X clases | Saldo que se consume hasta agotarse. Sin caducidad. |
-| **Prueba** | 0 € | ej. 3 dirigidas + 0 opens | Es una fila más del catálogo, no un tipo especial de usuario. |
+Cada fila del catálogo combina **dos ejes** independientes:
+
+| Consumo | Facturación | Precio | Cupo | Comportamiento |
+|---|---|---|---|---|
+| **Cupo semanal** | mensual, trimestral, semestral o anual | € / periodo | N dirigidas + M opens por semana | El cupo se renueva solo cada semana. No vence. |
+| **Cupo semanal** | sin cobro (`0 €`) | 0 € | ej. 3 dirigidas + 0 opens | Prueba: misma mecánica de reservas, sin estado de pago periódico. |
+| **Bono** | pago único | pago único | X clases | Saldo que se consume hasta agotarse. Sin caducidad. |
 
 El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la tarifa: no se editan por socio.
 
@@ -98,10 +100,10 @@ El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la t
 
 - El sistema **no cobra**. El pago se hace fuera (efectivo, Bizum, transferencia, TPV).
 - La membresía **no vence sola**: sigue activa hasta que alguien la cancele o la cambie a mano. No hay fecha de renovación ni corte automático por impago.
-- El estado de pago es **por mes calendario**: `pagado` o `pendiente`. El día 1 el mes nuevo aparece como `pendiente` hasta que el staff lo marque.
-- El socio ve **solo el mes en curso**, como un semáforo discreto, sin importes.
-- El staff ve la lista de **impagos del mes** (herramienta de cobranza).
-- Los bonos se registran como pago único; un socio solo bono no tiene estado mensual.
+- El estado de pago es **por periodo natural de la tarifa**: mes calendario, trimestre (ene–mar, abr–jun, jul–sep, oct–dic), semestre (ene–jun / jul–dic) o año. Cada periodo nuevo aparece como `pendiente` hasta que el staff lo marque.
+- El socio ve **solo el periodo en curso**, como un semáforo discreto, sin importes.
+- El staff ve la lista de **impagos del periodo** (herramienta de cobranza) y, al registrar un pago, el periodo sugerido según la tarifa.
+- Tarifas **sin cobro** y socios **solo bono** no tienen semáforo periódico; los bonos se registran como pago único al comprar o recargar saldo.
 
 ## 5. Calendario
 
@@ -172,7 +174,7 @@ Un socio puede reservar una instancia si:
 4. tiene **cupo semanal o saldo de bono** disponible para esa semana.
 
 - **No hay lista de espera**: si está llena, no hay más opción.
-- El staff puede **crear reservas a nombre de un socio** (teléfono, mostrador), con las mismas reglas de cupo.
+- El staff puede **crear reservas a nombre de un socio** (teléfono, mostrador), con las mismas reglas de cupo, **desde el detalle de la clase** (Semana, Hoy o Excepciones). No hay pantalla aparte de «Reservas» en el panel.
 - No se reserva para terceros desde la app del socio.
 - El socio consulta el **historial** de las reservas cuya clase ya empezó. Va agrupado por mes, el mes más reciente primero.
 - Una reserva cancelada, o una clase cancelada por el box, sigue en el historial y se marca. No registra si el socio asistió.
