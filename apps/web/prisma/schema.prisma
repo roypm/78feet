@@ -19,9 +19,27 @@ enum UserStatus {
   inactive
 }
 
-enum TariffKind {
-  monthly
+enum TariffConsumption {
+  weekly_quota
+  monthly_quota
   pack
+}
+
+enum TariffBilling {
+  monthly
+  quarterly
+  semiannual
+  annual
+  none
+  one_time
+}
+
+enum PaymentBilling {
+  monthly
+  quarterly
+  semiannual
+  annual
+  one_time
 }
 
 enum ClassKind {
@@ -43,11 +61,6 @@ enum BookingPool {
 enum BookingStatus {
   active
   cancelled
-}
-
-enum PaymentKind {
-  monthly
-  pack
 }
 
 enum EndedReason {
@@ -89,16 +102,17 @@ model User {
 }
 
 model Tariff {
-  id             String       @id @default(uuid()) @db.Uuid
-  name           String
-  kind           TariffKind
-  priceCents     Int          @map("price_cents")
-  weeklyDirected Int          @default(0) @map("weekly_directed")
-  weeklyOpen     Int          @default(0) @map("weekly_open")
-  packClasses    Int?         @map("pack_classes")
-  active         Boolean      @default(true)
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  memberships    Membership[]
+  id               String            @id @default(uuid()) @db.Uuid
+  name             String
+  consumptionModel TariffConsumption @map("consumption_model")
+  billingPeriod    TariffBilling     @map("billing_period")
+  priceCents       Int               @map("price_cents")
+  weeklyDirected   Int               @default(0) @map("weekly_directed")
+  weeklyOpen       Int               @default(0) @map("weekly_open")
+  packClasses      Int?              @map("pack_classes")
+  active           Boolean           @default(true)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  memberships      Membership[]
 
   @@map("tariff")
 }
@@ -151,20 +165,20 @@ model WeeklyQuotaAdjustment {
 }
 
 model Payment {
-  id           String        @id @default(uuid()) @db.Uuid
-  userId       String        @map("user_id") @db.Uuid
-  kind         PaymentKind
-  month        DateTime?     @db.Date
-  amountCents  Int           @map("amount_cents")
-  method       String?
-  recordedBy   String        @map("recorded_by") @db.Uuid
-  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  user         User          @relation("PaymentMember", fields: [userId], references: [id])
-  recorder     User          @relation("PaymentAuthor", fields: [recordedBy], references: [id])
-  creditGrants CreditGrant[]
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  billingPeriod PaymentBilling @map("billing_period")
+  periodStart   DateTime?      @map("period_start") @db.Date
+  amountCents   Int            @map("amount_cents")
+  method        String?
+  recordedBy    String         @map("recorded_by") @db.Uuid
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  user          User           @relation("PaymentMember", fields: [userId], references: [id])
+  recorder      User           @relation("PaymentAuthor", fields: [recordedBy], references: [id])
+  creditGrants  CreditGrant[]
 
-  @@index([userId, month])
-  /// Unique monthly payment: SQL index payment_one_month WHERE kind = 'monthly'
+  @@index([userId, periodStart])
+  /// Unique subscription payment: SQL index payment_one_period
   @@map("payment")
 }
 

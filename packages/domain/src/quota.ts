@@ -6,8 +6,11 @@ import type {
   ClassInstance,
   ClassKind,
   CreditGrant,
-  TariffKind,
+  TariffConsumption,
+  TariffBilling,
+  PaymentBilling,
 } from "./types";
+import { usesPeriodicQuota } from "./billing-period";
 
 export function bookingCountsTowardQuota(booking: Pick<Booking, "status" | "quotaReturned">): boolean {
   return booking.status === "active" || booking.quotaReturned === false;
@@ -62,7 +65,7 @@ export function weeklyQuotaAdjustmentTotal(
 }
 
 export function assignPool(params: {
-  tariffKind: TariffKind;
+  consumptionModel: TariffConsumption;
   classKind: ClassKind;
   weeklyDirectedLimit: number;
   weeklyOpenLimit: number;
@@ -72,7 +75,7 @@ export function assignPool(params: {
   weeklyUsedOpen: number;
   packBalance: number;
 }): BookingPool {
-  if (params.tariffKind === "pack") {
+  if (params.consumptionModel === "pack") {
     if (params.packBalance <= 0) {
       throw new DomainError("QUOTA_EXHAUSTED");
     }

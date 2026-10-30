@@ -72,7 +72,7 @@ export function evaluateBooking(params: {
   }
 
   const pool = assignPool({
-    tariffKind: params.tariff.kind,
+    consumptionModel: params.tariff.consumptionModel,
     classKind: params.instance.kind,
     weeklyDirectedLimit: params.tariff.weeklyDirected,
     weeklyOpenLimit: params.tariff.weeklyOpen,

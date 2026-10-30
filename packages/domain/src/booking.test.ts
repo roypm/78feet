@@ -30,7 +30,7 @@ function expectCode(run: () => unknown, code: ErrorCode): void {
 const userId = "member-1";
 const monthly: TariffSnapshot = {
   id: "tariff-monthly",
-  kind: "monthly",
+  consumptionModel: "weekly_quota",
   weeklyDirected: 2,
   weeklyOpen: 2,
 };

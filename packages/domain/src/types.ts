@@ -1,12 +1,22 @@
 export type Role = "member" | "coach" | "admin";
 export type UserStatus = "active" | "inactive";
+/** @deprecated use TariffConsumption */
 export type TariffKind = "monthly" | "pack";
+export type TariffConsumption = "weekly_quota" | "monthly_quota" | "pack";
+export type TariffBilling = "monthly" | "quarterly" | "semiannual" | "annual" | "none" | "one_time";
+export type PaymentBilling = "monthly" | "quarterly" | "semiannual" | "annual" | "one_time";
 export type ClassKind = "directed" | "open";
 export type InstanceStatus = "scheduled" | "cancelled";
 export type BookingPool = "weekly_directed" | "weekly_open" | "pack";
 export type BookingStatus = "active" | "cancelled";
 export type EndedReason = "change" | "cancelled";
-export type PaymentKind = "monthly" | "pack";
+
+export type TariffSnapshot = {
+  id: string;
+  consumptionModel: TariffConsumption;
+  weeklyDirected: number;
+  weeklyOpen: number;
+};
 
 export type ClassTemplate = {
   id: string;
@@ -58,13 +68,6 @@ export type MembershipSnapshot = {
   userId: string;
   tariffId: string;
   endedAt: Date | null;
-};
-
-export type TariffSnapshot = {
-  id: string;
-  kind: TariffKind;
-  weeklyDirected: number;
-  weeklyOpen: number;
 };
 
 export type PlannedInstance = {

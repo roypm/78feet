@@ -139,6 +139,15 @@ export {
   assertTrainingContent,
   requireDetachConfirm,
 } from "./training";
+export {
+  billingPeriodKindLabel,
+  consumptionModelLabel,
+  isSubscriptionBilling,
+  periodStartForDate,
+  subscriptionPeriodLabel,
+  usesPeriodicQuota,
+  type SubscriptionBilling,
+} from "./billing-period";
 export { rosterName } from "./roster";
 export {
   LOGIN_LOCK_MS,
@@ -160,12 +169,14 @@ export type {
   EndedReason,
   InstanceStatus,
   MembershipSnapshot,
-  PaymentKind,
+  PaymentBilling,
   PlannedInstance,
   PropagationResult,
   PropagationSummary,
   Role,
   TariffKind,
+  TariffConsumption,
+  TariffBilling,
   TariffSnapshot,
   TemplateChange,
   TrainingPhaseInput,

@@ -7,6 +7,17 @@ export const isoDateSchema = z
 
 export const roleSchema = z.enum(["member", "coach", "admin"]);
 export const userStatusSchema = z.enum(["active", "inactive"]);
+export const tariffConsumptionSchema = z.enum(["weekly_quota", "monthly_quota", "pack"]);
+export const tariffBillingSchema = z.enum([
+  "monthly",
+  "quarterly",
+  "semiannual",
+  "annual",
+  "none",
+  "one_time",
+]);
+export const paymentBillingSchema = z.enum(["monthly", "quarterly", "semiannual", "annual", "one_time"]);
+/** @deprecated */
 export const tariffKindSchema = z.enum(["monthly", "pack"]);
 export const classKindSchema = z.enum(["directed", "open"]);
 export const instanceStatusSchema = z.enum(["scheduled", "cancelled"]);
@@ -63,10 +74,15 @@ export const cancelAdminBookingQuerySchema = z.object({
 
 const clockSchema = z.string().regex(/^\d{2}:\d{2}(?::\d{2})?$/, "Hora inválida");
 
+function usesPeriodicQuota(consumption: z.infer<typeof tariffConsumptionSchema>): boolean {
+  return consumption === "weekly_quota" || consumption === "monthly_quota";
+}
+
 export const tariffWriteSchema = z
   .object({
     name: z.string().trim().min(1, "El nombre es obligatorio"),
-    kind: tariffKindSchema,
+    consumptionModel: tariffConsumptionSchema,
+    billingPeriod: tariffBillingSchema,
     priceCents: z.number().int().min(0, "El precio no puede ser negativo"),
     weeklyDirected: z.number().int().min(0).optional(),
     weeklyOpen: z.number().int().min(0).optional(),
@@ -77,42 +93,58 @@ export const tariffWriteSchema = z
     const weeklyDirected = value.weeklyDirected ?? 0;
     const weeklyOpen = value.weeklyOpen ?? 0;
     const packClasses = value.packClasses ?? null;
-    if (value.kind === "monthly" && packClasses !== null) {
+    if (usesPeriodicQuota(value.consumptionModel) && packClasses !== null) {
       ctx.addIssue({
         code: "custom",
-        message: "Una mensual no lleva tamaño de bono",
+        message: "El cupo por periodo no lleva tamaño de bono",
         path: ["packClasses"],
       });
     }
-    if (value.kind === "pack" && packClasses === null) {
+    if (value.consumptionModel === "pack" && packClasses === null) {
       ctx.addIssue({
         code: "custom",
         message: "Un bono necesita cuántas clases incluye",
         path: ["packClasses"],
       });
     }
-    if (value.kind === "pack" && (weeklyDirected !== 0 || weeklyOpen !== 0)) {
+    if (value.consumptionModel === "pack" && (weeklyDirected !== 0 || weeklyOpen !== 0)) {
       ctx.addIssue({
         code: "custom",
         message: "Un bono no tiene cupo semanal",
         path: ["weeklyDirected"],
       });
     }
+    if (value.consumptionModel === "pack" && value.billingPeriod !== "one_time") {
+      ctx.addIssue({
+        code: "custom",
+        message: "Un bono se factura como pago único",
+        path: ["billingPeriod"],
+      });
+    }
+    if (usesPeriodicQuota(value.consumptionModel) && value.billingPeriod === "one_time") {
+      ctx.addIssue({
+        code: "custom",
+        message: "El cupo por periodo no usa pago único",
+        path: ["billingPeriod"],
+      });
+    }
   })
   .transform((value) => ({
     name: value.name,
-    kind: value.kind,
+    consumptionModel: value.consumptionModel,
+    billingPeriod: value.billingPeriod,
     priceCents: value.priceCents,
-    weeklyDirected: value.weeklyDirected ?? 0,
-    weeklyOpen: value.weeklyOpen ?? 0,
-    packClasses: value.kind === "pack" ? (value.packClasses ?? null) : null,
+    weeklyDirected: usesPeriodicQuota(value.consumptionModel) ? (value.weeklyDirected ?? 0) : 0,
+    weeklyOpen: usesPeriodicQuota(value.consumptionModel) ? (value.weeklyOpen ?? 0) : 0,
+    packClasses: value.consumptionModel === "pack" ? (value.packClasses ?? null) : null,
     active: value.active ?? true,
   }));
 
 export const patchTariffSchema = z
   .object({
     name: z.string().trim().min(1, "El nombre es obligatorio").optional(),
-    kind: tariffKindSchema.optional(),
+    consumptionModel: tariffConsumptionSchema.optional(),
+    billingPeriod: tariffBillingSchema.optional(),
     priceCents: z.number().int().min(0, "El precio no puede ser negativo").optional(),
     weeklyDirected: z.number().int().min(0).optional(),
     weeklyOpen: z.number().int().min(0).optional(),
@@ -272,16 +304,33 @@ export const patchStaffSchema = z
   .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });
 
 export const unpaidQuerySchema = z.object({
-  month: isoDateSchema.optional(),
+  date: isoDateSchema.optional(),
 });
 
-export const createPaymentSchema = z.object({
-  userId: z.string().uuid(),
-  kind: z.enum(["monthly", "pack"]),
-  month: isoDateSchema.optional(),
-  amountCents: z.number().int().min(0),
-  method: z.string().trim().min(1).nullable().optional(),
-});
+export const createPaymentSchema = z
+  .object({
+    userId: z.string().uuid(),
+    billingPeriod: paymentBillingSchema,
+    periodStart: isoDateSchema.optional(),
+    amountCents: z.number().int().min(0),
+    method: z.string().trim().min(1).nullable().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.billingPeriod !== "one_time" && !value.periodStart) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Falta el inicio del periodo",
+        path: ["periodStart"],
+      });
+    }
+    if (value.billingPeriod === "one_time" && value.periodStart) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Un pago único no lleva periodo",
+        path: ["periodStart"],
+      });
+    }
+  });
 
 export const adminDayQuerySchema = z.object({
   date: isoDateSchema,

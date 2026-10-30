@@ -8,6 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const sql = [
   readFileSync(join(root, "migrations/20261029100000_init/migration.sql"), "utf8"),
   readFileSync(join(root, "migrations/20261029140000_class_types/migration.sql"), "utf8"),
+  readFileSync(join(root, "migrations/20261030150000_tariff_billing/migration.sql"), "utf8"),
 ].join("\n");
 
 describe("init migration", () => {
@@ -21,7 +22,7 @@ describe("init migration", () => {
     const indexes = await db.query<{ indexname: string }>(
       `SELECT indexname FROM pg_indexes WHERE indexname IN (
         'membership_one_current',
-        'payment_one_month',
+        'payment_one_period',
         'class_instance_template_date',
         'booking_one_active'
       ) ORDER BY indexname`,
@@ -30,7 +31,7 @@ describe("init migration", () => {
       "booking_one_active",
       "class_instance_template_date",
       "membership_one_current",
-      "payment_one_month",
+      "payment_one_period",
     ]);
     await db.close();
   }, 20_000);

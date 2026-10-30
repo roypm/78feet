@@ -152,7 +152,7 @@ describe("pack overflow and returned quota", () => {
     expect(balance).toBe(3);
     expect(
       assignPool({
-        tariffKind: "monthly",
+        consumptionModel: "weekly_quota",
         classKind: "directed",
         weeklyDirectedLimit: 2,
         weeklyOpenLimit: 2,
@@ -166,7 +166,7 @@ describe("pack overflow and returned quota", () => {
   it("exhausts quota when weekly limit and pack are gone", () => {
     expect(() =>
       assignPool({
-        tariffKind: "monthly",
+        consumptionModel: "weekly_quota",
         classKind: "open",
         weeklyDirectedLimit: 2,
         weeklyOpenLimit: 1,
@@ -177,7 +177,7 @@ describe("pack overflow and returned quota", () => {
     ).toThrow(DomainError);
     try {
       assignPool({
-        tariffKind: "monthly",
+        consumptionModel: "weekly_quota",
         classKind: "open",
         weeklyDirectedLimit: 2,
         weeklyOpenLimit: 1,
@@ -194,7 +194,7 @@ describe("pack overflow and returned quota", () => {
   it("uses only pack for a pack tariff", () => {
     expect(
       assignPool({
-        tariffKind: "pack",
+        consumptionModel: "pack",
         classKind: "directed",
         weeklyDirectedLimit: 0,
         weeklyOpenLimit: 0,
