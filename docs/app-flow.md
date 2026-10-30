@@ -99,3 +99,9 @@ Las confirmaciones de acciones con impacto usan diálogos propios del sistema vi
 ## Paginación de listados
 
 Socios, Impagos y Biblioteca (staff y socio) usan `?pagina=N`; los enlaces conservan el filtro de estado o tipo. Cambiar de filtro comienza en la primera página. El pie muestra rango y total, página actual y controles Anterior/Siguiente con los extremos deshabilitados. Una lista vacía mantiene su mensaje habitual.
+
+## Feedback de interfaz
+
+Las pantallas de datos muestran skeletons durante la carga inicial. Las navegaciones lentas entre filtros, semanas, páginas y fichas muestran feedback en el enlace o fila activados; los filtros activos siguen representando los datos visibles hasta completar la navegación. Guardar, reservar, cancelar y gestionar saldo muestran un estado pendiente hasta completar la petición y la actualización de pantalla, sin permitir envíos duplicados desde el mismo control.
+
+Los vacíos ofrecen el siguiente paso que corresponda: calendario sin reservas, limpiar búsqueda o filtro, crear datos iniciales si el rol lo permite o pedir la configuración al admin. Socios e Impagos buscan dentro de la página actual y lo indican cuando no hay coincidencias. Un día cerrado, un saldo cero y la ausencia de un coach son estados válidos. Los fallos de carga ofrecen recuperación y se distinguen de una lista vacía.

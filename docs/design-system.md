@@ -93,3 +93,13 @@ Fuente custom, ilustraciones, motion decorativo, analítica visual y tematizaci�
 ### Navegación de listas
 
 Las listas paginadas comparten `ListPagination`: rango y total a la izquierda; Anterior, página actual y Siguiente a la derecha. El pie se envuelve en pantallas estrechas, usa botones outline con altura táctil mínima de 44 px y estados deshabilitados en los extremos.
+
+### Estados de interfaz
+
+- `EmptyState` compone el primitive `Empty`: título, descripción y una acción útil cuando existe. La variante compacta se usa dentro de secciones, formularios y calendarios. Distinguir lista vacía, filtro sin resultados y falta de configuración. Los enlaces de administración dependen del rol.
+- `LoadingState` usa `Skeleton` con estructura de lista, tabla, calendario, ficha, formulario, entrenamiento o clase. Tiene un único estado accesible de carga; los placeholders son decorativos. Se conservan las fronteras de `Suspense` de cada módulo.
+- `PendingButton` reserva espacio para las dos etiquetas, muestra spinner y expone `aria-busy`. `useActionFeedback` evita peticiones duplicadas y mantiene el estado pendiente durante la navegación o el refresco posterior. Los formularios bloquean sus campos durante el envío y conservan los valores ante errores.
+- `NavigationLink` conserva el comportamiento de Next Link y muestra una indicación local si la navegación tarda. La selección de filtros sigue correspondiendo al contenido mostrado hasta completar el cambio.
+- El hover usa `pointer-hover:` (`hover: hover` y `pointer: fine`); siempre hay foco visible y respuesta táctil. Las filas informativas no aparentan navegación. `prefers-reduced-motion` desactiva el pulso de skeletons, el giro de spinners y las animaciones de overlays sin ocultar las etiquetas de estado.
+- `ResourceImage` reserva la geometría mediante las clases del módulo y usa la imagen local de respaldo si falla la original. Los errores de carga tienen una pantalla de recuperación; no se presentan como listas vacías.
+- Tailwind se procesa con `@tailwindcss/postcss` tanto en desarrollo como en el build con webpack.
