@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ModulePrimaryAction } from "@/components/member/module-page";
+import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 
 type ClassType = { id: string; name: string; kind: "directed" | "open"; imageUrl: string };
 
@@ -30,6 +31,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClassType | null>(null);
+  const [deleting, setDeleting] = useState<ClassType | null>(null);
 
   function openCreate() {
     setEditing(null);
@@ -64,14 +66,18 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
     }
   }
 
-  async function onDelete(id: string) {
-    if (!window.confirm("¿Borrar este tipo?")) return;
+  async function onDelete() {
+    if (!deleting) return;
+    setPending(true);
     try {
-      await api(`/api/v1/admin/class-types/${id}`, { method: "DELETE" });
+      await api(`/api/v1/admin/class-types/${deleting.id}`, { method: "DELETE" });
+      setDeleting(null);
       toast.success("Tipo borrado");
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo borrar");
+    } finally {
+      setPending(false);
     }
   }
 
@@ -166,13 +172,24 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
                 <span className="block truncate font-medium">{type.name}</span>
                 <span className="block text-sm text-muted-foreground">{kindName(type.kind)}</span>
               </span>
-              <Button type="button" variant="ghost" className="relative z-10" onClick={() => void onDelete(type.id)}>
+              <Button type="button" variant="ghost" className="relative z-10" disabled={pending} onClick={() => setDeleting(type)}>
                 Borrar
               </Button>
             </li>
           ))}
         </ul>
       )}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => { if (!open && !pending) setDeleting(null); }}
+        title="Borrar tipo de clase"
+        description={deleting ? `¿Borrar «${deleting.name}»?` : ""}
+        confirmLabel="Borrar tipo"
+        confirmVariant="destructive"
+        busyLabel="Borrando…"
+        busy={pending}
+        onConfirm={() => void onDelete()}
+      />
     </section>
   );
 }

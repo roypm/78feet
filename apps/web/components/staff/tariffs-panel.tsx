@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Field, controlClass } from "@/components/staff/field";
 import { FormDialog } from "@/components/staff/form-dialog";
+import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { ModulePrimaryAction } from "@/components/member/module-page";
 import { cn } from "cn";
 
@@ -99,7 +100,6 @@ function TariffDialogForm({
   }
 
   const effectiveConsumption = editing ? tariff.consumptionModel : consumptionModel;
-  const effectiveBilling = editing ? tariff.billingPeriod : billingPeriod;
 
   return (
     <FormDialog
@@ -224,6 +224,7 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TariffView | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [confirmingTariff, setConfirmingTariff] = useState<TariffView | null>(null);
 
   function openCreate() {
     setEditing(null);
@@ -235,9 +236,10 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
     setDialogOpen(true);
   }
 
-  async function setActive(tariff: TariffView, active: boolean) {
+  async function setActive(tariff: TariffView, active: boolean, confirmed = false) {
     if (active === tariff.active) return;
-    if (!active && !window.confirm(`¿Desactivar «${tariff.name}»? No se podrá asignar a socios nuevos.`)) {
+    if (!active && !confirmed) {
+      setConfirmingTariff(tariff);
       return;
     }
     setPendingId(tariff.id);
@@ -247,6 +249,7 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
         body: JSON.stringify({ active }),
       });
       toast.success(active ? "Tarifa activada" : "Tarifa desactivada");
+      setConfirmingTariff(null);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar");
@@ -257,6 +260,21 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
 
   return (
     <>
+      <ConfirmDialog
+        open={confirmingTariff !== null}
+        onOpenChange={(open) => { if (!open && pendingId === null) setConfirmingTariff(null); }}
+        title="Desactivar tarifa"
+        description={confirmingTariff
+          ? `¿Desactivar «${confirmingTariff.name}»? No se podrá asignar a socios nuevos.`
+          : ""}
+        confirmLabel="Desactivar tarifa"
+        confirmVariant="destructive"
+        busyLabel="Desactivando…"
+        busy={confirmingTariff !== null && pendingId === confirmingTariff.id}
+        onConfirm={() => {
+          if (confirmingTariff) void setActive(confirmingTariff, false, true);
+        }}
+      />
       <ModulePrimaryAction>
         <Button type="button" variant="outline" className="min-h-11" onClick={openCreate}>
           Nueva tarifa

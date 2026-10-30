@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, controlClass } from "@/components/staff/field";
+import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { FormDialog } from "@/components/staff/form-dialog";
 
 type ClassType = { id: string; name: string; kind: "directed" | "open" };
@@ -64,6 +65,10 @@ export function InstanceForm({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [capacityConfirmation, setCapacityConfirmation] = useState<{
+    body: Record<string, unknown>;
+    message: string;
+  } | null>(null);
   const start = clock(instance.startAt);
   const end = clock(instance.endAt);
 
@@ -80,11 +85,7 @@ export function InstanceForm({
       onSaved?.();
     } catch (error) {
       if (error instanceof ApiError && error.code === "CONFIRM_REQUIRED") {
-        const ok = window.confirm(
-          `${error.message}. ¿Cancelar todas las reservas de esta clase?`,
-        );
-        if (ok) await send(body, true);
-        else toast.error(error.message);
+        setCapacityConfirmation({ body, message: error.message });
         return;
       }
       toast.error(error instanceof Error ? error.message : "No se pudo guardar");
@@ -108,7 +109,8 @@ export function InstanceForm({
   }
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+    <>
+      <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
       <Field label="Inicio">
         <Input name="startTime" type="time" required defaultValue={start} />
       </Field>
@@ -157,7 +159,26 @@ export function InstanceForm({
           {pending ? "Guardando…" : "Guardar"}
         </Button>
       </DialogFooter>
-    </form>
+      </form>
+      <ConfirmDialog
+        open={capacityConfirmation !== null}
+        onOpenChange={(open) => { if (!open) setCapacityConfirmation(null); }}
+        title="Confirmar cambio de aforo"
+        description={capacityConfirmation
+          ? `${capacityConfirmation.message}. Si continúas, se cancelarán todas las reservas de esta clase y se devolverá el cupo.`
+          : ""}
+        confirmLabel="Cancelar reservas y guardar"
+        confirmVariant="destructive"
+        busyLabel="Guardando…"
+        busy={pending}
+        onConfirm={() => {
+          if (!capacityConfirmation) return;
+          const { body } = capacityConfirmation;
+          setCapacityConfirmation(null);
+          void send(body, true);
+        }}
+      />
+    </>
   );
 }
 

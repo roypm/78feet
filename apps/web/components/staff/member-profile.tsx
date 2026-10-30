@@ -15,6 +15,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, controlClass } from "@/components/staff/field";
 import { FormDialog } from "@/components/staff/form-dialog";
+import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { ConsumoGestionDialog, BonoGestionDialog } from "@/components/staff/member-quota-gestion";
 import { cn } from "cn";
 
@@ -106,6 +107,8 @@ export function MemberProfile({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [openAction, setOpenAction] = useState<"tariff" | "password" | "edit" | null>(null);
+  const [tariffConfirmation, setTariffConfirmation] = useState<{ tariffId: string; hasMembership: boolean } | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const assignable = tariffs.filter((tariff) => tariff.active);
   const bonoPacks = tariffs
     .filter(
@@ -129,15 +132,14 @@ export function MemberProfile({
 
   async function changeTariff(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formElement = event.currentTarget;
-    const tariffId = String(new FormData(formElement).get("tariffId"));
+    const tariffId = String(new FormData(event.currentTarget).get("tariffId"));
     const hasMembership = Boolean(member.membership);
-    const ok = window.confirm(
-      hasMembership
-        ? "Este cambio cancela todas las reservas futuras del socio y devuelve el cupo/saldo. El socio se vuelve a apuntar con la tarifa nueva."
-        : "Se asignará esta tarifa al socio reactivado.",
-    );
-    if (!ok) return;
+    setTariffConfirmation({ tariffId, hasMembership });
+  }
+
+  async function confirmTariffChange() {
+    if (!tariffConfirmation) return;
+    const { tariffId, hasMembership } = tariffConfirmation;
     setPending(true);
     try {
       const result = await api<{ cancelledBookingCount: number }>(`/api/v1/admin/members/${member.id}/tariff`, {
@@ -149,7 +151,7 @@ export function MemberProfile({
           ? `Tarifa actualizada. ${result.cancelledBookingCount} reservas canceladas.`
           : "Tarifa asignada.",
       );
-      formElement.reset();
+      setTariffConfirmation(null);
       setOpenAction(null);
       router.refresh();
     } catch (error) {
@@ -180,10 +182,10 @@ export function MemberProfile({
   }
 
   async function deactivate() {
-    if (!window.confirm("¿Dar de baja a este socio? Se cancelan las reservas futuras. No se borra la ficha.")) return;
     setPending(true);
     try {
       await api(`/api/v1/admin/members/${member.id}/deactivate`, { method: "POST" });
+      setConfirmDeactivate(false);
       toast.success("Socio dado de baja");
       router.push("/staff/socios?estado=baja");
       router.refresh();
@@ -307,7 +309,10 @@ export function MemberProfile({
   const changeTariffDialog = (
     <FormDialog
       open={openAction === "tariff"}
-      onOpenChange={(open) => setOpenAction(open ? "tariff" : null)}
+      onOpenChange={(open) => {
+        setOpenAction(open ? "tariff" : null);
+        if (!open) setTariffConfirmation(null);
+      }}
       busy={pending}
       trigger={
         <Button
@@ -319,28 +324,63 @@ export function MemberProfile({
           {member.membership ? "Cambiar tarifa" : "Asignar tarifa"}
         </Button>
       }
-      title={member.membership ? "Cambiar tarifa" : "Asignar tarifa"}
-      description="El cambio cancela las reservas futuras y devuelve su cupo o saldo cuando ya había tarifa."
+      title={tariffConfirmation ? "Confirmar cambio de tarifa" : member.membership ? "Cambiar tarifa" : "Asignar tarifa"}
+      description={tariffConfirmation
+        ? tariffConfirmation.hasMembership
+          ? "Este cambio cancela todas las reservas futuras del socio y devuelve el cupo o saldo. Tendrá que volver a apuntarse con la tarifa nueva."
+          : "Se asignará esta tarifa al socio."
+        : "Elige la tarifa que tendrá el socio."}
     >
-      <form onSubmit={(event) => void changeTariff(event)} className="flex flex-col gap-4">
-        <Field label="Tarifa">
-          <select name="tariffId" required defaultValue={member.membership?.tariffId ?? ""} className={controlClass}>
-            {assignable.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
-            Cancelar
-          </Button>
-          <Button type="submit" className="min-h-11" disabled={pending}>
-            {pending ? "Guardando…" : member.membership ? "Cambiar tarifa" : "Asignar tarifa"}
-          </Button>
-        </DialogFooter>
-      </form>
+      {tariffConfirmation ? (
+        <>
+          <p className="font-medium">
+            {assignable.find((item) => item.id === tariffConfirmation.tariffId)?.name ?? "Tarifa seleccionada"}
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setTariffConfirmation(null)}>
+              Volver
+            </Button>
+            <Button
+              type="button"
+              variant={tariffConfirmation.hasMembership ? "destructive" : "default"}
+              className="min-h-11"
+              disabled={pending}
+              onClick={() => void confirmTariffChange()}
+            >
+              {pending ? "Guardando…" : tariffConfirmation.hasMembership ? "Cambiar y cancelar reservas" : "Asignar tarifa"}
+            </Button>
+          </DialogFooter>
+        </>
+      ) : (
+        <form onSubmit={(event) => void changeTariff(event)} className="flex flex-col gap-4">
+          <Field label="Tarifa">
+            <select name="tariffId" required defaultValue={member.membership?.tariffId ?? ""} className={controlClass}>
+              {assignable.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              disabled={pending}
+              onClick={() => {
+                setTariffConfirmation(null);
+                setOpenAction(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="min-h-11" disabled={pending}>
+              {member.membership ? "Cambiar tarifa" : "Asignar tarifa"}
+            </Button>
+          </DialogFooter>
+        </form>
+      )}
     </FormDialog>
   );
 
@@ -496,7 +536,7 @@ export function MemberProfile({
 
       {active && isAdmin ? (
         <div className="border-t border-border pt-4">
-          <Button type="button" variant="destructive" className="min-h-11" disabled={pending} onClick={() => void deactivate()}>
+          <Button type="button" variant="destructive" className="min-h-11" disabled={pending} onClick={() => setConfirmDeactivate(true)}>
             Dar de baja
           </Button>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -504,6 +544,17 @@ export function MemberProfile({
           </p>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={confirmDeactivate}
+        onOpenChange={(open) => { if (!open && !pending) setConfirmDeactivate(false); }}
+        title="Dar de baja al socio"
+        description="Se cancelarán sus reservas futuras y se desactivará la cuenta. La ficha y el historial se conservarán."
+        confirmLabel="Dar de baja"
+        confirmVariant="destructive"
+        busyLabel="Dando de baja…"
+        busy={pending}
+        onConfirm={() => void deactivate()}
+      />
     </div>
   );
 }

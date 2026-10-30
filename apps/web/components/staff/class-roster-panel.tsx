@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FormDialog } from "@/components/staff/form-dialog";
+import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { MemberPicker } from "@/components/staff/member-picker";
 import { ModulePrimaryAction } from "@/components/member/module-page";
 
@@ -33,23 +34,24 @@ export function ClassRosterPanel({
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [removal, setRemoval] = useState<{
+    bookingId: string;
+    returnQuota: boolean;
+    name: string;
+  } | null>(null);
   const bookedIds = useMemo(() => new Set(roster.map((person) => person.userId)), [roster]);
   const available = useMemo(
     () => members.filter((member) => !bookedIds.has(member.id)),
     [members, bookedIds],
   );
 
-  useEffect(() => {
-    if (!open) return;
-    setSelectedUserId((current) => {
-      if (current && available.some((member) => member.id === current)) return current;
-      return available[0]?.id ?? "";
-    });
-  }, [open, available]);
+  const selectedAvailableUserId = available.some((member) => member.id === selectedUserId)
+    ? selectedUserId
+    : available[0]?.id ?? "";
 
   async function book(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedUserId) {
+    if (!selectedAvailableUserId) {
       toast.error("Elegí un socio");
       return;
     }
@@ -58,7 +60,7 @@ export function ClassRosterPanel({
       await api("/api/v1/admin/bookings", {
         method: "POST",
         body: JSON.stringify({
-          userId: selectedUserId,
+          userId: selectedAvailableUserId,
           instanceId,
         }),
       });
@@ -72,17 +74,16 @@ export function ClassRosterPanel({
     }
   }
 
-  async function remove(bookingId: string, returnQuota: boolean, name: string) {
-    const line = returnQuota
-      ? `¿Quitar a ${name} de esta clase? El cupo vuelve.`
-      : `¿Quitar a ${name} sin devolver cupo?`;
-    if (!window.confirm(line)) return;
+  async function remove() {
+    if (!removal) return;
+    const { bookingId, returnQuota } = removal;
     setPending(true);
     try {
       await api(`/api/v1/admin/bookings/${bookingId}?returnQuota=${returnQuota ? "true" : "false"}`, {
         method: "DELETE",
       });
       toast.success(returnQuota ? "Socio quitado. El cupo vuelve." : "Socio quitado. El cupo no vuelve.");
+      setRemoval(null);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo quitar");
@@ -118,7 +119,7 @@ export function ClassRosterPanel({
                 <MemberPicker
                   key={open ? "open" : "closed"}
                   members={available}
-                  value={selectedUserId}
+                  value={selectedAvailableUserId}
                   onChange={setSelectedUserId}
                   disabled={pending}
                 />
@@ -135,7 +136,7 @@ export function ClassRosterPanel({
                   <Button
                     type="submit"
                     className="min-h-11"
-                    disabled={pending || available.length === 0 || !selectedUserId}
+                    disabled={pending || available.length === 0 || !selectedAvailableUserId}
                   >
                     {pending ? "Apuntando…" : "Apuntar"}
                   </Button>
@@ -192,7 +193,7 @@ export function ClassRosterPanel({
                           variant="outline"
                           className="h-8"
                           disabled={pending}
-                          onClick={() => void remove(person.bookingId, true, person.name)}
+                          onClick={() => setRemoval({ bookingId: person.bookingId, returnQuota: true, name: person.name })}
                         >
                           Quitar y devolver
                         </Button>
@@ -202,7 +203,7 @@ export function ClassRosterPanel({
                           variant="ghost"
                           className="h-8"
                           disabled={pending}
-                          onClick={() => void remove(person.bookingId, false, person.name)}
+                          onClick={() => setRemoval({ bookingId: person.bookingId, returnQuota: false, name: person.name })}
                         >
                           Sin devolver
                         </Button>
@@ -215,6 +216,21 @@ export function ClassRosterPanel({
           </Table>
         </div>
       )}
+      <ConfirmDialog
+        open={removal !== null}
+        onOpenChange={(open) => { if (!open) setRemoval(null); }}
+        title={removal?.returnQuota ? "Quitar socio y devolver cupo" : "Quitar socio sin devolver cupo"}
+        description={removal
+          ? removal.returnQuota
+            ? `¿Quitar a ${removal.name} de esta clase? Su cupo vuelve a estar disponible.`
+            : `¿Quitar a ${removal.name} de esta clase sin devolverle el cupo?`
+          : ""}
+        confirmLabel={removal?.returnQuota ? "Quitar y devolver" : "Quitar sin devolver"}
+        confirmVariant="destructive"
+        busyLabel="Quitando…"
+        busy={pending}
+        onConfirm={() => void remove()}
+      />
     </div>
   );
 }
