@@ -3,6 +3,11 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (@media (prefers-color-scheme: dark));
+@custom-variant pointer-hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover { @slot; }
+  }
+}
 
 :root {
   --color-primary: #ff931d;
@@ -159,4 +164,35 @@ select {
   html {
     @apply font-sans;
   }
+  a:not([aria-disabled="true"]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+}
+
+.navigation-link:not(.absolute):not(.fixed):not(.sticky) { position: relative; }
+.navigation-hint {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  opacity: 0;
+}
+.navigation-hint[data-pending] { opacity: 1; transition: opacity 100ms ease-out 150ms; }
+
+@media (hover: hover) and (pointer: fine) {
+  a.text-primary:hover { text-decoration: underline; text-underline-offset: 4px; }
+  a.bg-card.ring-1:hover { background-color: var(--muted); }
+  [data-slot="empty-description"] a:hover { color: var(--foreground); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+  [data-slot="skeleton"], [data-slot="spinner"], .toaster svg { animation: none !important; }
+  button, a, [role="button"] { transition: none !important; }
+  button:active, a:active { scale: 1 !important; }
+  [data-slot="dialog-content"], [data-slot="dialog-overlay"], [data-slot="sheet-content"], [data-slot="sheet-overlay"] { animation: none !important; }
 }
