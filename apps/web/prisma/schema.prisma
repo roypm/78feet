@@ -282,9 +282,9 @@ model TrainingBlock {
 }
 
 model BoxSettings {
-  id        String   @id
-  openTime  DateTime @map("open_time") @db.Time(0)
-  closeTime DateTime @map("close_time") @db.Time(0)
+  id           String @id
+  weeklyHours  Json   @map("weekly_hours") @db.JsonB
+  exceptions   Json   @default("[]") @map("exceptions") @db.JsonB
 
   @@map("box_settings")
 }

@@ -10,6 +10,7 @@ import { DELETE as deleteTraining } from "../../app/api/v1/admin/trainings/[id]/
 import { GET as unpaid } from "../../app/api/v1/admin/unpaid/route";
 import { POST as pay } from "../../app/api/v1/admin/payments/route";
 import { POST as createMember } from "../../app/api/v1/admin/members/route";
+import type { BoxHoursConfig } from "@78feet/domain";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
 const png = Buffer.from(
@@ -26,7 +27,7 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
   let tariffId = "";
   let adminToken = "";
   let coachToken = "";
-  let previousHours: { openTime: string; closeTime: string } | null = null;
+  let previousHours: BoxHoursConfig | null = null;
 
   beforeAll(async () => {
     const passwordHash = await hashPassword("secret-pass");
@@ -72,12 +73,12 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
         where: { id: "default" },
         create: {
           id: "default",
-          openTime: new Date(`1970-01-01T${previousHours.openTime}:00.000Z`),
-          closeTime: new Date(`1970-01-01T${previousHours.closeTime}:00.000Z`),
+          weeklyHours: previousHours.weekly,
+          exceptions: previousHours.exceptions,
         },
         update: {
-          openTime: new Date(`1970-01-01T${previousHours.openTime}:00.000Z`),
-          closeTime: new Date(`1970-01-01T${previousHours.closeTime}:00.000Z`),
+          weeklyHours: previousHours.weekly,
+          exceptions: previousHours.exceptions,
         },
       });
     }
@@ -119,20 +120,26 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
   it("lets the admin set box hours and blocks a coach", async () => {
     const listed = await call(listHours, "GET", "/api/v1/admin/hours", coachToken);
     expect(listed.status).toBe(200);
-    previousHours = listed.json as { openTime: string; closeTime: string };
+    previousHours = listed.json as BoxHoursConfig;
+    const updatedConfig: BoxHoursConfig = {
+      weekly: previousHours.weekly.map((day) => ({
+        ...day,
+        intervals: [{ openTime: "06:00", closeTime: "22:00" }],
+      })),
+      exceptions: previousHours.exceptions,
+    };
 
-    const denied = await call(patchHours, "PATCH", "/api/v1/admin/hours", coachToken, {
-      openTime: "06:00",
-      closeTime: "22:00",
-    });
+    const denied = await call(patchHours, "PATCH", "/api/v1/admin/hours", coachToken, updatedConfig);
     expect(denied.status).toBe(403);
 
-    const updated = await call(patchHours, "PATCH", "/api/v1/admin/hours", adminToken, {
-      openTime: "06:00",
-      closeTime: "22:00",
-    });
+    const updated = await call(patchHours, "PATCH", "/api/v1/admin/hours", adminToken, updatedConfig);
     expect(updated.status).toBe(200);
-    expect(updated.json).toMatchObject({ openTime: "06:00", closeTime: "22:00" });
+    expect(updated.json).toMatchObject({
+      weekly: expect.arrayContaining([
+        { weekday: 1, intervals: [{ openTime: "06:00", closeTime: "22:00" }] },
+        { weekday: 7, intervals: [{ openTime: "06:00", closeTime: "22:00" }] },
+      ]),
+    });
   });
 
   it("stores a class type with an image and a training of that type", async () => {

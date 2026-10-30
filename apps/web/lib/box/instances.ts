@@ -14,6 +14,7 @@ import { BoxError } from "./errors";
 import { requireClassType } from "./class-types";
 import { toDomainBooking, toDomainInstance } from "./map";
 import { isoDateFromDb, isoDateToDb, normalizeClock } from "./time";
+import { getBoxHours, isDateOpenDuring } from "./hours";
 
 function clocksFromInstance(startAt: Date, endAt: Date): { startTime: string; endTime: string } {
   const start = startAt.toLocaleTimeString("en-GB", {
@@ -73,6 +74,9 @@ export async function createExtraInstance(input: CreateInstance, now = new Date(
   assertValidTimeRange(startTime, endTime);
   const startAt = atBoxTime(input.date, startTime);
   const endAt = atBoxTime(input.date, endTime);
+  if (!isDateOpenDuring(await getBoxHours(), input.date, startTime, endTime)) {
+    throw new BoxError(409, "SCHEDULE_CLOSED", "El box está cerrado en ese horario");
+  }
   await assertNoInstanceOverlap(prisma, { date: input.date, startAt, endAt, kind: classType.kind });
   const row = await prisma.classInstance.create({
     data: {
@@ -144,6 +148,10 @@ export async function patchInstance(id: string, patch: PatchInstance, actorId: s
     capacity !== existing.capacity ||
     status !== existing.status ||
     trainingId !== existing.trainingId;
+
+  if (status === "scheduled" && !isDateOpenDuring(await getBoxHours(), date, startTime, endTime)) {
+    throw new BoxError(409, "SCHEDULE_CLOSED", "El box está cerrado en ese horario");
+  }
 
   return prisma.$transaction(async (tx) => {
     await assertNoInstanceOverlap(tx, { id, date, startAt, endAt, kind });

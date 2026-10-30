@@ -17,6 +17,7 @@ import type {
   PropagationResult,
   TemplateChange,
 } from "./types";
+import type { BoxHoursConfig } from "./schemas";
 
 export function instanceKey(templateId: string, date: string): string {
   return `${templateId}|${date}`;
@@ -26,6 +27,41 @@ export function assertValidTimeRange(startTime: string, endTime: string): void {
   if (clockToMinutes(endTime) <= clockToMinutes(startTime)) {
     throw new DomainError("FORBIDDEN", "La hora de fin debe ser posterior a la de inicio");
   }
+}
+
+export function openingIntervalsForDate(config: BoxHoursConfig, date: string) {
+  const exception = config.exceptions.find((item) => item.date === date);
+  if (exception) return exception.intervals;
+  const weekday = weekdayMonday1(date);
+  return config.weekly.find((item) => item.weekday === weekday)?.intervals ?? [];
+}
+
+export function isWithinOpeningIntervals(
+  intervals: readonly { openTime: string; closeTime: string }[],
+  startTime: string,
+  endTime: string,
+): boolean {
+  const start = clockToMinutes(startTime);
+  const end = clockToMinutes(endTime);
+  const sorted = intervals
+    .map((interval) => ({ start: clockToMinutes(interval.openTime), end: clockToMinutes(interval.closeTime) }))
+    .sort((a, b) => a.start - b.start);
+  let openStart = -1;
+  let openEnd = -1;
+  for (const interval of sorted) {
+    if (openStart < 0 || interval.start > openEnd) {
+      openStart = interval.start;
+      openEnd = interval.end;
+    } else {
+      openEnd = Math.max(openEnd, interval.end);
+    }
+    if (openStart <= start && end <= openEnd) return true;
+  }
+  return false;
+}
+
+export function isOpenDuring(config: BoxHoursConfig, date: string, startTime: string, endTime: string): boolean {
+  return isWithinOpeningIntervals(openingIntervalsForDate(config, date), startTime, endTime);
 }
 
 export function templatesOverlap(

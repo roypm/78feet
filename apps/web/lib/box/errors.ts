@@ -21,6 +21,7 @@ const conflictCodes = new Set<ErrorCode>([
   "NO_MEMBERSHIP",
   "CLASS_TYPE_IN_USE",
   "CONFIRM_REQUIRED",
+  "SCHEDULE_CLOSED",
 ]);
 
 export function errorResponse(error: unknown): Response | null {

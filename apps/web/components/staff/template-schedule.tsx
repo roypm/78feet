@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { localDateString, nextMondayDate } from "@78feet/domain";
+import { clockToMinutes, isWithinOpeningIntervals, localDateString, nextMondayDate, type BoxHoursConfig } from "@78feet/domain";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,7 @@ import {
   type TemplateSlotWrite,
 } from "@/lib/box/template-draft";
 import { templateAxis, templateBlockBox, type TemplateHours } from "@/lib/box/template-layout";
+import { closedTimeBands } from "@/lib/box/time-bands";
 import { cn } from "cn";
 import { moduleContentInset, ModulePrimaryAction } from "@/components/member/module-page";
 
@@ -99,6 +100,7 @@ export function TemplateSchedule({
   types,
   coaches,
   hours,
+  openingHours,
   canWrite,
 }: {
   view: KindView;
@@ -106,6 +108,7 @@ export function TemplateSchedule({
   types: ClassType[];
   coaches: Coach[];
   hours: TemplateHours;
+  openingHours: BoxHoursConfig;
   canWrite: boolean;
 }) {
   const router = useRouter();
@@ -140,9 +143,24 @@ export function TemplateSchedule({
 
   const activeKind = kindFromView(view);
 
-  function startCreate(weekday: number, kind: TemplateKind, requestedStart = 18 * 60) {
+  function startCreate(weekday: number, kind: TemplateKind, requestedStart?: number) {
     const typesForKind = types.filter((item) => item.kind === kind);
-    const start = Math.min(22 * 60 + 45, Math.max(0, Math.round(requestedStart / 15) * 15));
+    let start = Math.min(22 * 60 + 45, Math.max(0, Math.round((requestedStart ?? 18 * 60) / 15) * 15));
+    const intervals = openingHours.weekly.find((day) => day.weekday === weekday)?.intervals ?? [];
+    const fits = (minute: number) =>
+      intervals.some((interval) => clockToMinutes(interval.openTime) <= minute && minute + 60 <= clockToMinutes(interval.closeTime));
+    if (!fits(start) && requestedStart === undefined) {
+      const firstUsable = intervals.find((interval) => clockToMinutes(interval.closeTime) - clockToMinutes(interval.openTime) >= 60);
+      if (!firstUsable) {
+        toast.error("Ese día no tiene un tramo abierto suficiente para una clase");
+        return;
+      }
+      start = clockToMinutes(firstUsable.openTime);
+    }
+    if (!fits(start)) {
+      toast.error("No hay una hora abierta suficiente para una clase en ese tramo");
+      return;
+    }
     const end = start + 60;
     setDraft({
       key: ++editorKey.current,
@@ -175,7 +193,8 @@ export function TemplateSchedule({
     if (!canWrite) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const requestedStart = axisForKind(kind).axisStart + ((event.clientY - bounds.top) / PX_PER_HOUR) * 60;
-    startCreate(weekday, kind, requestedStart);
+    const start = Math.min(22 * 60 + 45, Math.max(0, Math.round(requestedStart / 15) * 15));
+    startCreate(weekday, kind, start);
   }
 
   function cancelDraftChanges() {
@@ -188,6 +207,11 @@ export function TemplateSchedule({
     const type = types.find((item) => item.id === slot.classTypeId);
     if (!type) {
       toast.error("Elegí un tipo de clase");
+      return;
+    }
+    const opening = openingHours.weekly.find((day) => day.weekday === slot.weekday)?.intervals ?? [];
+    if (!isWithinOpeningIntervals(opening, slot.startTime, slot.endTime)) {
+      toast.error("La clase tiene que quedar dentro del horario abierto de ese día");
       return;
     }
     const id = existing?.id ?? newPendingTemplateId();
@@ -300,6 +324,7 @@ export function TemplateSchedule({
           working={working}
           types={types}
           coaches={coaches}
+          openingHours={openingHours}
           canWrite={canWrite}
           mobileDay={mobileDay}
           onMobileDayChange={setMobileDay}
@@ -321,6 +346,7 @@ function TemplateKindPanel({
   working,
   types,
   coaches,
+  openingHours,
   canWrite,
   mobileDay,
   onMobileDayChange,
@@ -335,6 +361,7 @@ function TemplateKindPanel({
   working: ScheduleTemplate[];
   types: ClassType[];
   coaches: Coach[];
+  openingHours: BoxHoursConfig;
   canWrite: boolean;
   mobileDay: number;
   onMobileDayChange: (day: number) => void;
@@ -363,6 +390,7 @@ function TemplateKindPanel({
         </p>
       ) : (
         <>
+          <p className="text-xs text-muted-foreground">Las franjas tramadas indican que el box está cerrado; no se pueden añadir clases ahí.</p>
           <div className="flex gap-1 overflow-x-auto pb-1 md:hidden" role="tablist" aria-label="Día de la plantilla">
             {DAYS.map((day, index) => {
               const weekday = index + 1;
@@ -399,6 +427,7 @@ function TemplateKindPanel({
                   key={`${kind}-${day}`}
                   weekday={index + 1}
                   templates={kindsWorking.filter((template) => template.weekday === index + 1)}
+                  intervals={openingHours.weekly.find((day) => day.weekday === index + 1)?.intervals ?? []}
                   coaches={coaches}
                   ticks={axis.ticks}
                   axisStart={axis.axisStart}
@@ -421,6 +450,7 @@ function TemplateKindPanel({
               <DayTrack
                 weekday={mobileDay}
                 templates={kindsWorking.filter((template) => template.weekday === mobileDay)}
+                intervals={openingHours.weekly.find((day) => day.weekday === mobileDay)?.intervals ?? []}
                 coaches={coaches}
                 ticks={axis.ticks}
                 axisStart={axis.axisStart}
@@ -472,6 +502,7 @@ function TimeAxis({
 function DayTrack({
   weekday,
   templates,
+  intervals,
   coaches,
   ticks,
   axisStart,
@@ -483,6 +514,7 @@ function DayTrack({
 }: {
   weekday: number;
   templates: ScheduleTemplate[];
+  intervals: { openTime: string; closeTime: string }[];
   coaches: Coach[];
   ticks: number[];
   axisStart: number;
@@ -492,13 +524,45 @@ function DayTrack({
   onCreate: (event: MouseEvent<HTMLDivElement>, weekday: number, kind: TemplateKind) => void;
   onEdit: (template: ScheduleTemplate) => void;
 }) {
+  function handleCreate(event: MouseEvent<HTMLDivElement>) {
+    if (!canWrite) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const minute = axisStart + ((event.clientY - bounds.top) / PX_PER_HOUR) * 60;
+    const open = intervals.some(
+      (interval) => clockToMinutes(interval.openTime) <= minute && minute < clockToMinutes(interval.closeTime),
+    );
+    if (open) onCreate(event, weekday, kind);
+    else toast.error("El box está cerrado en ese tramo");
+  }
+
+  const bands = closedTimeBands(intervals, axisStart, axisStart + (height / PX_PER_HOUR) * 60);
+
   return (
     <div
       className={`relative border-l border-border ${canWrite ? "cursor-pointer" : ""}`}
       style={{ height }}
-      onClick={(event) => onCreate(event, weekday, kind)}
+      onClick={handleCreate}
       aria-label={DAYS[weekday - 1]}
     >
+      {bands.map((band) => {
+        const top = ((band.start - axisStart) / 60) * PX_PER_HOUR;
+        const bandHeight = ((band.end - band.start) / 60) * PX_PER_HOUR;
+        return (
+          <div
+            key={`${band.start}-${band.end}`}
+            role="note"
+            aria-label={band.label}
+            className="pointer-events-none absolute inset-x-0 z-[2] flex items-center justify-center bg-muted/40 px-1 text-center text-xs font-medium text-muted-foreground"
+            style={{
+              top,
+              height: bandHeight,
+              backgroundImage: "repeating-linear-gradient(135deg, transparent 0 6px, var(--color-border) 6px 7px, transparent 7px 13px)",
+            }}
+          >
+            {bandHeight >= PX_PER_HOUR * 0.8 ? <span className="rounded-sm bg-background/80 px-1">Cerrado</span> : null}
+          </div>
+        );
+      })}
       <GridLines ticks={ticks} axisStart={axisStart} />
       {templates.map((template) => {
         const box = templateBlockBox(template, axisStart, PX_PER_HOUR);

@@ -4,7 +4,7 @@ import { kindViewFromParam } from "@/lib/box/day-groups";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listTemplates } from "@/lib/box/templates";
 import { listCoaches } from "@/lib/box/staff-users";
-import { getBoxHours } from "@/lib/box/hours";
+import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { TemplateSchedule } from "@/components/staff/template-schedule";
 import { KindTabs } from "@/components/member/kind-tabs";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
@@ -61,7 +61,8 @@ async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: stri
           templates={templates}
           types={types}
           coaches={coaches}
-          hours={hours}
+          hours={calendarAxisRange(hours)}
+          openingHours={hours}
           canWrite={canWrite}
         />
       </ModuleBody>

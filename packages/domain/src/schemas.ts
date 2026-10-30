@@ -72,7 +72,13 @@ export const cancelAdminBookingQuerySchema = z.object({
   returnQuota: z.enum(["true", "false"]).optional(),
 });
 
-const clockSchema = z.string().regex(/^\d{2}:\d{2}(?::\d{2})?$/, "Hora inválida");
+const clockSchema = z
+  .string()
+  .regex(/^\d{2}:\d{2}(?::\d{2})?$/, "Hora inválida")
+  .refine((value) => {
+    const [hour, minute, second = 0] = value.split(":").map(Number);
+    return hour! < 24 && minute! < 60 && second! < 60;
+  }, "Hora inválida");
 
 function usesPeriodicQuota(consumption: z.infer<typeof tariffConsumptionSchema>): boolean {
   return consumption === "weekly_quota" || consumption === "monthly_quota";
@@ -280,10 +286,66 @@ export const createInstanceSchema = z.object({
   capacity: z.number().int().positive("El aforo tiene que ser mayor que cero"),
 });
 
-export const hoursWriteSchema = z.object({
-  openTime: clockSchema,
-  closeTime: clockSchema,
-});
+const openingIntervalSchema = z
+  .object({
+    openTime: clockSchema,
+    closeTime: clockSchema,
+  })
+  .refine((value) => {
+    const seconds = (time: string) => {
+      const [hour, minute, second = 0] = time.split(":").map(Number);
+      return hour! * 3600 + minute! * 60 + second!;
+    };
+    return seconds(value.closeTime) > seconds(value.openTime);
+  }, {
+    message: "La hora de cierre tiene que ser posterior a la apertura",
+    path: ["closeTime"],
+  });
+
+function validateNonOverlappingIntervals(
+  intervals: { openTime: string; closeTime: string }[],
+  ctx: z.RefinementCtx,
+) {
+  const sorted = [...intervals].sort((a, b) => a.openTime.localeCompare(b.openTime));
+  for (let index = 1; index < sorted.length; index += 1) {
+    const previous = sorted[index - 1];
+    const current = sorted[index];
+    if (previous && current && current.openTime < previous.closeTime) {
+      ctx.addIssue({ code: "custom", message: "Los tramos abiertos no pueden solaparse" });
+      return;
+    }
+  }
+}
+
+const openingIntervalsSchema = z.array(openingIntervalSchema).superRefine(validateNonOverlappingIntervals);
+
+export const boxHoursConfigSchema = z
+  .object({
+    weekly: z
+      .array(
+        z.object({
+          weekday: z.number().int().min(1).max(7),
+          intervals: openingIntervalsSchema,
+        }),
+      )
+      .length(7),
+    exceptions: z.array(
+      z.object({
+        date: isoDateSchema,
+        intervals: openingIntervalsSchema,
+      }),
+    ),
+  })
+  .superRefine((value, ctx) => {
+    const weekdays = value.weekly.map((day) => day.weekday);
+    if (new Set(weekdays).size !== 7) {
+      ctx.addIssue({ code: "custom", message: "El horario debe incluir cada día de la semana una vez" });
+    }
+    const dates = value.exceptions.map((exception) => exception.date);
+    if (new Set(dates).size !== dates.length) {
+      ctx.addIssue({ code: "custom", message: "No puede haber dos excepciones para la misma fecha" });
+    }
+  });
 
 export const createStaffSchema = z.object({
   loginId: z.string().trim().min(1, "El usuario es obligatorio"),
@@ -364,7 +426,7 @@ export type TrainingWrite = z.infer<typeof trainingWriteSchema>;
 export type TrainingPatch = z.infer<typeof trainingPatchSchema>;
 export type PatchInstance = z.infer<typeof patchInstanceSchema>;
 export type CreateInstance = z.infer<typeof createInstanceSchema>;
-export type HoursWrite = z.infer<typeof hoursWriteSchema>;
+export type BoxHoursConfig = z.infer<typeof boxHoursConfigSchema>;
 export type CreateStaff = z.infer<typeof createStaffSchema>;
 export type PatchStaff = z.infer<typeof patchStaffSchema>;
 export type CreatePayment = z.infer<typeof createPaymentSchema>;

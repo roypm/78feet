@@ -9,6 +9,16 @@ import type { Db } from "./db";
 import { isUniqueViolation } from "./db";
 import { toDomainTemplate } from "./map";
 import { isoDateFromDb, isoDateToDb } from "./time";
+import { getBoxHours, isDateOpenDuring } from "./hours";
+
+function clockAtBoxTime(value: Date): string {
+  return value.toLocaleTimeString("en-GB", {
+    timeZone: "Europe/Madrid",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+}
 
 export async function ensureInstances(
   db: Db,
@@ -23,6 +33,7 @@ export async function ensureInstances(
   });
   const templates = rows.map(toDomainTemplate);
   if (templates.length === 0) return 0;
+  const hours = await getBoxHours(db);
 
   const existing = await db.classInstance.findMany({
     where: {
@@ -36,7 +47,9 @@ export async function ensureInstances(
       row.templateId ? [instanceKey(row.templateId, isoDateFromDb(row.date))] : [],
     ),
   );
-  const planned = planMaterializedInstances({ templates, existingKeys, from, to });
+  const planned = planMaterializedInstances({ templates, existingKeys, from, to }).filter((instance) =>
+    isDateOpenDuring(hours, instance.date, clockAtBoxTime(instance.startAt), clockAtBoxTime(instance.endAt)),
+  );
   let created = 0;
   for (const instance of planned) {
     try {

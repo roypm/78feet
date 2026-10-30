@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { openingIntervalsForDate, type BoxHoursConfig } from "@78feet/domain";
 import type { CalendarClass } from "@/lib/box/calendar";
 import {
   BLOCK_INSET,
@@ -16,6 +17,7 @@ import { formatDayNumber, formatTime, formatWeekChip, formatWeekday, formatWeekR
 import { KindTabs, chipClass, type KindView } from "@/components/member/kind-tabs";
 import { ModuleBody, ModuleHeader, ModulePage, moduleContentInset } from "@/components/member/module-page";
 import { cn } from "cn";
+import { closedTimeBands } from "@/lib/box/time-bands";
 
 const DENSITY_KEY = "78feet.calendario.densidad";
 const STAFF_DAY_COLUMN_PX = 136;
@@ -85,6 +87,7 @@ export function CalendarBoard({
   days,
   classes,
   hours,
+  openingHours,
   title = "Calendario",
   basePath = "/calendario",
   classHrefPrefix = "/clases",
@@ -100,6 +103,7 @@ export function CalendarBoard({
   days: string[];
   classes: CalendarClass[];
   hours?: CalendarHours;
+  openingHours?: BoxHoursConfig;
   title?: string;
   basePath?: string;
   classHrefPrefix?: string;
@@ -118,6 +122,7 @@ export function CalendarBoard({
         days={days}
         classes={classes}
         hours={hours}
+        openingHours={openingHours}
         title={title}
         basePath={basePath}
         classHrefPrefix={classHrefPrefix}
@@ -137,6 +142,7 @@ export function CalendarBoard({
       days={days}
       classes={classes}
       hours={hours}
+      openingHours={openingHours}
       title={title}
       basePath={basePath}
       classHrefPrefix={classHrefPrefix}
@@ -154,6 +160,7 @@ type CalendarBoardCoreProps = {
   days: string[];
   classes: CalendarClass[];
   hours?: CalendarHours;
+  openingHours?: BoxHoursConfig;
   title: string;
   basePath: string;
   classHrefPrefix: string;
@@ -169,6 +176,7 @@ function StaffCalendarBoard({
   days,
   classes,
   hours,
+  openingHours,
   title,
   basePath,
   classHrefPrefix,
@@ -200,6 +208,9 @@ function StaffCalendarBoard({
           {classes.length === 0 ? (
             <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           ) : null}
+          {openingHours ? (
+            <p className="text-xs text-muted-foreground">Las franjas tramadas indican que el box está cerrado.</p>
+          ) : null}
 
           <div className="flex w-max max-w-full min-h-0 flex-1 flex-col gap-2 self-start">
             <WeekNav
@@ -214,6 +225,7 @@ function StaffCalendarBoard({
                 days={days}
                 today={today}
                 classes={classes}
+                openingHours={openingHours}
                 axis={axis}
                 height={height}
                 pxPerHour={pxPerHour}
@@ -240,6 +252,7 @@ function MemberCalendarBoard({
   days,
   classes,
   hours,
+  openingHours,
   title,
   basePath,
   classHrefPrefix,
@@ -290,15 +303,19 @@ function MemberCalendarBoard({
             {view === "open" ? emptyOpen : emptyDirected}
           </p>
         ) : null}
+        {openingHours ? (
+          <p className="px-4 pt-2 text-xs text-muted-foreground md:px-6">Las franjas tramadas indican que el box está cerrado.</p>
+        ) : null}
         <div
           className="flex min-h-0 flex-1 overflow-auto overscroll-contain pb-6"
           style={{ justifyContent: "safe center", alignItems: "flex-start" }}
         >
-          {classes.length === 0 ? null : (
+          {classes.length === 0 && !openingHours ? null : (
             <CalendarGrid
             days={days}
             today={today}
             classes={classes}
+            openingHours={openingHours}
             axis={axis}
             height={height}
             pxPerHour={pxPerHour}
@@ -421,6 +438,7 @@ function CalendarGrid({
   days,
   today,
   classes,
+  openingHours,
   axis,
   height,
   pxPerHour,
@@ -434,6 +452,7 @@ function CalendarGrid({
   days: string[];
   today: string;
   classes: CalendarClass[];
+  openingHours?: BoxHoursConfig;
   axis: ReturnType<typeof calendarAxis>;
   height: number;
   pxPerHour: number;
@@ -493,6 +512,13 @@ function CalendarGrid({
           className={cn("relative border-l border-border", date === today && "bg-primary/5")}
           style={{ height }}
         >
+          {openingHours ? (
+            <ClosedBands
+              bands={closedTimeBands(openingIntervalsForDate(openingHours, date), axis.axisStart, axis.axisEnd)}
+              axisStart={axis.axisStart}
+              pxPerHour={pxPerHour}
+            />
+          ) : null}
           <GridLines ticks={axis.ticks} axisStart={axis.axisStart} pxPerHour={pxPerHour} />
           {classes
             .filter((item) => item.date === date)
@@ -514,6 +540,36 @@ function CalendarGrid({
       ))}
     </div>
   );
+}
+
+function ClosedBands({
+  bands,
+  axisStart,
+  pxPerHour,
+}: {
+  bands: ReturnType<typeof closedTimeBands>;
+  axisStart: number;
+  pxPerHour: number;
+}) {
+  return bands.map((band) => {
+    const top = ((band.start - axisStart) / 60) * pxPerHour;
+    const height = ((band.end - band.start) / 60) * pxPerHour;
+    return (
+      <div
+        key={`${band.start}-${band.end}`}
+        role="note"
+        aria-label={band.label}
+        className="pointer-events-none absolute inset-x-0 z-[2] flex items-center justify-center bg-muted/40 px-1 text-center text-xs font-medium text-muted-foreground"
+        style={{
+          top,
+          height,
+          backgroundImage: "repeating-linear-gradient(135deg, transparent 0 6px, var(--color-border) 6px 7px, transparent 7px 13px)",
+        }}
+      >
+        {height >= pxPerHour * 0.8 ? <span className="rounded-sm bg-background/80 px-1">Cerrado</span> : null}
+      </div>
+    );
+  });
 }
 
 function DensityButton({

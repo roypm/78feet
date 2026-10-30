@@ -23,7 +23,7 @@ export {
   createStaffSchema,
   grantCreditsSchema,
   weeklyQuotaAdjustmentSchema,
-  hoursWriteSchema,
+  boxHoursConfigSchema,
   memberListQuerySchema,
   patchInstanceSchema,
   patchMemberSchema,
@@ -62,7 +62,7 @@ export {
   type CreateStaff,
   type GrantCredits,
   type WeeklyQuotaAdjustment,
-  type HoursWrite,
+  type BoxHoursConfig,
   type LoginRequest,
   type LoginResponse,
   type MeResponse,
@@ -124,6 +124,9 @@ export {
   memberHasOverlap,
 } from "./booking";
 export {
+  openingIntervalsForDate,
+  isOpenDuring,
+  isWithinOpeningIntervals,
   assertSameDayMove,
   assertValidTimeRange,
   instanceConflicts,

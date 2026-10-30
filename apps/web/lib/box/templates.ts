@@ -1,5 +1,6 @@
 import {
   assertValidTimeRange,
+  isWithinOpeningIntervals,
   horizonRange,
   localDateString,
   nextMondayDate,
@@ -17,6 +18,7 @@ import { BoxError } from "./errors";
 import { requireClassType } from "./class-types";
 import { toDomainBooking, toDomainInstance, toDomainTemplate, typeView } from "./map";
 import { ensureInstances } from "./materialize";
+import { getBoxHours } from "./hours";
 import { clockFromDb, clockToDb, isoDateToDb, normalizeClock } from "./time";
 
 export type TemplateView = {
@@ -112,6 +114,11 @@ export async function createTemplate(input: TemplateWrite, now = new Date()) {
     coachId: input.coachId ?? null,
     defaultCapacity: input.defaultCapacity,
   };
+  const hours = await getBoxHours();
+  const opening = hours.weekly.find((day) => day.weekday === candidate.weekday)?.intervals ?? [];
+  if (!isWithinOpeningIntervals(opening, candidate.startTime, candidate.endTime)) {
+    throw new BoxError(409, "SCHEDULE_CLOSED", "Ese hueco queda fuera del horario de apertura del box");
+  }
   await assertNoOverlap(candidate);
   const today = localDateString(now);
   const range = horizonRange(today);
@@ -157,6 +164,11 @@ export async function updateTemplate(id: string, patch: PatchTemplate, actorId: 
     active: true,
   };
   assertValidTimeRange(next.startTime, next.endTime);
+  const hours = await getBoxHours();
+  const opening = hours.weekly.find((day) => day.weekday === next.weekday)?.intervals ?? [];
+  if (!isWithinOpeningIntervals(opening, next.startTime, next.endTime)) {
+    throw new BoxError(409, "SCHEDULE_CLOSED", "Ese hueco queda fuera del horario de apertura del box");
+  }
   await assertCoach(next.coachId);
   await assertNoOverlap(next);
   const today = localDateString(now);

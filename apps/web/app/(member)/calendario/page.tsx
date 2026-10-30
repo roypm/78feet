@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { eachDate } from "@78feet/domain";
 import { requireMember } from "@/lib/auth/current";
 import { listCalendar } from "@/lib/box/calendar";
-import { getBoxHours } from "@/lib/box/hours";
+import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
 import { CalendarBoard } from "@/components/member/calendar-board";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
@@ -45,7 +45,8 @@ async function Calendar({ searchParams }: { searchParams: Promise<{ semana?: str
   return (
     <CalendarBoard
       view={view}
-      hours={hours}
+      hours={calendarAxisRange(hours)}
+      openingHours={hours}
       semana={query.semana ? week.start : undefined}
       today={week.today}
       week={{

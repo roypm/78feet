@@ -7,6 +7,7 @@ export const ERROR_CODES = [
   "FORBIDDEN",
   "CLASS_TYPE_IN_USE",
   "CONFIRM_REQUIRED",
+  "SCHEDULE_CLOSED",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -20,6 +21,7 @@ export const errorMessages: Record<ErrorCode, string> = {
   FORBIDDEN: "No permitido",
   CLASS_TYPE_IN_USE: "Ese tipo todavía se usa",
   CONFIRM_REQUIRED: "Hay que confirmar el cambio",
+  SCHEDULE_CLOSED: "El box está cerrado en ese horario",
 };
 
 export class DomainError extends Error {
