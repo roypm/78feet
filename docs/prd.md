@@ -17,7 +17,7 @@ Cómo se construye (arquitectura, modelo de datos, API) está en [`trd.md`](./tr
 - Dos grillas en el calendario:
   - **Dirigida**: clase con tipo, imagen y aforo. El coach, si lo hay, es del hueco.
   - **Open**: la otra grilla. También es un tipo con imagen y aforo, sin plan de entrenamiento. El coach del hueco sigue siendo opcional.
-- El box tiene un solo espacio de entrenamiento: **no puede haber dos sesiones solapadas en el horario**.
+- El box es lo bastante grande para **dos sesiones a la vez**: una en la grilla **Dirigida** y otra en **Open**. En cada grilla no puede haber dos huecos solapados; entre grillas sí pueden coincidir en hora.
 
 ## 2. Personas y permisos
 
@@ -207,7 +207,7 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 | 4 | El cupo semanal se consume antes que el saldo de bono. |
 | 5 | El cupo no se acumula; el saldo de bono no caduca. |
 | 6 | No hay ventana de reserva: todo lo del calendario a 4 semanas es reservable. |
-| 7 | No hay dos sesiones solapadas en el horario del box. |
+| 7 | No pueden solaparse dos sesiones de la **misma** grilla (dos dirigidas o dos opens). Una dirigida y un open sí pueden coincidir en hora. |
 | 8 | Un socio no puede tener dos reservas solapadas. |
 | 9 | Cancelación del socio hasta 2 h antes; después el botón se deshabilita. |
 | 10 | El staff puede cancelar siempre y decide si devuelve cupo. |

@@ -32,10 +32,10 @@ Este documento es la versión vigente.
 ## 3. Pantallas del staff (web, también usable desde el móvil)
 
 1. **Hoy**: clases del día con roster.
-2. **Semana**: la misma cuadrícula de reloj que el calendario del socio, con ocupación `9/12`.
-3. **Plantilla semanal**: la plantilla se muestra en una grilla de lunes a domingo con el mismo eje horario que Semana; cada bloque indica tipo, hora, aforo y coach. En escritorio se ven los siete días y en móvil se elige un día. Al tocar un espacio libre se añade un hueco; al tocar uno existente se edita o quita, con validación de solapamientos.
+2. **Semana**: cabecera con **Dirigidas / Open** y texto explicativo; selector de semana encima de la grilla (como Plantilla). Misma densidad de columnas y bloques que la plantilla; ocupación `9/12`. Tocá un bloque para ir al detalle de la clase.
+3. **Plantilla semanal**: selector **Dirigidas / Open** en la cabecera (como Semana). Cada vista muestra su grilla de lunes a domingo con el mismo eje horario que Semana; cada bloque indica tipo, hora, aforo y coach. En móvil se elige además el día. Al tocar un espacio libre se añade un hueco al borrador; al tocar uno existente se edita o quita. **Aplicar plantilla** confirma y publica desde el lunes siguiente (ambas plantillas en un solo borrador); **Cancelar cambio** descarta el borrador y vuelve al último estado aplicado.
 4. **Tipos de clase**: el admin mantiene el catálogo de nombre, imagen obligatoria y grilla (dirigida u open). Un tipo no cambia de grilla.
-5. **Excepciones**: cancelar o modificar una instancia concreta (hora, coach, aforo o un tipo ya creado). También asociar o quitar un entrenamiento del mismo tipo.
+5. **Excepciones**: listado en rejilla compacta (como Tipos de clase) de anomalías desde hoy — clases extra (sin plantilla), instancias de plantilla modificadas o canceladas. Tocá una fila para ir al detalle; botón para añadir clase extra en cualquier fecha futura (también fuera del horizonte de Semana). No sustituye a Semana ni a Hoy.
 6. **Socios**: alta, edición, asignar tarifa, cargar saldo de bono, resetear contraseña, dar de baja.
 7. **Tarifas**: catálogo (nombre, precio, dirigidas/semana, opens/semana, clases del bono).
 8. **Impagos del mes**: listado de socios mensuales sin pago registrado.

@@ -368,8 +368,8 @@ cancelar(booking, actor):
 ### 4.6 Validaciones de horario
 
 - Al crear o editar una plantilla: rechazar si se solapa en el tiempo con otra plantilla activa
-  del mismo `weekday` (dirigidas y opens comparten el espacio del box).
-- Al editar una instancia: misma validación contra las instancias del mismo día.
+  del mismo `weekday` **y el mismo `kind`** (dirigida vs open pueden coincidir en hora).
+- Al editar una instancia: misma validación contra las instancias programadas del mismo día **y mismo `kind`**.
 - Una instancia **no puede moverse a otro día**: la UI solo permite cambiar la hora dentro del
   mismo `date`. Mover de día es cancelar y crear una instancia nueva.
 - `capacity` puede bajarse por debajo de las reservas activas: en ese caso se cancelan **todas** las
