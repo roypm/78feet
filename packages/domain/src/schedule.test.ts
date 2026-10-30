@@ -199,6 +199,56 @@ describe("idempotent materialization", () => {
 });
 
 describe("template change from next Monday", () => {
+  it("cancels bookings across every future occurrence without mutating its input", () => {
+    const template = makeTemplate({
+      id: "tpl-wod",
+      weekday: 1,
+      startTime: "18:00",
+      endTime: "19:00",
+      title: "WOD",
+      kind: "directed",
+    });
+    const instances = ["2026-11-02", "2026-11-09", "2026-11-16", "2026-11-23"].map((date, index) =>
+      makeInstance({
+        id: `inst-${index}`,
+        templateId: template.id,
+        date,
+        kind: "directed",
+        startAt: atBoxTime(date, "18:00"),
+        endAt: atBoxTime(date, "19:00"),
+      }),
+    );
+    const bookings = instances.flatMap((instance, instanceIndex) =>
+      Array.from({ length: 12 }, (_, bookingIndex) =>
+        makeBooking({
+          id: `booking-${instanceIndex}-${bookingIndex}`,
+          instanceId: instance.id,
+          userId: `member-${instanceIndex}-${bookingIndex}`,
+          pool: bookingIndex % 2 === 0 ? "weekly_directed" : "pack",
+        }),
+      ),
+    );
+
+    const result = propagateTemplateChange({
+      today: "2026-10-29",
+      templateId: template.id,
+      change: { type: "delete" },
+      instances,
+      bookings,
+    });
+
+    expect(result.summary).toEqual({
+      cancelledClassCount: 4,
+      cancelledBookingCount: 48,
+      movedBookingCount: 0,
+    });
+    expect(result.instances.every((instance) => instance.status === "cancelled")).toBe(true);
+    expect(result.bookings.every((booking) => booking.status === "cancelled" && booking.quotaReturned === true)).toBe(true);
+    expect(result.bookings.map((booking) => booking.pool)).toEqual(bookings.map((booking) => booking.pool));
+    expect(instances.every((instance) => instance.status === "scheduled")).toBe(true);
+    expect(bookings.every((booking) => booking.status === "active")).toBe(true);
+  });
+
   it("leaves the current week untouched and cancels future classes when the template is deleted", () => {
     const template = makeTemplate({
       id: "tpl-wod",

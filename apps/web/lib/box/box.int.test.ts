@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
+import { addDays, atBoxTime, localDateString, nextMondayDate } from "@78feet/domain";
 import { hashPassword } from "../auth/password";
 import { signSessionToken } from "../auth/jwt";
 import { POST as createTariff, GET as listTariffs } from "../../app/api/v1/admin/tariffs/route";
@@ -12,6 +13,7 @@ import { POST as resetPassword } from "../../app/api/v1/admin/members/[id]/reset
 import { POST as deactivateMember } from "../../app/api/v1/admin/members/[id]/deactivate/route";
 import { GET as listTemplates, POST as createTemplate } from "../../app/api/v1/admin/templates/route";
 import { DELETE as deleteTemplate } from "../../app/api/v1/admin/templates/[id]/route";
+import { clockToDb } from "./time";
 import { POST as materialize } from "../../app/api/v1/cron/materialize/route";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
@@ -23,6 +25,7 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
   const tariffIds: string[] = [];
   const templateIds: string[] = [];
   const classTypeIds: string[] = [];
+  let adminId = "";
   let adminToken = "";
   let coachToken = "";
   let memberToken = "";
@@ -42,6 +45,7 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
         lastName: "Admin",
       },
     });
+    adminId = admin.id;
     const coach = await prisma.user.create({
       data: {
         loginId: `coach-${suffix}`,
@@ -342,4 +346,80 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
       }),
     );
   });
+
+  it("propaga una baja en lotes y devuelve el cupo de las reservas futuras", async () => {
+    const classType = await prisma.classType.create({
+      data: { name: `Propagación ${suffix}`, kind: "directed", imageKey: "placeholder.png" },
+    });
+    classTypeIds.push(classType.id);
+    const template = await prisma.classTemplate.create({
+      data: {
+        weekday: 1,
+        startTime: clockToDb("18:00"),
+        endTime: clockToDb("19:00"),
+        classTypeId: classType.id,
+        defaultCapacity: 12,
+      },
+    });
+    templateIds.push(template.id);
+
+    const dates = Array.from({ length: 4 }, (_, index) => addDays(nextMondayDate(localDateString(new Date())), index * 7));
+    const instances = await Promise.all(
+      dates.map((date) => prisma.classInstance.create({
+        data: {
+          templateId: template.id,
+          date: new Date(`${date}T00:00:00.000Z`),
+          startAt: atBoxTime(date, "18:00"),
+          endAt: atBoxTime(date, "19:00"),
+          classTypeId: classType.id,
+          kind: "directed",
+          capacity: 12,
+          status: "scheduled",
+        },
+      })),
+    );
+    const members = await Promise.all(
+      Array.from({ length: 12 }, (_, index) => prisma.user.create({
+        data: {
+          loginId: `propagation-${suffix}-${index}`,
+          passwordHash: "unused-test-hash",
+          role: "member",
+          status: "active",
+          firstName: `Socio ${index}`,
+          lastName: "Prueba",
+        },
+      })),
+    );
+    userIds.push(...members.map((member) => member.id));
+    await prisma.booking.createMany({
+      data: instances.flatMap((instance) => members.map((member) => ({
+        instanceId: instance.id,
+        userId: member.id,
+        pool: "weekly_directed" as const,
+        status: "active" as const,
+        createdBy: adminId,
+      }))),
+    });
+
+    const deleted = await call(
+      deleteTemplate,
+      "DELETE",
+      `/api/v1/admin/templates/${template.id}`,
+      adminToken,
+      undefined,
+      { id: template.id },
+    );
+
+    expect(deleted.status).toBe(200);
+    expect(deleted.json).toMatchObject({
+      summary: { cancelledClassCount: 4, cancelledBookingCount: 48, movedBookingCount: 0 },
+    });
+    const storedInstances = await prisma.classInstance.findMany({ where: { id: { in: instances.map((row) => row.id) } } });
+    const storedBookings = await prisma.booking.findMany({ where: { instanceId: { in: instances.map((row) => row.id) } } });
+    expect(storedInstances.every((row) => row.status === "cancelled" && row.cancelReason === "Cambio de plantilla")).toBe(true);
+    expect(storedBookings).toHaveLength(48);
+    expect(storedBookings.every((row) =>
+      row.status === "cancelled" && row.quotaReturned === true && row.cancelledBy === adminId,
+    )).toBe(true);
+  }, 30_000);
 });

@@ -146,16 +146,12 @@ function cloneBooking(booking: Booking): Booking {
   return { ...booking };
 }
 
-function activeCount(bookings: readonly Booking[], instanceId: string): number {
-  return bookings.filter((booking) => booking.instanceId === instanceId && booking.status === "active").length;
-}
-
 function findSuccessor(
-  instances: readonly ClassInstance[],
+  instancesByIdentity: ReadonlyMap<string, readonly ClassInstance[]>,
   identity: string,
   exceptId: string,
 ): ClassInstance | undefined {
-  return instances.find(
+  return instancesByIdentity.get(identity)?.find(
     (instance) =>
       instance.id !== exceptId &&
       instance.status === "scheduled" &&
@@ -180,31 +176,43 @@ function alignTraining(instance: ClassInstance): void {
 
 function moveActiveBookings(
   bookings: Booking[],
+  bookingsByInstance: Map<string, number[]>,
+  activeCounts: Map<string, number>,
   fromInstanceId: string,
   toInstanceId: string,
 ): number {
   let moved = 0;
-  for (let i = 0; i < bookings.length; i += 1) {
+  const sourceIndexes = bookingsByInstance.get(fromInstanceId) ?? [];
+  const targetIndexes = bookingsByInstance.get(toInstanceId) ?? [];
+  for (const i of sourceIndexes) {
     const booking = bookings[i];
     if (!booking || booking.instanceId !== fromInstanceId || booking.status !== "active") continue;
     bookings[i] = { ...booking, instanceId: toInstanceId };
+    targetIndexes.push(i);
     moved += 1;
   }
+  if (targetIndexes.length > 0) bookingsByInstance.set(toInstanceId, targetIndexes);
+  activeCounts.set(fromInstanceId, (activeCounts.get(fromInstanceId) ?? 0) - moved);
+  activeCounts.set(toInstanceId, (activeCounts.get(toInstanceId) ?? 0) + moved);
+  bookingsByInstance.set(fromInstanceId, sourceIndexes);
   return moved;
 }
 
 function cancelActiveBookings(
   bookings: Booking[],
+  bookingsByInstance: ReadonlyMap<string, readonly number[]>,
+  activeCounts: Map<string, number>,
   instanceId: string,
   at: Date,
 ): number {
   let cancelled = 0;
-  for (let i = 0; i < bookings.length; i += 1) {
+  for (const i of bookingsByInstance.get(instanceId) ?? []) {
     const booking = bookings[i];
     if (!booking || booking.instanceId !== instanceId || booking.status !== "active") continue;
     bookings[i] = applyCancellation(booking, true, at, "system");
     cancelled += 1;
   }
+  activeCounts.set(instanceId, (activeCounts.get(instanceId) ?? 0) - cancelled);
   return cancelled;
 }
 
@@ -247,6 +255,23 @@ export function propagateTemplateChange(params: {
   const nextMonday = nextMondayDate(params.today);
   const instances = params.instances.map(cloneInstance);
   const bookings = params.bookings.map(cloneBooking);
+  const instancesByIdentity = new Map<string, ClassInstance[]>();
+  for (const instance of instances) {
+    const identity = identityKey(instance);
+    const bucket = instancesByIdentity.get(identity) ?? [];
+    bucket.push(instance);
+    instancesByIdentity.set(identity, bucket);
+  }
+  const bookingsByInstance = new Map<string, number[]>();
+  const activeCounts = new Map<string, number>();
+  for (const [index, booking] of bookings.entries()) {
+    const bucket = bookingsByInstance.get(booking.instanceId) ?? [];
+    bucket.push(index);
+    bookingsByInstance.set(booking.instanceId, bucket);
+    if (booking.status === "active") {
+      activeCounts.set(booking.instanceId, (activeCounts.get(booking.instanceId) ?? 0) + 1);
+    }
+  }
   const summary = {
     cancelledClassCount: 0,
     cancelledBookingCount: 0,
@@ -266,16 +291,28 @@ export function propagateTemplateChange(params: {
       (params.change.type === "update" && weekdayMonday1(instance.date) !== params.change.template.weekday);
 
     if (eliminated) {
-      const successor = findSuccessor(instances, identityKey(instance), instance.id);
-      const currentActive = activeCount(bookings, instance.id);
+      const successor = findSuccessor(instancesByIdentity, identityKey(instance), instance.id);
+      const currentActive = activeCounts.get(instance.id) ?? 0;
       if (
         successor &&
-        successor.capacity >= activeCount(bookings, successor.id) + currentActive
+        successor.capacity >= (activeCounts.get(successor.id) ?? 0) + currentActive
       ) {
-        summary.movedBookingCount += moveActiveBookings(bookings, instance.id, successor.id);
+        summary.movedBookingCount += moveActiveBookings(
+          bookings,
+          bookingsByInstance,
+          activeCounts,
+          instance.id,
+          successor.id,
+        );
         followTraining(instance, successor);
       } else {
-        summary.cancelledBookingCount += cancelActiveBookings(bookings, instance.id, now);
+        summary.cancelledBookingCount += cancelActiveBookings(
+          bookings,
+          bookingsByInstance,
+          activeCounts,
+          instance.id,
+          now,
+        );
       }
       instance.status = "cancelled";
       summary.cancelledClassCount += 1;
@@ -286,23 +323,48 @@ export function propagateTemplateChange(params: {
     const template = params.change.template;
 
     if (identityChanged(instance, template)) {
-      const successor = findSuccessor(instances, newSlotIdentity(instance, template), instance.id);
-      const currentActive = activeCount(bookings, instance.id);
+      const successor = findSuccessor(instancesByIdentity, newSlotIdentity(instance, template), instance.id);
+      const currentActive = activeCounts.get(instance.id) ?? 0;
       if (
         successor &&
-        successor.capacity >= activeCount(bookings, successor.id) + currentActive
+        successor.capacity >= (activeCounts.get(successor.id) ?? 0) + currentActive
       ) {
-        summary.movedBookingCount += moveActiveBookings(bookings, instance.id, successor.id);
+        summary.movedBookingCount += moveActiveBookings(
+          bookings,
+          bookingsByInstance,
+          activeCounts,
+          instance.id,
+          successor.id,
+        );
         followTraining(instance, successor);
       } else {
-        summary.cancelledBookingCount += cancelActiveBookings(bookings, instance.id, now);
+        summary.cancelledBookingCount += cancelActiveBookings(
+          bookings,
+          bookingsByInstance,
+          activeCounts,
+          instance.id,
+          now,
+        );
       }
+      const previousIdentity = identityKey(instance);
       Object.assign(instance, applyTemplateValues(instance, template));
+      const nextIdentity = identityKey(instance);
+      if (nextIdentity !== previousIdentity) {
+        const bucket = instancesByIdentity.get(nextIdentity) ?? [];
+        bucket.push(instance);
+        instancesByIdentity.set(nextIdentity, bucket);
+      }
       continue;
     }
 
-    if (shouldCancelAllForCapacity(template.defaultCapacity, activeCount(bookings, instance.id))) {
-      summary.cancelledBookingCount += cancelActiveBookings(bookings, instance.id, now);
+    if (shouldCancelAllForCapacity(template.defaultCapacity, activeCounts.get(instance.id) ?? 0)) {
+      summary.cancelledBookingCount += cancelActiveBookings(
+        bookings,
+        bookingsByInstance,
+        activeCounts,
+        instance.id,
+        now,
+      );
       instance.capacity = template.defaultCapacity;
       instance.coachId = template.coachId;
       continue;

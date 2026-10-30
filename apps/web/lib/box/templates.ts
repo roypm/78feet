@@ -1,11 +1,13 @@
 import {
   assertValidTimeRange,
+  atBoxTime,
   isWithinOpeningIntervals,
   horizonRange,
   localDateString,
   nextMondayDate,
   propagateTemplateChange,
   templateConflicts,
+  weekdayMonday1,
   type ClassInstance,
   type ClassTemplate,
   type PatchTemplate,
@@ -19,6 +21,7 @@ import { requireClassType } from "./class-types";
 import { toDomainBooking, toDomainInstance, toDomainTemplate, typeView } from "./map";
 import { ensureInstances } from "./materialize";
 import { getBoxHours } from "./hours";
+import { persistPropagationChanges } from "./propagation-persistence";
 import { clockFromDb, clockToDb, isoDateToDb, normalizeClock } from "./time";
 
 export type TemplateView = {
@@ -70,7 +73,10 @@ function toView(row: {
 
 async function assertCoach(coachId: string | null | undefined): Promise<void> {
   if (!coachId) return;
-  const coach = await prisma.user.findUnique({ where: { id: coachId } });
+  const coach = await prisma.user.findUnique({
+    where: { id: coachId },
+    select: { role: true, status: true },
+  });
   if (!coach || coach.status !== "active" || (coach.role !== "coach" && coach.role !== "admin")) {
     throw new BoxError(400, "FORBIDDEN", "El coach no existe");
   }
@@ -103,8 +109,11 @@ export async function createTemplate(input: TemplateWrite, now = new Date()) {
   const startTime = normalizeClock(input.startTime);
   const endTime = normalizeClock(input.endTime);
   assertValidTimeRange(startTime, endTime);
-  const classType = await requireClassType(input.classTypeId);
-  await assertCoach(input.coachId);
+  const [classType, , hours] = await Promise.all([
+    requireClassType(input.classTypeId),
+    assertCoach(input.coachId),
+    getBoxHours(),
+  ]);
   const candidate = {
     weekday: input.weekday,
     startTime,
@@ -114,7 +123,6 @@ export async function createTemplate(input: TemplateWrite, now = new Date()) {
     coachId: input.coachId ?? null,
     defaultCapacity: input.defaultCapacity,
   };
-  const hours = await getBoxHours();
   const opening = hours.weekly.find((day) => day.weekday === candidate.weekday)?.intervals ?? [];
   if (!isWithinOpeningIntervals(opening, candidate.startTime, candidate.endTime)) {
     throw new BoxError(409, "SCHEDULE_CLOSED", "Ese hueco queda fuera del horario de apertura del box");
@@ -164,12 +172,11 @@ export async function updateTemplate(id: string, patch: PatchTemplate, actorId: 
     active: true,
   };
   assertValidTimeRange(next.startTime, next.endTime);
-  const hours = await getBoxHours();
+  const [hours] = await Promise.all([getBoxHours(), assertCoach(next.coachId)]);
   const opening = hours.weekly.find((day) => day.weekday === next.weekday)?.intervals ?? [];
   if (!isWithinOpeningIntervals(opening, next.startTime, next.endTime)) {
     throw new BoxError(409, "SCHEDULE_CLOSED", "Ese hueco queda fuera del horario de apertura del box");
   }
-  await assertCoach(next.coachId);
   await assertNoOverlap(next);
   const today = localDateString(now);
   const from = nextMondayDate(today);
@@ -220,10 +227,45 @@ async function propagate(
   change: Parameters<typeof propagateTemplateChange>[0]["change"],
 ): Promise<PropagationSummary> {
   const from = isoDateToDb(nextMondayDate(today));
-  const rows = await tx.classInstance.findMany({
-    where: { date: { gte: from } },
-    include: { bookings: true, training: { select: { classTypeId: true } } },
+  const include = {
+    bookings: {
+      where: { status: "active" as const },
+      select: {
+        id: true,
+        instanceId: true,
+        userId: true,
+        pool: true,
+        status: true,
+        quotaReturned: true,
+        createdBy: true,
+        cancelledAt: true,
+        cancelledBy: true,
+      },
+    },
+    training: { select: { classTypeId: true } },
+  } as const;
+  const sourceRows = await tx.classInstance.findMany({
+    where: { templateId, date: { gte: from }, editedAt: null },
+    include,
   });
+  const sourceInstances = sourceRows.map(toDomainInstance);
+  const successorIdentities = templateSuccessorIdentities(sourceInstances, change);
+  const successorRows = successorIdentities.length
+    ? await tx.classInstance.findMany({
+        where: {
+          status: "scheduled",
+          OR: successorIdentities.map((identity) => ({
+            date: isoDateToDb(identity.date),
+            startAt: identity.startAt,
+            endAt: identity.endAt,
+            classTypeId: identity.classTypeId,
+          })),
+        },
+        include,
+      })
+    : [];
+  const rowsById = new Map([...sourceRows, ...successorRows].map((row) => [row.id, row]));
+  const rows = [...rowsById.values()];
   const instances = rows.map(toDomainInstance);
   const bookings = rows.flatMap((row) => row.bookings.map(toDomainBooking));
   const result = propagateTemplateChange({
@@ -234,75 +276,43 @@ async function propagate(
     bookings,
     now,
   });
-  const beforeInstances = new Map(instances.map((instance) => [instance.id, instance]));
-  for (const instance of result.instances) {
-    const before = beforeInstances.get(instance.id);
-    if (!before || sameInstance(before, instance)) continue;
-    await tx.classInstance.update({
-      where: { id: instance.id },
-      data: {
-        startAt: instance.startAt,
-        endAt: instance.endAt,
-        classTypeId: instance.classTypeId,
-        kind: instance.kind,
-        coachId: instance.coachId,
-        capacity: instance.capacity,
-        status: instance.status,
-        trainingId: instance.trainingId,
-        cancelReason:
-          before.status !== "cancelled" && instance.status === "cancelled"
-            ? "Cambio de plantilla"
-            : undefined,
-      },
-    });
-  }
-  const beforeBookings = new Map(bookings.map((booking) => [booking.id, booking]));
-  for (const booking of result.bookings) {
-    const before = beforeBookings.get(booking.id);
-    if (!before || sameBooking(before, booking)) continue;
-    await tx.booking.update({
-      where: { id: booking.id },
-      data: {
-        instanceId: booking.instanceId,
-        status: booking.status,
-        quotaReturned: booking.quotaReturned,
-        cancelledAt: booking.cancelledAt,
-        cancelledBy:
-          booking.status === "cancelled"
-            ? booking.cancelledBy && isUuid(booking.cancelledBy)
-              ? booking.cancelledBy
-              : actorId
-            : null,
-      },
-    });
-  }
+  await persistPropagationChanges(tx, result, instances, bookings, actorId);
   return result.summary;
 }
 
-function sameInstance(left: ClassInstance, right: ClassInstance): boolean {
-  return (
-    left.startAt.getTime() === right.startAt.getTime() &&
-    left.endAt.getTime() === right.endAt.getTime() &&
-    left.classTypeId === right.classTypeId &&
-    left.kind === right.kind &&
-    left.coachId === right.coachId &&
-    left.capacity === right.capacity &&
-    left.status === right.status &&
-    left.trainingId === right.trainingId
-  );
-}
-
-function sameBooking(
-  left: { instanceId: string; status: string; quotaReturned: boolean | null },
-  right: { instanceId: string; status: string; quotaReturned: boolean | null },
-): boolean {
-  return (
-    left.instanceId === right.instanceId &&
-    left.status === right.status &&
-    left.quotaReturned === right.quotaReturned
-  );
-}
-
-function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+function templateSuccessorIdentities(
+  instances: readonly ClassInstance[],
+  change: Parameters<typeof propagateTemplateChange>[0]["change"],
+): { date: string; startAt: Date; endAt: Date; classTypeId: string }[] {
+  const identities = new Map<string, { date: string; startAt: Date; endAt: Date; classTypeId: string }>();
+  for (const instance of instances) {
+    let identity: { date: string; startAt: Date; endAt: Date; classTypeId: string } | null = null;
+    if (change.type === "delete" || weekdayMonday1(instance.date) !== change.template.weekday) {
+      identity = {
+        date: instance.date,
+        startAt: instance.startAt,
+        endAt: instance.endAt,
+        classTypeId: instance.classTypeId,
+      };
+    } else {
+      const startAt = atBoxTime(instance.date, change.template.startTime);
+      const endAt = atBoxTime(instance.date, change.template.endTime);
+      if (
+        startAt.getTime() !== instance.startAt.getTime() ||
+        endAt.getTime() !== instance.endAt.getTime() ||
+        change.template.classTypeId !== instance.classTypeId
+      ) {
+        identity = {
+          date: instance.date,
+          startAt,
+          endAt,
+          classTypeId: change.template.classTypeId,
+        };
+      }
+    }
+    if (!identity) continue;
+    const key = `${identity.date}|${identity.startAt.toISOString()}|${identity.endAt.toISOString()}|${identity.classTypeId}`;
+    identities.set(key, identity);
+  }
+  return [...identities.values()];
 }
