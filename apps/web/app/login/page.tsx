@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current";
 import { LoginForm } from "./login-form";
 
+export const instant = false;
+
 export default async function LoginPage() {
   const user = await getCurrentUser();
   if (user?.role === "member") redirect("/calendario");

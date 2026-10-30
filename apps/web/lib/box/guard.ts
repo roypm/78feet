@@ -20,13 +20,13 @@ export function sessionHandler(
 ) {
   return async (
     request: Request,
-    context?: { params: Promise<Record<string, string>> },
+    context: { params: Promise<Record<string, string>> },
   ): Promise<Response> => {
     const user = await loadActiveUserFromRequest(request);
     if (!user) return jsonError("FORBIDDEN", 401, "Tenés que entrar");
     if (!roles.includes(user.role)) return jsonError("FORBIDDEN", 403);
     try {
-      const params = context ? await context.params : {};
+      const params = await context.params;
       return Response.json(await run(user, request, params), { status: successStatus });
     } catch (error) {
       const response = errorResponse(error);
