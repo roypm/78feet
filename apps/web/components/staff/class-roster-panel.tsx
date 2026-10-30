@@ -1,0 +1,220 @@
+"use client";
+
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { api } from "@/lib/box/api";
+import { Button } from "@/components/ui/button";
+import { DialogFooter } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FormDialog } from "@/components/staff/form-dialog";
+import { MemberPicker } from "@/components/staff/member-picker";
+import { ModulePrimaryAction } from "@/components/member/module-page";
+
+export function ClassRosterPanel({
+  instanceId,
+  instanceLabel,
+  canAddMember,
+  canRemoveMember,
+  instanceStatus,
+  members,
+  roster,
+}: {
+  instanceId: string;
+  instanceLabel: string;
+  canAddMember: boolean;
+  canRemoveMember: boolean;
+  instanceStatus: "scheduled" | "cancelled";
+  members: { id: string; name: string }[];
+  roster: { bookingId: string; userId: string; name: string; phone: string | null }[];
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const bookedIds = useMemo(() => new Set(roster.map((person) => person.userId)), [roster]);
+  const available = useMemo(
+    () => members.filter((member) => !bookedIds.has(member.id)),
+    [members, bookedIds],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedUserId((current) => {
+      if (current && available.some((member) => member.id === current)) return current;
+      return available[0]?.id ?? "";
+    });
+  }, [open, available]);
+
+  async function book(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedUserId) {
+      toast.error("Elegí un socio");
+      return;
+    }
+    setPending(true);
+    try {
+      await api("/api/v1/admin/bookings", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: selectedUserId,
+          instanceId,
+        }),
+      });
+      toast.success("Socio apuntado");
+      setOpen(false);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo apuntar");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function remove(bookingId: string, returnQuota: boolean, name: string) {
+    const line = returnQuota
+      ? `¿Quitar a ${name} de esta clase? El cupo vuelve.`
+      : `¿Quitar a ${name} sin devolver cupo?`;
+    if (!window.confirm(line)) return;
+    setPending(true);
+    try {
+      await api(`/api/v1/admin/bookings/${bookingId}?returnQuota=${returnQuota ? "true" : "false"}`, {
+        method: "DELETE",
+      });
+      toast.success(returnQuota ? "Socio quitado. El cupo vuelve." : "Socio quitado. El cupo no vuelve.");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo quitar");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const showAddUi = instanceStatus === "scheduled";
+
+  return (
+    <div className="flex flex-col gap-3">
+      {showAddUi ? (
+        canAddMember ? (
+          <ModulePrimaryAction>
+            <FormDialog
+              open={open}
+              onOpenChange={setOpen}
+              busy={pending}
+              trigger={
+                <Button
+                  type="button"
+                  className="min-h-11"
+                  disabled={pending || available.length === 0}
+                >
+                  Añadir socio
+                </Button>
+              }
+              title="Añadir socio a la clase"
+              description={`Apuntar un socio a ${instanceLabel}.`}
+            >
+              <form onSubmit={(event) => void book(event)} className="flex flex-col gap-4">
+                <MemberPicker
+                  key={open ? "open" : "closed"}
+                  members={available}
+                  value={selectedUserId}
+                  onChange={setSelectedUserId}
+                  disabled={pending}
+                />
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11"
+                    disabled={pending}
+                    onClick={() => setOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="min-h-11"
+                    disabled={pending || available.length === 0 || !selectedUserId}
+                  >
+                    {pending ? "Apuntando…" : "Apuntar"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </FormDialog>
+          </ModulePrimaryAction>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            La clase ya empezó; no se pueden apuntar más socios (misma regla que en la app del socio).
+          </p>
+        )
+      ) : (
+        <p className="text-sm text-muted-foreground">Clase cancelada; no se pueden hacer reservas nuevas.</p>
+      )}
+      {showAddUi && canAddMember && available.length === 0 && members.length > 0 ? (
+        <p className="text-sm text-muted-foreground">Todos los socios activos ya están apuntados.</p>
+      ) : null}
+      {showAddUi && canAddMember && members.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No hay socios activos para apuntar.</p>
+      ) : null}
+
+      {roster.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nadie apuntado.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
+          <Table className="min-w-[20rem] md:min-w-[32rem]">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="h-10 min-w-[9rem] px-3">Socio</TableHead>
+                <TableHead className="h-10 px-3">Teléfono</TableHead>
+                {canRemoveMember ? (
+                  <TableHead className="h-10 w-0 px-3 text-right">Acciones</TableHead>
+                ) : null}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {roster.map((person) => (
+                <TableRow key={person.bookingId} className="border-border">
+                  <TableCell className="min-w-[9rem] px-3 py-2.5 align-middle text-sm">
+                    <Link href={`/staff/socios/${person.userId}`} className="font-medium text-primary">
+                      {person.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="px-3 py-2.5 align-middle text-sm text-muted-foreground">
+                    {person.phone ?? "—"}
+                  </TableCell>
+                  {canRemoveMember ? (
+                    <TableCell className="w-0 whitespace-nowrap px-3 py-2.5 align-middle text-right">
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8"
+                          disabled={pending}
+                          onClick={() => void remove(person.bookingId, true, person.name)}
+                        >
+                          Quitar y devolver
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8"
+                          disabled={pending}
+                          onClick={() => void remove(person.bookingId, false, person.name)}
+                        >
+                          Sin devolver
+                        </Button>
+                      </div>
+                    </TableCell>
+                  ) : null}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+}

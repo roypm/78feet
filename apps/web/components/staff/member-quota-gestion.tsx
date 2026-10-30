@@ -119,7 +119,7 @@ export function ConsumoGestionDialog({
       busy={pending}
       trigger={gestionTrigger(disabled)}
       title="Gestión de consumo"
-      description="Ajuste manual del cupo semanal (esta semana). Para reservas reales usá Reservas."
+      description="Ajuste manual del cupo semanal (esta semana). Para apuntar a una clase usá Semana o Hoy."
     >
       <div className="flex flex-col gap-4">
         <GestionActualBox>
