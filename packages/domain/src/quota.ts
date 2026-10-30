@@ -50,11 +50,24 @@ export function packBalance(params: {
   return granted - consumed;
 }
 
+export function weeklyQuotaAdjustmentTotal(
+  adjustments: readonly { kind: ClassKind; delta: number }[],
+  kind: ClassKind,
+): number {
+  let total = 0;
+  for (const adjustment of adjustments) {
+    if (adjustment.kind === kind) total += adjustment.delta;
+  }
+  return total;
+}
+
 export function assignPool(params: {
   tariffKind: TariffKind;
   classKind: ClassKind;
   weeklyDirectedLimit: number;
   weeklyOpenLimit: number;
+  weeklyDirectedAdjustment?: number;
+  weeklyOpenAdjustment?: number;
   weeklyUsedDirected: number;
   weeklyUsedOpen: number;
   packBalance: number;
@@ -66,8 +79,10 @@ export function assignPool(params: {
     return "pack";
   }
 
+  const directedLimit = params.weeklyDirectedLimit + (params.weeklyDirectedAdjustment ?? 0);
+  const openLimit = params.weeklyOpenLimit + (params.weeklyOpenAdjustment ?? 0);
   const used = params.classKind === "directed" ? params.weeklyUsedDirected : params.weeklyUsedOpen;
-  const limit = params.classKind === "directed" ? params.weeklyDirectedLimit : params.weeklyOpenLimit;
+  const limit = params.classKind === "directed" ? directedLimit : openLimit;
   if (used < limit) {
     return params.classKind === "directed" ? "weekly_directed" : "weekly_open";
   }

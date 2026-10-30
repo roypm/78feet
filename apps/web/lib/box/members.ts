@@ -1,11 +1,23 @@
 import type { Prisma } from "@prisma/client";
-import { packBalance, type CreateMember, type GrantCredits, type PatchMember } from "@78feet/domain";
+import {
+  localDateString,
+  packBalance,
+  weekStartDate,
+  weeklyQuotaAdjustmentTotal,
+  weeklyUsed,
+  type CreateMember,
+  type GrantCredits,
+  type PatchMember,
+  type WeeklyQuotaAdjustment,
+} from "@78feet/domain";
 import { hashPassword } from "../auth/password";
 import { prisma } from "../db";
 import type { Db } from "./db";
 import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
-import { isoDateFromDb } from "./time";
+import { isoDateFromDb, isoDateToDb } from "./time";
+import { getMemberSummary } from "./summary";
+import { createWeeklyQuotaAdjustment, listWeeklyQuotaAdjustments } from "./weekly-quota-adjustments";
 
 type MemberUser = {
   id: string;
@@ -110,12 +122,32 @@ export async function listMembers(status: "active" | "inactive" | "all") {
         include: membershipInclude,
         take: 1,
       },
+      creditGrantsReceived: { select: { userId: true, quantity: true } },
+      bookingsAsMember: {
+        where: { pool: "pack" },
+        select: { userId: true, pool: true, status: true, quotaReturned: true },
+      },
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
   return users.map((user) => ({
     ...userView(user),
     membership: membershipView(user.memberships[0] ?? null),
+    packBalance: packBalance({
+      userId: user.id,
+      grants: user.creditGrantsReceived,
+      bookings: user.bookingsAsMember.map((booking) => ({
+        id: "",
+        instanceId: "",
+        userId: booking.userId,
+        pool: booking.pool,
+        status: booking.status,
+        quotaReturned: booking.quotaReturned,
+        createdBy: "",
+        cancelledAt: null,
+        cancelledBy: null,
+      })),
+    }),
   }));
 }
 
@@ -266,15 +298,21 @@ export async function changeMemberTariff(id: string, tariffId: string, actorId: 
   }
   await requireAssignableTariff(tariffId);
   return prisma.$transaction(async (tx) => {
+    const now = new Date();
     const current = await tx.membership.findFirst({
       where: { userId: id, endedAt: null },
       include: membershipInclude,
     });
-    if (!current) throw new BoxError(409, "NO_MEMBERSHIP");
+    if (!current) {
+      const next = await tx.membership.create({
+        data: { userId: id, tariffId, startedAt: now },
+        include: membershipInclude,
+      });
+      return { membership: membershipView(next), cancelledBookingCount: 0 };
+    }
     if (current.tariffId === tariffId) {
       return { membership: membershipView(current), cancelledBookingCount: 0 };
     }
-    const now = new Date();
     await tx.membership.update({
       where: { id: current.id },
       data: { endedAt: now, endedReason: "change" },
@@ -290,6 +328,12 @@ export async function changeMemberTariff(id: string, tariffId: string, actorId: 
 
 export async function grantMemberCredits(id: string, input: GrantCredits, actorId: string) {
   await requireMember(id);
+  if (input.quantity < 0) {
+    const detail = await getMember(id);
+    if (detail.credits.balance + input.quantity < 0) {
+      throw new BoxError(403, "FORBIDDEN", "No hay saldo suficiente para quitar");
+    }
+  }
   const grant = await prisma.creditGrant.create({
     data: {
       userId: id,
@@ -342,4 +386,86 @@ export async function deactivateMember(id: string, actorId: string) {
     const cancelledBookingCount = await cancelFutureBookings(tx, id, actorId, now);
     return { id, status: "inactive" as const, cancelledBookingCount };
   });
+}
+
+export async function reactivateMember(id: string) {
+  const user = await requireMember(id);
+  if (user.status === "active") {
+    return { id, status: "active" as const };
+  }
+  await prisma.user.update({
+    where: { id },
+    data: { status: "active", tokenVersion: { increment: 1 } },
+  });
+  return { id, status: "active" as const };
+}
+
+export async function adjustMemberWeeklyQuota(
+  id: string,
+  input: WeeklyQuotaAdjustment,
+  actorId: string,
+  now = new Date(),
+) {
+  await requireMember(id);
+  const membership = await prisma.membership.findFirst({
+    where: { userId: id, endedAt: null },
+    include: { tariff: true },
+  });
+  if (!membership?.tariff || membership.tariff.kind !== "monthly") {
+    throw new BoxError(403, "FORBIDDEN", "Solo aplica con tarifa mensual");
+  }
+  const today = localDateString(now);
+  const weekStart = weekStartDate(today);
+  const weekStartDb = isoDateToDb(weekStart);
+  const existing = await listWeeklyQuotaAdjustments(prisma, id, weekStartDb);
+  const bookings = await prisma.booking.findMany({
+    where: { userId: id, OR: [{ status: "active" }, { quotaReturned: false }] },
+    include: { instance: { select: { id: true, date: true } } },
+  });
+  const instancesById = new Map(
+    bookings.map((booking) => [booking.instanceId, { date: isoDateFromDb(booking.instance.date) }]),
+  );
+  const domainBookings = bookings.map((booking) => ({
+    id: booking.id,
+    instanceId: booking.instanceId,
+    userId: booking.userId,
+    pool: booking.pool,
+    status: booking.status,
+    quotaReturned: booking.quotaReturned,
+    createdBy: booking.createdBy,
+    cancelledAt: booking.cancelledAt,
+    cancelledBy: booking.cancelledBy,
+  }));
+  const used = weeklyUsed({
+    bookings: domainBookings,
+    instancesById,
+    userId: id,
+    weekDate: today,
+    kind: input.kind,
+  });
+  const limit = input.kind === "directed" ? membership.tariff.weeklyDirected : membership.tariff.weeklyOpen;
+  const adjustment = weeklyQuotaAdjustmentTotal(existing, input.kind) + input.delta;
+  const available = limit - used + adjustment;
+  if (available < 0) {
+    throw new BoxError(403, "FORBIDDEN", "Quedaría cupo negativo esta semana");
+  }
+  const row = await createWeeklyQuotaAdjustment(prisma, {
+    userId: id,
+    weekStart: weekStartDb,
+    kind: input.kind,
+    delta: input.delta,
+    note: input.note ?? null,
+    createdBy: actorId,
+  });
+  const summary = await getMemberSummary(id, now);
+  return {
+    adjustment: {
+      id: row.id,
+      kind: row.kind,
+      delta: row.delta,
+      note: row.note,
+      createdAt: row.createdAt.toISOString(),
+    },
+    quota: summary.quota,
+  };
 }

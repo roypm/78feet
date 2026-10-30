@@ -4,6 +4,8 @@ import {
   evaluateMemberCancellation,
   evaluateStaffCancellation,
   memberCanCancel,
+  weekStartDate,
+  weeklyQuotaAdjustmentTotal,
   type Booking,
   type BookingPool,
   type ClassInstance,
@@ -12,7 +14,8 @@ import { prisma } from "../db";
 import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
 import { toDomainBooking, toDomainInstance } from "./map";
-import { isoDateFromDb } from "./time";
+import { isoDateFromDb, isoDateToDb } from "./time";
+import { listWeeklyQuotaAdjustments } from "./weekly-quota-adjustments";
 
 type InstanceRow = {
   id: string;
@@ -129,6 +132,8 @@ export async function reserveForMember(params: {
         where: { userId: user.id },
         select: { userId: true, quantity: true },
       });
+      const weekStart = weekStartDate(isoDateFromDb(instance.date));
+      const adjustments = await listWeeklyQuotaAdjustments(tx, user.id, isoDateToDb(weekStart));
       const onInstance = await tx.booking.findMany({
         where: { instanceId: instance.id, status: "active" },
       });
@@ -168,6 +173,8 @@ export async function reserveForMember(params: {
         bookings: [...bookings.values()],
         instancesById,
         grants,
+        weeklyDirectedAdjustment: weeklyQuotaAdjustmentTotal(adjustments, "directed"),
+        weeklyOpenAdjustment: weeklyQuotaAdjustmentTotal(adjustments, "open"),
       });
 
       const created = await tx.booking.create({

@@ -82,6 +82,8 @@ model User {
   bookingsAsMember     Booking[]       @relation("BookingMember")
   bookingsCreated      Booking[]       @relation("BookingAuthor")
   bookingsCancelled    Booking[]       @relation("BookingCanceller")
+  weeklyQuotaAdjustmentsReceived WeeklyQuotaAdjustment[] @relation("WeeklyQuotaAdjustmentMember")
+  weeklyQuotaAdjustmentsCreated  WeeklyQuotaAdjustment[] @relation("WeeklyQuotaAdjustmentAuthor")
 
   @@map("user")
 }
@@ -130,6 +132,22 @@ model CreditGrant {
 
   @@index([userId])
   @@map("credit_grant")
+}
+
+model WeeklyQuotaAdjustment {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  weekStart DateTime  @map("week_start") @db.Date
+  kind      ClassKind
+  delta     Int
+  note      String?
+  createdBy String    @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  user      User      @relation("WeeklyQuotaAdjustmentMember", fields: [userId], references: [id])
+  author    User      @relation("WeeklyQuotaAdjustmentAuthor", fields: [createdBy], references: [id])
+
+  @@index([userId, weekStart])
+  @@map("weekly_quota_adjustment")
 }
 
 model Payment {

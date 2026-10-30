@@ -45,6 +45,8 @@ export function evaluateBooking(params: {
   bookings: readonly Booking[];
   instancesById: ReadonlyMap<string, Pick<ClassInstance, "date" | "startAt" | "endAt">>;
   grants: readonly Pick<CreditGrant, "userId" | "quantity">[];
+  weeklyDirectedAdjustment?: number;
+  weeklyOpenAdjustment?: number;
 }): { pool: BookingPool } {
   if (params.instance.status !== "scheduled") {
     throw new DomainError("FORBIDDEN");
@@ -74,6 +76,8 @@ export function evaluateBooking(params: {
     classKind: params.instance.kind,
     weeklyDirectedLimit: params.tariff.weeklyDirected,
     weeklyOpenLimit: params.tariff.weeklyOpen,
+    weeklyDirectedAdjustment: params.weeklyDirectedAdjustment,
+    weeklyOpenAdjustment: params.weeklyOpenAdjustment,
     weeklyUsedDirected: weeklyUsed({
       bookings: params.bookings,
       instancesById: params.instancesById,

@@ -22,6 +22,7 @@ export {
   createPaymentSchema,
   createStaffSchema,
   grantCreditsSchema,
+  weeklyQuotaAdjustmentSchema,
   hoursWriteSchema,
   memberListQuerySchema,
   patchInstanceSchema,
@@ -60,6 +61,7 @@ export {
   type CreatePayment,
   type CreateStaff,
   type GrantCredits,
+  type WeeklyQuotaAdjustment,
   type HoursWrite,
   type LoginRequest,
   type LoginResponse,
@@ -109,6 +111,7 @@ export {
   assignPool,
   bookingCountsTowardQuota,
   packBalance,
+  weeklyQuotaAdjustmentTotal,
   weeklyUsed,
 } from "./quota";
 export {

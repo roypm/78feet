@@ -146,7 +146,19 @@ export const changeTariffSchema = z.object({
 });
 
 export const grantCreditsSchema = z.object({
-  quantity: z.number().int().positive("La recarga tiene que ser mayor que cero"),
+  quantity: z
+    .number()
+    .int()
+    .refine((value) => value !== 0, { message: "La cantidad no puede ser cero" }),
+  note: z.string().trim().min(1).nullable().optional(),
+});
+
+export const weeklyQuotaAdjustmentSchema = z.object({
+  kind: classKindSchema,
+  delta: z
+    .number()
+    .int()
+    .refine((value) => value !== 0, { message: "Indicá cuántas clases" }),
   note: z.string().trim().min(1).nullable().optional(),
 });
 
@@ -293,6 +305,7 @@ export type CreateMember = z.infer<typeof createMemberSchema>;
 export type PatchMember = z.infer<typeof patchMemberSchema>;
 export type ChangeTariff = z.infer<typeof changeTariffSchema>;
 export type GrantCredits = z.infer<typeof grantCreditsSchema>;
+export type WeeklyQuotaAdjustment = z.infer<typeof weeklyQuotaAdjustmentSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type TemplateWrite = z.infer<typeof templateWriteSchema>;
 export type PatchTemplate = z.infer<typeof patchTemplateSchema>;

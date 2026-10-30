@@ -1,6 +1,7 @@
-import { localDateString, packBalance, weeklyUsed } from "@78feet/domain";
+import { localDateString, packBalance, weekStartDate, weeklyQuotaAdjustmentTotal, weeklyUsed } from "@78feet/domain";
 import { prisma } from "../db";
 import { isoDateFromDb, isoDateToDb } from "./time";
+import { listWeeklyQuotaAdjustments } from "./weekly-quota-adjustments";
 
 export type MemberSummary = {
   tariff: {
@@ -13,8 +14,10 @@ export type MemberSummary = {
   quota: {
     directedUsed: number;
     directedLimit: number;
+    directedAdjustment: number;
     openUsed: number;
     openLimit: number;
+    openAdjustment: number;
     packBalance: number;
   };
   payment: "paid" | "pending" | null;
@@ -61,6 +64,10 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
     cancelledBy: booking.cancelledBy,
   }));
   const tariff = membership?.tariff ?? null;
+  const weekStart = weekStartDate(today);
+  const adjustments = await listWeeklyQuotaAdjustments(prisma, userId, isoDateToDb(weekStart));
+  const directedAdjustment = weeklyQuotaAdjustmentTotal(adjustments, "directed");
+  const openAdjustment = weeklyQuotaAdjustmentTotal(adjustments, "open");
   const quota = {
     directedUsed: weeklyUsed({
       bookings: domainBookings,
@@ -70,6 +77,7 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
       kind: "directed",
     }),
     directedLimit: tariff?.weeklyDirected ?? 0,
+    directedAdjustment,
     openUsed: weeklyUsed({
       bookings: domainBookings,
       instancesById,
@@ -78,6 +86,7 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
       kind: "open",
     }),
     openLimit: tariff?.weeklyOpen ?? 0,
+    openAdjustment,
     packBalance: packBalance({ grants, bookings: domainBookings, userId }),
   };
 
