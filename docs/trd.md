@@ -575,3 +575,23 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 Pasarela de pago, emails transaccionales, push, websockets, cache distribuida, Redis, búsqueda,
 multi-tenant, i18n, exportaciones, panel de métricas, app de staff, offline, Docker.
+
+## Paginación de listados
+
+Las pantallas de Socios, Impagos y Biblioteca consultan páginas de 25 filas con `skip`/`take` y un recuento filtrado. El orden añade `id` como desempate estable. El servidor normaliza páginas inválidas a 1 y ajusta las que exceden el total.
+
+Los GET de `/api/v1/admin/members`, `/api/v1/admin/unpaid`, `/api/v1/admin/trainings` y `/api/v1/trainings` aceptan `page=N`. Con `page` devuelven `{ items, pageInfo: { page, pageSize, total, totalPages } }`; Impagos añade `asOf` y Biblioteca de socio añade `types`. Sin `page`, mantienen el contrato anterior para los consumidores existentes y selectores internos.
+
+El saldo de bonos del listado se calcula con agregaciones `SUM(quantity)` de créditos y recuento de reservas consumidas para los IDs cargados: `pool=pack` y (`status=active` o `quotaReturned=false`). Impagos filtra en SQL por tarifa vigente y ausencia del pago de su periodo, antes de contar y paginar; no carga el historial de pagos.
+
+### Organización de la edición de plantilla web
+
+`TemplateSchedule` compone la cuadrícula, el editor de huecos y el diálogo de aplicación. El hook `useTemplateDraft` gestiona borrador, validaciones locales, descarte y estado de guardado; la función `applyTemplateDraft` concentra las peticiones DELETE, PATCH y POST, en ese orden y de forma secuencial. Si una petición falla, detiene las siguientes y propaga el error al hook. Este flujo mantiene las transacciones individuales de cada endpoint: el lote completo de edición no es una transacción única.
+
+### Organización de las acciones sobre clases puntuales
+
+El detalle de clase compone `InstanceDetailActions`, que presenta edición y cancelación o recuperación. `InstanceForm` presenta los campos y delega el estado y la confirmación de aforo a `useInstanceEdit`; la confirmación conserva el cuerpo que produjo `CONFIRM_REQUIRED` y solo lo reenvía con `confirmCapacity=true` al confirmar. `ExtraClassForm` gestiona el alta independiente. Las peticiones y la conversión de datos del formulario se concentran en `instance-mutations.ts`, tipadas con `PatchInstance` y `CreateInstance` del dominio.
+
+### Organización del calendario web
+
+`CalendarBoard` conserva la entrada común y delega en las vistas explícitas de socio y staff. Ambas componen `WeekNav` y `CalendarGrid`, con `ClassBlock` compartido para las clases y las bandas de cierre dentro de la cuadrícula. `useCalendarScale` concentra las suscripciones a media queries y localStorage para el tamaño de la vista de socio; el staff conserva su escala fija. `calendarHref` centraliza los enlaces que mantienen la semana y la grilla elegidas.

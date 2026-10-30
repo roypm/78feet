@@ -240,3 +240,7 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 | 25 | Editar un entrenamiento cambia el texto vivo en todas las clases que lo señalan. No hay versiones. |
 | 26 | Asociar o borrar un entrenamiento no toca las reservas. |
 | 27 | Un tipo con entrenamientos en la biblioteca no se borra. |
+
+### Paginación de listados
+
+Socios (activos y bajas), Impagos y Biblioteca (staff y socio) muestran 25 resultados por página. La navegación permite anterior/siguiente y muestra rango, total y página actual. Cambiar un filtro vuelve a la primera página. Una página eliminada o fuera de rango muestra la última disponible.

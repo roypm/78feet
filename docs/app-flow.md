@@ -95,3 +95,7 @@ Desde el detalle de una clase, el nombre del entrenamiento abre la misma ficha.
 La ruta `/staff/reservas` redirige a Semana; no hay módulo aparte.
 
 Las confirmaciones de acciones con impacto usan diálogos propios del sistema visual. No se usan confirmaciones nativas del navegador (`window.confirm`, `alert` o `prompt`). Al cancelar una reserva, el socio confirma en un diálogo y vuelve a "Mis reservas".
+
+## Paginación de listados
+
+Socios, Impagos y Biblioteca (staff y socio) usan `?pagina=N`; los enlaces conservan el filtro de estado o tipo. Cambiar de filtro comienza en la primera página. El pie muestra rango y total, página actual y controles Anterior/Siguiente con los extremos deshabilitados. Una lista vacía mantiene su mensaje habitual.

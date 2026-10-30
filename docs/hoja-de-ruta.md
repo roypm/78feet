@@ -19,6 +19,12 @@ Una llesca por pasada. Cada una deja el repo en un estado que se puede probar an
 
 Fuera de esta lista (v1): pagos online, notificaciones, asistencia, lista de espera, iOS, Docker.
 
+## Mantenimiento posterior a v1
+
+| Tarea | Cuándo abordarla | Hecho cuando |
+|---|---|---|
+| Medir latencia de extremo a extremo de la propagación | Cuando haya una rama Neon de pruebas segura | Comparar guardado de plantilla con un conjunto representativo de clases y reservas, registrar tiempos y confirmar que se mantienen las reglas de cupo |
+
 ## Cuando toque desplegar (no saltar)
 
 Hasta entonces: `main` local, commits cuando se pida, ramas cortas por llesca si hace falta. **No** abrir un GitFlow `develop` + `main` ahora.

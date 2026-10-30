@@ -89,3 +89,7 @@ Escala de Tailwind con base de 4 px: `1` = 4, `2` = 8, `3` = 12, `4` = 16, `6` =
 ## 8. Fuera de alcance visual de v1
 
 Fuente custom, ilustraciones, motion decorativo, analítica visual y tematización manual. Los estados vacíos, errores y textos de cada módulo se definen al diseñar su flujo; deben seguir los componentes y tokens anteriores.
+
+### Navegación de listas
+
+Las listas paginadas comparten `ListPagination`: rango y total a la izquierda; Anterior, página actual y Siguiente a la derecha. El pie se envuelve en pantallas estrechas, usa botones outline con altura táctil mínima de 44 px y estados deshabilitados en los extremos.
