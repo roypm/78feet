@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/current";
 import { listStaff } from "@/lib/box/staff-users";
 import { StaffForm } from "@/components/staff/staff-form";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TeamTable } from "@/components/staff/team-table";
 import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
 
 export default function Page() {
@@ -23,7 +23,7 @@ export default function Page() {
 }
 
 async function Team() {
-  await requireAdmin();
+  const currentUser = await requireAdmin();
   const staff = await listStaff();
 
   return (
@@ -36,28 +36,7 @@ async function Team() {
         <ModulePrimaryAction>
           <StaffForm />
         </ModulePrimaryAction>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Usuario</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Estado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {staff.map((person) => (
-              <TableRow key={person.id}>
-                <TableCell>
-                  {person.firstName} {person.lastName}
-                </TableCell>
-                <TableCell>{person.loginId}</TableCell>
-                <TableCell>{person.role === "admin" ? "Admin" : "Coach"}</TableCell>
-                <TableCell>{person.status === "active" ? "Activo" : "Inactivo"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <TeamTable staff={staff} currentUserId={currentUser.id} />
       </ModuleBody>
     </ModulePage>
   );

@@ -29,7 +29,9 @@ export function StaffForm() {
           firstName: String(form.get("firstName")),
           lastName: String(form.get("lastName")),
           role: String(form.get("role")),
-          dni: String(form.get("dni") || "") || null,
+          dni: String(form.get("dni")),
+          phone: String(form.get("phone") || "") || null,
+          email: String(form.get("email") || "") || null,
         }),
       });
       toast.success("Cuenta creada");
@@ -71,8 +73,14 @@ export function StaffForm() {
               <option value="admin">Admin</option>
             </select>
           </Field>
-          <Field label="DNI (opcional)">
-            <Input name="dni" />
+          <Field label="DNI">
+            <Input name="dni" required autoComplete="off" />
+          </Field>
+          <Field label="Teléfono (opcional)">
+            <Input name="phone" type="tel" autoComplete="tel" />
+          </Field>
+          <Field label="Correo (opcional)">
+            <Input name="email" type="email" autoComplete="email" />
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>

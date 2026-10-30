@@ -353,7 +353,9 @@ export const createStaffSchema = z.object({
   firstName: z.string().trim().min(1, "El nombre es obligatorio"),
   lastName: z.string().trim().min(1, "El apellido es obligatorio"),
   role: z.enum(["coach", "admin"]),
-  dni: z.string().trim().min(1).nullable().optional(),
+  dni: z.string().trim().min(1, "El DNI es obligatorio"),
+  phone: z.string().trim().min(1).nullable().optional(),
+  email: z.string().trim().email("Email inválido").nullable().optional(),
 });
 
 export const patchStaffSchema = z
@@ -361,6 +363,8 @@ export const patchStaffSchema = z
     status: userStatusSchema.optional(),
     firstName: z.string().trim().min(1).optional(),
     lastName: z.string().trim().min(1).optional(),
+    phone: z.string().trim().min(1).nullable().optional(),
+    email: z.string().trim().email("Email inválido").nullable().optional(),
     password: z.string().min(8, "La contraseña tiene que tener al menos 8 caracteres").optional(),
   })
   .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });

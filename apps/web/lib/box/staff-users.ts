@@ -12,15 +12,19 @@ function staffView(user: {
   firstName: string;
   lastName: string;
   dni: string | null;
+  phone: string | null;
+  email: string | null;
 }) {
   return {
     id: user.id,
     loginId: user.loginId,
-    role: user.role,
+    role: user.role === "admin" ? ("admin" as const) : ("coach" as const),
     status: user.status,
     firstName: user.firstName,
     lastName: user.lastName,
     dni: user.dni,
+    phone: user.phone,
+    email: user.email,
   };
 }
 
@@ -30,6 +34,14 @@ export async function listStaff() {
     orderBy: [{ role: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
   });
   return rows.map(staffView);
+}
+
+export async function getStaff(id: string) {
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user || (user.role !== "coach" && user.role !== "admin")) {
+    throw new BoxError(404, "FORBIDDEN", "La cuenta de equipo no existe");
+  }
+  return staffView(user);
 }
 
 export async function listCoaches() {
@@ -54,7 +66,9 @@ export async function createStaff(input: CreateStaff) {
         status: "active",
         firstName: input.firstName,
         lastName: input.lastName,
-        dni: input.dni ?? null,
+        dni: input.dni,
+        phone: input.phone ?? null,
+        email: input.email ?? null,
       },
     });
     return staffView(user);
@@ -75,11 +89,15 @@ export async function patchStaff(id: string, patch: PatchStaff) {
     status?: "active" | "inactive";
     firstName?: string;
     lastName?: string;
+    phone?: string | null;
+    email?: string | null;
     passwordHash?: string;
     tokenVersion?: { increment: number };
   } = {
     firstName: patch.firstName,
     lastName: patch.lastName,
+    phone: patch.phone,
+    email: patch.email,
   };
   if (patch.status) {
     data.status = patch.status;
