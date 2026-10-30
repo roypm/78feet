@@ -11,7 +11,7 @@ import { listTrainings } from "@/lib/box/trainings";
 import { listCoaches } from "@/lib/box/staff-users";
 import { BoxError } from "@/lib/box/errors";
 import { formatDay, formatTime, freeSpotLabel, kindLabel } from "@/lib/box/format";
-import { InstanceDetailActions } from "@/components/staff/instance-form";
+import { InstanceDetailActions } from "@/components/staff/instance-detail-actions";
 import { ClassRosterPanel } from "@/components/staff/class-roster-panel";
 import { Badge } from "@/components/ui/badge";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";

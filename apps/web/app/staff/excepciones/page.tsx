@@ -4,7 +4,7 @@ import { requireStaff } from "@/lib/auth/current";
 import { listExceptions } from "@/lib/box/exceptions";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listCoaches } from "@/lib/box/staff-users";
-import { ExtraClassForm } from "@/components/staff/instance-form";
+import { ExtraClassForm } from "@/components/staff/extra-class-form";
 import { ExceptionsList } from "@/components/staff/exceptions-list";
 import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
 
