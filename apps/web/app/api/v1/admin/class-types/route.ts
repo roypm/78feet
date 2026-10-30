@@ -1,7 +1,7 @@
 import { classTypeWriteSchema } from "@78feet/domain";
 import { createClassType, listClassTypes } from "@/lib/box/class-types";
 import { BoxError } from "@/lib/box/errors";
-import { saveClassTypeImage } from "@/lib/box/images";
+import { removeClassTypeImage, saveClassTypeImage } from "@/lib/box/images";
 import { parseSchema } from "@/lib/box/parse";
 import { staffHandler } from "@/lib/box/guard";
 
@@ -20,7 +20,12 @@ export const POST = staffHandler(
       throw new BoxError(400, "FORBIDDEN", "La imagen es obligatoria");
     }
     const imageKey = await saveClassTypeImage(image);
-    return createClassType({ ...fields, imageKey });
+    try {
+      return await createClassType({ ...fields, imageKey });
+    } catch (error) {
+      await removeClassTypeImage(imageKey);
+      throw error;
+    }
   },
   201,
 );

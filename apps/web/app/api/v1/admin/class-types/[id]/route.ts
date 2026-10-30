@@ -1,7 +1,7 @@
 import { classTypePatchSchema } from "@78feet/domain";
 import { deleteClassType, updateClassType } from "@/lib/box/class-types";
 import { BoxError } from "@/lib/box/errors";
-import { saveClassTypeImage } from "@/lib/box/images";
+import { removeClassTypeImage, saveClassTypeImage } from "@/lib/box/images";
 import { parseSchema } from "@/lib/box/parse";
 import { staffHandler } from "@/lib/box/guard";
 
@@ -23,7 +23,12 @@ export const PATCH = staffHandler(["admin"], async (_user, request, params) => {
       ? parseSchema(classTypePatchSchema, { name })
       : {};
   if (!patch.name && !imageKey) throw new BoxError(400, "FORBIDDEN", "Nada para actualizar");
-  return updateClassType(id, { ...patch, imageKey });
+  try {
+    return await updateClassType(id, { ...patch, imageKey });
+  } catch (error) {
+    if (imageKey) await removeClassTypeImage(imageKey);
+    throw error;
+  }
 });
 
 export const DELETE = staffHandler(["admin"], async (_user, _request, params) =>

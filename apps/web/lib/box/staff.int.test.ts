@@ -147,7 +147,7 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
     expect(created.status).toBe(201);
     const typeId = (created.json as { id: string; imageUrl: string }).id;
     classTypeIds.push(typeId);
-    expect((created.json as { imageUrl: string }).imageUrl).toContain("/uploads/class-types/");
+    expect((created.json as { imageUrl: string }).imageUrl).toContain("/api/v1/class-type-images/db_");
 
     const listed = await call(listTypes, "GET", "/api/v1/admin/class-types", coachToken);
     expect(listed.status).toBe(200);

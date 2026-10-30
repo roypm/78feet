@@ -194,6 +194,15 @@ model ClassType {
   @@map("class_type")
 }
 
+model ClassTypeImage {
+  id        String   @id
+  mimeType  String   @map("mime_type")
+  data      Bytes
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("class_type_image")
+}
+
 model ClassTemplate {
   id              String          @id @default(uuid()) @db.Uuid
   weekday         Int
