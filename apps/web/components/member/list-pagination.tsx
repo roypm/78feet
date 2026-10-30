@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { Button } from "@/components/ui/button";
 import type { PageInfo } from "@/lib/box/pagination";
 

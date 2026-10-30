@@ -1,8 +1,12 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { useMemo, useState, type FormEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
@@ -30,8 +34,7 @@ export function ClassRosterPanel({
   members: { id: string; name: string }[];
   roster: { bookingId: string; userId: string; name: string; phone: string | null }[];
 }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [removal, setRemoval] = useState<{
@@ -55,7 +58,7 @@ export function ClassRosterPanel({
       toast.error("Elegí un socio");
       return;
     }
-    setPending(true);
+    if (!begin()) return;
     try {
       await api("/api/v1/admin/bookings", {
         method: "POST",
@@ -77,7 +80,7 @@ export function ClassRosterPanel({
   async function remove() {
     if (!removal) return;
     const { bookingId, returnQuota } = removal;
-    setPending(true);
+    if (!begin()) return;
     try {
       await api(`/api/v1/admin/bookings/${bookingId}?returnQuota=${returnQuota ? "true" : "false"}`, {
         method: "DELETE",
@@ -116,32 +119,30 @@ export function ClassRosterPanel({
               description={`Apuntar un socio a ${instanceLabel}.`}
             >
               <form onSubmit={(event) => void book(event)} className="flex flex-col gap-4">
-                <MemberPicker
-                  key={open ? "open" : "closed"}
-                  members={available}
-                  value={selectedAvailableUserId}
-                  onChange={setSelectedUserId}
-                  disabled={pending}
-                />
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-11"
-                    disabled={pending}
-                    onClick={() => setOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="min-h-11"
-                    disabled={pending || available.length === 0 || !selectedAvailableUserId}
-                  >
-                    {pending ? "Apuntando…" : "Apuntar"}
-                  </Button>
-                </DialogFooter>
-              </form>
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <MemberPicker
+            key={open ? "open" : "closed"}
+            members={available}
+            value={selectedAvailableUserId}
+            onChange={setSelectedUserId}
+            disabled={pending}
+          />
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <PendingButton
+              type="submit"
+              className="min-h-11"
+              disabled={pending || available.length === 0 || !selectedAvailableUserId}
+              pending={pending}
+              pendingLabel={"Apuntando…"}
+            >
+              {"Apuntar"}
+            </PendingButton>
+          </DialogFooter>
+        </fieldset>
+      </form>
             </FormDialog>
           </ModulePrimaryAction>
         ) : (
@@ -153,19 +154,19 @@ export function ClassRosterPanel({
         <p className="text-sm text-muted-foreground">Clase cancelada; no se pueden hacer reservas nuevas.</p>
       )}
       {showAddUi && canAddMember && available.length === 0 && members.length > 0 ? (
-        <p className="text-sm text-muted-foreground">Todos los socios activos ya están apuntados.</p>
+        <EmptyState compact title="Todos los socios activos ya están apuntados" description="No quedan socios disponibles para añadir a esta clase." />
       ) : null}
       {showAddUi && canAddMember && members.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay socios activos para apuntar.</p>
+        <EmptyState compact title="No hay socios activos para apuntar" description="Creá o reactivá una cuenta desde Socios." href="/staff/socios" action="Ver socios" />
       ) : null}
 
       {roster.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nadie apuntado.</p>
+        <EmptyState compact title="Todavía no hay nadie apuntado" description="Los socios que reserves para esta clase aparecerán acá." />
       ) : (
         <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
           <Table className="min-w-[20rem] md:min-w-[32rem]">
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow className="pointer-hover:bg-transparent">
                 <TableHead className="h-10 min-w-[9rem] px-3">Socio</TableHead>
                 <TableHead className="h-10 px-3">Teléfono</TableHead>
                 {canRemoveMember ? (

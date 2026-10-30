@@ -1,16 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { PendingButton } from "@/components/feedback/pending-button";
+
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 
 export function BookButton({ instanceId }: { instanceId: string }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
 
   async function reserve() {
-    setPending(true);
+    if (!begin()) return;
     try {
       const response = await fetch("/api/v1/bookings", {
         method: "POST",
@@ -33,8 +32,8 @@ export function BookButton({ instanceId }: { instanceId: string }) {
   }
 
   return (
-    <Button type="button" className="min-h-11 w-full" disabled={pending} onClick={() => void reserve()}>
-      {pending ? "Reservando…" : "Reservar"}
-    </Button>
+    <PendingButton type="button" className="min-h-11 w-full" disabled={pending} onClick={() => void reserve()} pending={pending} pendingLabel={"Reservando…"}>
+      {"Reservar"}
+    </PendingButton>
   );
 }

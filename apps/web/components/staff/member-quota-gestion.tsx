@@ -1,7 +1,11 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { useState, type FormEvent, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import type { ClassKind } from "@78feet/domain";
 import { api } from "@/lib/box/api";
@@ -37,7 +41,7 @@ function GestionActualBox({ children, className }: { children: ReactNode; classN
 }
 
 function consumoLine(available: number, total: number): string {
-  if (total === 0) return "—";
+  if (total === 0) return "0 clases disponibles";
   return `${available} de ${total} clase${total === 1 ? "" : "s"} disponible${available === 1 ? "" : "s"}`;
 }
 
@@ -47,6 +51,8 @@ function KindAdjustRow({
   memberId,
   pending,
   onPending,
+  onBegin,
+  activeDelta,
   onDone,
 }: {
   label: string;
@@ -54,9 +60,12 @@ function KindAdjustRow({
   memberId: string;
   pending: boolean;
   onPending: (value: boolean) => void;
+  onBegin: (kind: ClassKind, delta: number) => boolean;
+  activeDelta?: number;
   onDone: () => void;
 }) {
   async function adjust(delta: number) {
+    if (pending || !onBegin(kind, delta)) return;
     onPending(true);
     try {
       await api(`/api/v1/admin/members/${memberId}/weekly-quota`, {
@@ -76,10 +85,12 @@ function KindAdjustRow({
     <div className="flex flex-col gap-2">
       <p className="text-sm font-medium">{label}</p>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => void adjust(-1)}>
+        <Button type="button" variant="outline" className="min-h-11" disabled={pending} aria-busy={pending && activeDelta === -1} onClick={() => void adjust(-1)}>
+          {pending && activeDelta === -1 && <Spinner aria-hidden="true" />}
           Quitar 1
         </Button>
-        <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => void adjust(1)}>
+        <Button type="button" variant="outline" className="min-h-11" disabled={pending} aria-busy={pending && activeDelta === 1} onClick={() => void adjust(1)}>
+          {pending && activeDelta === 1 && <Spinner aria-hidden="true" />}
           Añadir 1
         </Button>
       </div>
@@ -104,9 +115,15 @@ export function ConsumoGestionDialog({
   openTotal: number;
   weekLabel: string;
 }) {
-  const router = useRouter();
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [activeAdjustment, setActiveAdjustment] = useState<{ kind: ClassKind; delta: number } | null>(null);
+
+  function beginAdjustment(kind: ClassKind, delta: number) {
+    if (!begin()) return false;
+    setActiveAdjustment({ kind, delta });
+    return true;
+  }
 
   function refresh() {
     router.refresh();
@@ -141,9 +158,11 @@ export function ConsumoGestionDialog({
           memberId={memberId}
           pending={pending}
           onPending={setPending}
+          onBegin={beginAdjustment}
+          activeDelta={activeAdjustment?.kind === "directed" ? activeAdjustment.delta : undefined}
           onDone={refresh}
         />
-        <KindAdjustRow label="Opens" kind="open" memberId={memberId} pending={pending} onPending={setPending} onDone={refresh} />
+        <KindAdjustRow label="Opens" kind="open" memberId={memberId} pending={pending} onPending={setPending} onBegin={beginAdjustment} activeDelta={activeAdjustment?.kind === "open" ? activeAdjustment.delta : undefined} onDone={refresh} />
         <DialogFooter>
           <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
             Cerrar
@@ -165,12 +184,15 @@ export function BonoGestionDialog({
   bonoPacks: BonoPack[];
   balance: number;
 }) {
-  const router = useRouter();
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [activeQuantity, setActiveQuantity] = useState<number | null>(null);
+  const [addingPack, setAddingPack] = useState(false);
 
   async function adjustCredits(quantity: number, note?: string, closeOnSuccess = false) {
-    setPending(true);
+    if (!begin()) return;
+    setActiveQuantity(quantity);
+    setAddingPack(closeOnSuccess);
     try {
       await api(`/api/v1/admin/members/${memberId}/credits`, {
         method: "POST",
@@ -213,39 +235,53 @@ export function BonoGestionDialog({
         </p>
       </GestionActualBox>
       <form onSubmit={(event) => void addPack(event)} className="flex flex-col gap-4 border-t border-border pt-4">
-        <Field label="Añadir pack">
-          <select
-            name="packTariffId"
-            required={bonoPacks.length > 0}
-            className={controlClass}
-            defaultValue={bonoPacks[0]?.id ?? ""}
-            disabled={bonoPacks.length === 0}
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <Field label="Añadir pack">
+            <select
+              name="packTariffId"
+              required={bonoPacks.length > 0}
+              className={controlClass}
+              defaultValue={bonoPacks[0]?.id ?? ""}
+              disabled={bonoPacks.length === 0}
+            >
+              {bonoPacks.length === 0 ? (
+                <option value="">Sin packs en el catálogo</option>
+              ) : (
+                bonoPacks.map((pack) => (
+                  <option key={pack.id} value={pack.id}>
+                    {pack.name} · {pack.packClasses} clase{pack.packClasses === 1 ? "" : "s"} · {formatPrice(pack.priceCents)}
+                  </option>
+                ))
+              )}
+            </select>
+          </Field>
+          {bonoPacks.length === 0 ? (
+            <EmptyState
+              compact
+              title="No hay packs disponibles"
+              description="El admin puede crear tarifas de tipo Bono. Mientras tanto podés usar el ajuste manual del saldo."
+            />
+          ) : null}
+          <PendingButton
+            type="submit"
+            className="min-h-11"
+            disabled={pending || bonoPacks.length === 0}
+            pending={pending && addingPack}
+            pendingLabel={"Aplicando…"}
           >
-            {bonoPacks.length === 0 ? (
-              <option value="">Sin packs en el catálogo</option>
-            ) : (
-              bonoPacks.map((pack) => (
-                <option key={pack.id} value={pack.id}>
-                  {pack.name} · {pack.packClasses} clase{pack.packClasses === 1 ? "" : "s"} · {formatPrice(pack.priceCents)}
-                </option>
-              ))
-            )}
-          </select>
-        </Field>
-        {bonoPacks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Creá tarifas tipo Bono en Tarifas (ej. pack de 1 o 10 clases).</p>
-        ) : null}
-        <Button type="submit" className="min-h-11" disabled={pending || bonoPacks.length === 0}>
-          {pending ? "Aplicando…" : "Añadir pack al saldo"}
-        </Button>
+            {"Añadir pack al saldo"}
+          </PendingButton>
+        </fieldset>
       </form>
       <div className="flex flex-col gap-2 border-t border-border pt-4">
         <p className="text-sm font-medium">Ajuste fino</p>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => void adjustCredits(-1)}>
+          <Button type="button" variant="outline" className="min-h-11" disabled={pending} aria-busy={pending && !addingPack && activeQuantity === -1} onClick={() => void adjustCredits(-1)}>
+            {pending && !addingPack && activeQuantity === -1 && <Spinner aria-hidden="true" />}
             Quitar 1 clase
           </Button>
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => void adjustCredits(1)}>
+          <Button type="button" variant="outline" className="min-h-11" disabled={pending} aria-busy={pending && !addingPack && activeQuantity === 1} onClick={() => void adjustCredits(1)}>
+            {pending && !addingPack && activeQuantity === 1 && <Spinner aria-hidden="true" />}
             Añadir 1 clase
           </Button>
         </div>

@@ -1,5 +1,8 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireMember } from "@/lib/auth/current";
 import { listUpcomingBookings } from "@/lib/box/bookings";
 import { formatDay, formatTime, kindLabel } from "@/lib/box/format";
@@ -15,7 +18,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Mis reservas" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando tus reservas…</p>
+            <LoadingState variant="list" label="Cargando tus reservas…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -34,7 +37,7 @@ async function Bookings() {
       <ModuleHeader title="Mis reservas" description="Clases futuras a las que estás apuntado." />
       <ModuleBody>
       {bookings.length === 0 ? (
-        <p className="text-muted-foreground">No tenés reservas.</p>
+        <EmptyState title="Todavía no tenés reservas" description="Elegí una clase del calendario para reservar tu plaza." href="/calendario" action="Ver calendario" />
       ) : (
         <ul className="flex flex-col gap-3">
           {bookings.map((booking) => (

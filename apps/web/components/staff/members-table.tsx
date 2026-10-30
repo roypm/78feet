@@ -1,7 +1,10 @@
 "use client";
 
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
+import { Spinner } from "@/components/ui/spinner";
 import { consumptionModelLabel } from "@78feet/domain";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -88,7 +91,8 @@ function CellText({
 }
 
 export function MembersTable({ members }: { members: MemberListRow[] }) {
-  const router = useRouter();
+  const { router, pending } = useActionFeedback();
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const filtered = useMemo(
     () =>
@@ -109,6 +113,7 @@ export function MembersTable({ members }: { members: MemberListRow[] }) {
   );
 
   function openMember(id: string) {
+    setOpeningId(id);
     router.push(`/staff/socios/${id}`);
   }
 
@@ -116,15 +121,13 @@ export function MembersTable({ members }: { members: MemberListRow[] }) {
     <div className="flex flex-col gap-3">
       <MemberListSearch value={query} onChange={setQuery} />
       {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {members.length === 0 ? null : "Ningún socio coincide con la búsqueda."}
-        </p>
+        <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra los socios de la página actual. Podés limpiar el texto o consultar otra página."><button type="button" className="min-h-11 text-primary" onClick={() => setQuery("")}>Limpiar búsqueda</button></EmptyState>
       ) : null}
       {filtered.length > 0 ? (
     <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
       <Table className="min-w-[20rem] md:min-w-[44rem]">
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
+          <TableRow className="pointer-hover:bg-transparent">
             <TableHead className="h-10 w-[30%] min-w-[9rem] px-3">Socio</TableHead>
             <TableHead className="hidden h-10 w-[14%] min-w-[6.5rem] px-3 sm:table-cell">Teléfono</TableHead>
             <TableHead className="hidden h-10 w-[26%] min-w-[10rem] px-3 md:table-cell">Email</TableHead>
@@ -144,8 +147,9 @@ export function MembersTable({ members }: { members: MemberListRow[] }) {
                 key={member.id}
                 tabIndex={0}
                 role="link"
+                aria-busy={pending && openingId === member.id}
                 aria-label={memberAriaLabel(member)}
-                className="cursor-pointer border-border hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-inset"
+                className="cursor-pointer border-border pointer-hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-inset"
                 onClick={() => openMember(member.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -156,7 +160,7 @@ export function MembersTable({ members }: { members: MemberListRow[] }) {
               >
                 <TableCell className="min-w-[9rem] px-3 py-2.5 align-middle">
                   <div className="min-w-0">
-                    <span className="block font-medium wrap-break-word">{fullName}</span>
+                    <span className="inline-flex items-center gap-2 font-medium wrap-break-word">{fullName}{pending && openingId === member.id && <Spinner aria-label="Abriendo socio" />}</span>
                     <span className="mt-0.5 block truncate text-sm text-muted-foreground sm:hidden">
                       {[member.dni, member.phone].filter(Boolean).join(" · ") || null}
                     </span>

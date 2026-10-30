@@ -1,7 +1,8 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { ListPagination } from "@/components/member/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireStaff } from "@/lib/auth/current";
 import { listStaffTrainingsPage, listTrainingFilterTypes } from "@/lib/box/trainings";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export default function Page({
         <ModulePage>
           <ModuleHeader title="Biblioteca" description="Entrenamientos reutilizables por tipo dirigido." />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando la biblioteca…</p>
+            <LoadingState variant="library" label="Cargando la biblioteca…" />
           </ModuleBody>
         </ModulePage>
       }

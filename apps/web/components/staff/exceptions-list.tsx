@@ -1,4 +1,8 @@
-import Link from "next/link";
+
+import { ResourceImage } from "@/components/feedback/resource-image";
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import type { ExceptionInstance } from "@/lib/box/exceptions";
 import { exceptionKindLabel } from "@/lib/box/exceptions";
 import { formatDay, formatTime } from "@/lib/box/format";
@@ -10,7 +14,7 @@ function kindGridLabel(kind: ExceptionInstance["kind"]): string {
 
 export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
   if (items.length === 0) {
-    return <p className="text-muted-foreground">No hay excepciones desde hoy.</p>;
+    return <EmptyState title="No hay excepciones desde hoy" description="Las clases extra y los cambios puntuales aparecerán acá. Usá Añadir clase extra si necesitás una sesión fuera de la plantilla." />;
   }
 
   return (
@@ -43,8 +47,7 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
               className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/40"
             />
             <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+                            <ResourceImage
                 src={item.imageUrl}
                 alt=""
                 className={

@@ -1,5 +1,8 @@
+
+import { ResourceImage } from "@/components/feedback/resource-image";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { notFound } from "next/navigation";
 import { instanceHasStarted } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
@@ -29,7 +32,7 @@ export default function Page({
         <ModulePage>
           <ModuleHeader title="Clase" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando la clase…</p>
+            <LoadingState variant="class" label="Cargando la clase…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -101,8 +104,7 @@ async function ClassDetail({
       />
       <ModuleBody>
         <section className="flex items-start gap-4 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={instance.imageUrl} alt="" className="size-16 shrink-0 rounded-md object-cover" />
+                    <ResourceImage src={instance.imageUrl} alt="" className="size-16 shrink-0 rounded-md object-cover" />
           <div className="min-w-0 flex-1">
             {instance.coachName ? (
               <p className="text-sm">

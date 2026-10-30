@@ -1,16 +1,17 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { patchInstance } from "@/lib/box/instance-mutations";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export function InstanceCancelButton({ instanceId, bookedCount }: { instanceId: string; bookedCount: number }) {
-  const router = useRouter();
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
 
   const bookingLine =
     bookedCount === 0
@@ -20,7 +21,7 @@ export function InstanceCancelButton({ instanceId, bookedCount }: { instanceId: 
         : `Se cancelarán ${bookedCount} reservas y el cupo vuelve.`;
 
   async function cancelClass() {
-    setPending(true);
+    if (!begin()) return;
     try {
       const payload = await patchInstance(instanceId, { status: "cancelled" });
       if (payload.cancelledBookingCount > 0) {
@@ -44,7 +45,7 @@ export function InstanceCancelButton({ instanceId, bookedCount }: { instanceId: 
       >
         Cancelar clase
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-busy={pending} showCloseButton={!pending}>
         <DialogHeader>
           <DialogTitle>¿Cancelar esta clase?</DialogTitle>
           <DialogDescription>{bookingLine} La clase dejará de estar disponible para nuevas reservas.</DialogDescription>
@@ -53,15 +54,15 @@ export function InstanceCancelButton({ instanceId, bookedCount }: { instanceId: 
           <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
             Volver
           </DialogClose>
-          <Button
+          <PendingButton
             type="button"
             variant="destructive"
             className="min-h-11"
             disabled={pending}
             onClick={() => void cancelClass()}
-          >
-            {pending ? "Cancelando…" : "Cancelar clase"}
-          </Button>
+           pending={pending} pendingLabel={"Cancelando…"}>
+            {"Cancelar clase"}
+          </PendingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -69,12 +70,11 @@ export function InstanceCancelButton({ instanceId, bookedCount }: { instanceId: 
 }
 
 export function InstanceRecoverButton({ instanceId }: { instanceId: string }) {
-  const router = useRouter();
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
 
   async function recoverClass() {
-    setPending(true);
+    if (!begin()) return;
     try {
       await patchInstance(instanceId, { status: "scheduled" });
       toast.success("Clase recuperada");
@@ -92,7 +92,7 @@ export function InstanceRecoverButton({ instanceId }: { instanceId: string }) {
       <DialogTrigger render={<Button type="button" variant="outline" className="min-h-11 shrink-0" disabled={pending} />}>
         Recuperar clase
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-busy={pending} showCloseButton={!pending}>
         <DialogHeader>
           <DialogTitle>¿Recuperar esta clase?</DialogTitle>
           <DialogDescription>
@@ -104,9 +104,9 @@ export function InstanceRecoverButton({ instanceId }: { instanceId: string }) {
           <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
             Volver
           </DialogClose>
-          <Button type="button" className="min-h-11" disabled={pending} onClick={() => void recoverClass()}>
-            {pending ? "Recuperando…" : "Recuperar clase"}
-          </Button>
+          <PendingButton type="button" className="min-h-11" disabled={pending} onClick={() => void recoverClass()} pending={pending} pendingLabel={"Recuperando…"}>
+            {"Recuperar clase"}
+          </PendingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
 import { StaffShell } from "@/components/staff/staff-shell";
+import { LoadingState } from "@/components/feedback/loading-state";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<p className="px-4 py-8 text-muted-foreground">Cargando…</p>}>
+    <Suspense fallback={<div className="mx-auto w-full max-w-5xl px-4 py-8"><LoadingState variant="profile" label="Cargando el panel…" /></div>}>
       <StaffGate>{children}</StaffGate>
     </Suspense>
   );

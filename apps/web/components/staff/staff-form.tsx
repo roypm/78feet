@@ -1,7 +1,9 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
@@ -11,15 +13,14 @@ import { Field, controlClass } from "@/components/staff/field";
 import { FormDialog } from "@/components/staff/form-dialog";
 
 export function StaffForm() {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    setPending(true);
+    if (!begin()) return;
     try {
       await api("/api/v1/admin/staff", {
         method: "POST",
@@ -55,6 +56,7 @@ export function StaffForm() {
         description="Creá un acceso para una persona del equipo."
     >
         <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
           <Field label="Nombre">
             <Input name="firstName" required />
           </Field>
@@ -86,11 +88,12 @@ export function StaffForm() {
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" className="min-h-11" disabled={pending}>
-              {pending ? "Creando…" : "Crear cuenta"}
-            </Button>
+            <PendingButton type="submit" className="min-h-11" disabled={pending} pending={pending} pendingLabel={"Creando…"}>
+              {"Crear cuenta"}
+            </PendingButton>
           </DialogFooter>
-        </form>
+        </fieldset>
+      </form>
     </FormDialog>
   );
 }

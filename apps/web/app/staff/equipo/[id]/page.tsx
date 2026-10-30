@@ -1,5 +1,6 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/current";
 import { getStaff } from "@/lib/box/staff-users";
@@ -14,7 +15,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <ModulePage>
           <ModuleHeader title="Perfil de equipo" />
           <ModuleBody width="full">
-            <p className="text-muted-foreground">Cargando el perfil…</p>
+            <LoadingState variant="profile" label="Cargando el perfil…" />
           </ModuleBody>
         </ModulePage>
       }

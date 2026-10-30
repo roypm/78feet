@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import type { ReactNode } from "react";
 import { cn } from "cn";
 
@@ -29,8 +29,8 @@ export function KindTabs({
 
 export function chipClass(active: boolean): string {
   return active
-    ? "flex min-h-8 touch-manipulation items-center rounded-sm bg-card px-2.5 text-sm font-semibold text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
-    : "flex min-h-8 touch-manipulation items-center rounded-sm px-2.5 text-sm text-muted-foreground transition-transform duration-150 ease-out active:scale-[0.97] [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground";
+    ? "flex min-h-8 touch-manipulation items-center rounded-sm bg-card px-2.5 text-sm font-semibold text-foreground transition-[scale,background-color,color] duration-150 ease-out active:scale-[0.97] pointer-hover:ring-1 pointer-hover:ring-border"
+    : "flex min-h-8 touch-manipulation items-center rounded-sm px-2.5 text-sm text-muted-foreground transition-[scale,background-color,color] duration-150 ease-out active:scale-[0.97] pointer-hover:bg-card/50 pointer-hover:text-foreground";
 }
 
 function Tab({ href, active, children }: { href: string; active: boolean; children: string }) {

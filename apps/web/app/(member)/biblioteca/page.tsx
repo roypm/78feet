@@ -1,7 +1,10 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { ListPagination } from "@/components/member/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireMember } from "@/lib/auth/current";
 import { listTrainingFilterTypes, listTrainingsPage } from "@/lib/box/trainings";
 import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
@@ -18,7 +21,7 @@ export default function Page({
         <ModulePage>
           <ModuleHeader title="Biblioteca" description="Entrenamientos de clases dirigidas." />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando la biblioteca…</p>
+            <LoadingState variant="list" label="Cargando la biblioteca…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -60,7 +63,7 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
       />
       <ModuleBody>
         {trainings.length === 0 ? (
-          <p className="text-muted-foreground">Todavía no hay entrenamientos.</p>
+          <EmptyState title={classTypeId ? "No hay entrenamientos de este tipo" : "Todavía no hay entrenamientos"} description={classTypeId ? "Probá con otro tipo de clase o volvé a ver toda la biblioteca." : "Los entrenamientos aparecerán acá cuando el staff los publique."} href={classTypeId ? "/biblioteca" : undefined} action={classTypeId ? "Ver todos" : undefined} />
         ) : (
           <ul className="flex flex-col gap-3">
             {trainings.map((item) => (

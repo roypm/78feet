@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Calendar, CreditCard, Footprints, History, Ticket, User } from "lucide-react";
 import {

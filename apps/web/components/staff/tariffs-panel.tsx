@@ -1,7 +1,11 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import {
   billingPeriodKindLabel,
@@ -18,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Field, controlClass } from "@/components/staff/field";
 import { FormDialog } from "@/components/staff/form-dialog";
@@ -36,8 +41,7 @@ function TariffDialogForm({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [consumptionModel, setConsumptionModel] = useState<TariffConsumption>(
     tariff?.consumptionModel ?? "weekly_quota",
   );
@@ -72,7 +76,7 @@ function TariffDialogForm({
       packClasses: effectiveConsumption === "pack" ? Number(form.get("packClasses")) : null,
     };
 
-    setPending(true);
+    if (!begin()) return;
     try {
       if (editing) {
         await api(`/api/v1/admin/tariffs/${tariff.id}`, {
@@ -116,114 +120,117 @@ function TariffDialogForm({
       }
     >
       <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
-        <Field label="Nombre">
-          <Input name="name" required defaultValue={tariff?.name ?? ""} />
-        </Field>
-        <Field label="Consumo">
-          {editing ? (
-            <p className="text-sm text-muted-foreground">{consumptionModelLabel(tariff.consumptionModel)}</p>
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <Field label="Nombre">
+            <Input name="name" required defaultValue={tariff?.name ?? ""} />
+          </Field>
+          <Field label="Consumo">
+            {editing ? (
+              <p className="text-sm text-muted-foreground">{consumptionModelLabel(tariff.consumptionModel)}</p>
+            ) : (
+              <select
+                name="consumptionModel"
+                className={controlClass}
+                value={consumptionModel}
+                onChange={(event) => {
+                  const next = event.target.value as TariffConsumption;
+                  setConsumptionModel(next);
+                  if (next === "pack") setBillingPeriod("one_time");
+                  else if (billingPeriod === "one_time") setBillingPeriod("monthly");
+                }}
+              >
+                <option value="weekly_quota">Cupo semanal</option>
+                <option value="monthly_quota">Cupo mensual</option>
+                <option value="pack">Bono</option>
+              </select>
+            )}
+          </Field>
+          {usesPeriodicQuota(effectiveConsumption) ? (
+            <>
+              <Field label="Dirigidas / semana">
+                <Input
+                  name="weeklyDirected"
+                  type="number"
+                  min={0}
+                  required
+                  defaultValue={tariff?.weeklyDirected ?? 3}
+                  className="tabular-nums"
+                />
+              </Field>
+              <Field label="Opens / semana">
+                <Input
+                  name="weeklyOpen"
+                  type="number"
+                  min={0}
+                  required
+                  defaultValue={tariff?.weeklyOpen ?? 1}
+                  className="tabular-nums"
+                />
+              </Field>
+            </>
           ) : (
-            <select
-              name="consumptionModel"
-              className={controlClass}
-              value={consumptionModel}
-              onChange={(event) => {
-                const next = event.target.value as TariffConsumption;
-                setConsumptionModel(next);
-                if (next === "pack") setBillingPeriod("one_time");
-                else if (billingPeriod === "one_time") setBillingPeriod("monthly");
-              }}
-            >
-              <option value="weekly_quota">Cupo semanal</option>
-              <option value="monthly_quota">Cupo mensual</option>
-              <option value="pack">Bono</option>
-            </select>
+            <Field label="Clases del bono">
+              <Input
+                name="packClasses"
+                type="number"
+                min={1}
+                required
+                defaultValue={tariff?.packClasses ?? 8}
+                className="tabular-nums"
+              />
+            </Field>
           )}
-        </Field>
-        {usesPeriodicQuota(effectiveConsumption) ? (
-          <>
-            <Field label="Dirigidas / semana">
-              <Input
-                name="weeklyDirected"
-                type="number"
-                min={0}
-                required
-                defaultValue={tariff?.weeklyDirected ?? 3}
-                className="tabular-nums"
-              />
-            </Field>
-            <Field label="Opens / semana">
-              <Input
-                name="weeklyOpen"
-                type="number"
-                min={0}
-                required
-                defaultValue={tariff?.weeklyOpen ?? 1}
-                className="tabular-nums"
-              />
-            </Field>
-          </>
-        ) : (
-          <Field label="Clases del bono">
+          <Field label="Facturación">
+            {editing ? (
+              <p className="text-sm text-muted-foreground">{billingPeriodKindLabel(tariff.billingPeriod)}</p>
+            ) : effectiveConsumption === "pack" ? (
+              <p className="text-sm text-muted-foreground">Pago único</p>
+            ) : (
+              <select
+                name="billingPeriod"
+                className={controlClass}
+                value={billingPeriod}
+                onChange={(event) => setBillingPeriod(event.target.value as TariffBilling)}
+              >
+                {SUBSCRIPTION_BILLING.map((value) => (
+                  <option key={value} value={value}>
+                    {billingPeriodKindLabel(value)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
+          <Field label="Precio (€)">
             <Input
-              name="packClasses"
+              name="price"
               type="number"
-              min={1}
+              min={0}
+              step="0.01"
               required
-              defaultValue={tariff?.packClasses ?? 8}
+              defaultValue={eurosDefault}
               className="tabular-nums"
             />
           </Field>
-        )}
-        <Field label="Facturación">
-          {editing ? (
-            <p className="text-sm text-muted-foreground">{billingPeriodKindLabel(tariff.billingPeriod)}</p>
-          ) : effectiveConsumption === "pack" ? (
-            <p className="text-sm text-muted-foreground">Pago único</p>
-          ) : (
-            <select
-              name="billingPeriod"
-              className={controlClass}
-              value={billingPeriod}
-              onChange={(event) => setBillingPeriod(event.target.value as TariffBilling)}
-            >
-              {SUBSCRIPTION_BILLING.map((value) => (
-                <option key={value} value={value}>
-                  {billingPeriodKindLabel(value)}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field label="Precio (€)">
-          <Input
-            name="price"
-            type="number"
-            min={0}
-            step="0.01"
-            required
-            defaultValue={eurosDefault}
-            className="tabular-nums"
-          />
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button type="submit" className="min-h-11" disabled={pending}>
-            {pending ? "Guardando…" : editing ? "Guardar cambios" : "Crear tarifa"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <PendingButton type="submit" className="min-h-11" disabled={pending} pending={pending} pendingLabel={"Guardando…"}>
+              {editing ? "Guardar cambios" : "Crear tarifa"}
+            </PendingButton>
+          </DialogFooter>
+        </fieldset>
       </form>
     </FormDialog>
   );
 }
 
 export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
-  const router = useRouter();
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TariffView | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const pendingId = pending ? activeId : null;
   const [confirmingTariff, setConfirmingTariff] = useState<TariffView | null>(null);
 
   function openCreate() {
@@ -242,7 +249,8 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
       setConfirmingTariff(tariff);
       return;
     }
-    setPendingId(tariff.id);
+    if (!begin()) return;
+    setActiveId(tariff.id);
     try {
       await api(`/api/v1/admin/tariffs/${tariff.id}`, {
         method: "PATCH",
@@ -254,7 +262,7 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar");
     } finally {
-      setPendingId(null);
+      setPending(false);
     }
   }
 
@@ -282,12 +290,12 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
       </ModulePrimaryAction>
 
       {tariffs.length === 0 ? (
-        <p className="text-muted-foreground">Todavía no hay tarifas.</p>
+        <EmptyState title="Todavía no hay tarifas" description="Creá una tarifa para poder asignarla a los socios."><Button type="button" className="min-h-11" onClick={openCreate}>Nueva tarifa</Button></EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
           <Table className="min-w-[44rem] text-sm">
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow className="pointer-hover:bg-transparent">
                 <TableHead className="h-10 min-w-[9rem] px-3">Tarifa</TableHead>
                 <TableHead className="h-10 min-w-[7rem] px-3">Incluye</TableHead>
                 <TableHead className="h-10 min-w-[6.5rem] px-3">Consumo</TableHead>
@@ -347,10 +355,12 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
                     <Switch
                       size="sm"
                       checked={tariff.active}
-                      disabled={pendingId === tariff.id}
+                      disabled={pending}
+                      aria-busy={pendingId === tariff.id}
                       aria-label={tariff.active ? `Desactivar ${tariff.name}` : `Activar ${tariff.name}`}
                       onCheckedChange={(checked) => void setActive(tariff, checked)}
                     />
+                    {pendingId === tariff.id && <span role="status" className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><Spinner aria-hidden="true" />Actualizando…</span>}
                   </TableCell>
                   <TableCell className="w-0 whitespace-nowrap px-3 py-2.5 align-middle text-right">
                     <Button
@@ -358,7 +368,7 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
                       variant="outline"
                       size="sm"
                       className="h-8 shrink-0 px-2.5"
-                      disabled={pendingId === tariff.id}
+                      disabled={pending}
                       onClick={() => openEdit(tariff)}
                     >
                       Editar

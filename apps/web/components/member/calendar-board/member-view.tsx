@@ -1,5 +1,7 @@
 "use client";
 
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { BLOCK_INSET, calendarAxis, columnHeight } from "@/lib/box/calendar-layout";
 import { calendarHref } from "@/lib/box/calendar-navigation";
 import { KindTabs } from "@/components/member/kind-tabs";
@@ -66,9 +68,7 @@ export function MemberCalendarBoard({
       />
       <ModuleBody fill>
         {classes.length === 0 ? (
-          <p className="px-4 pt-4 text-muted-foreground md:px-6">
-            {view === "open" ? emptyOpen : emptyDirected}
-          </p>
+          <div className="px-4 pt-3 md:px-6"><EmptyState compact title={view === "open" ? emptyOpen : emptyDirected} description="Podés elegir otra semana o cambiar de grilla. Las franjas cerradas conservan su horario." /></div>
         ) : null}
         {openingHours ? (
           <p className="px-4 pt-2 text-xs text-muted-foreground md:px-6">Las franjas tramadas indican que el box está cerrado.</p>

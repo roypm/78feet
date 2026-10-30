@@ -1,6 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { ResourceImage } from "@/components/feedback/resource-image";
+
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import type { CalendarClass } from "@/lib/box/calendar";
 import { BLOCK_INSET } from "@/lib/box/calendar-layout";
 import { formatTime } from "@/lib/box/format";
@@ -38,13 +40,12 @@ export function ClassBlock({
       aria-label={ariaLabel}
       className={
         cancelled
-          ? "absolute z-10 overflow-hidden rounded-md ring-2 ring-destructive/70 transition-transform duration-150 ease-out active:scale-[0.97]"
-          : "absolute z-10 overflow-hidden rounded-md ring-1 ring-foreground/10 transition-transform duration-150 ease-out active:scale-[0.97]"
+          ? "absolute z-10 overflow-hidden rounded-md ring-2 ring-destructive/70 transition-[scale,box-shadow] duration-150 ease-out active:scale-[0.97] pointer-hover:ring-3 focus-visible:ring-3"
+          : "absolute z-10 overflow-hidden rounded-md ring-1 ring-foreground/10 transition-[scale,box-shadow] duration-150 ease-out active:scale-[0.97] pointer-hover:ring-2 pointer-hover:ring-primary focus-visible:ring-2 focus-visible:ring-primary"
       }
       style={{ top, height, left: BLOCK_INSET, width }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+            <ResourceImage
         src={item.imageUrl}
         alt=""
         className={cancelled ? "absolute inset-0 size-full object-cover opacity-40 saturate-50" : "absolute inset-0 size-full object-cover"}

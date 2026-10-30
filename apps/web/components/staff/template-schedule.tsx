@@ -1,5 +1,7 @@
 "use client";
 
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { useState, type MouseEvent } from "react";
 import { localDateString, nextMondayDate, type BoxHoursConfig } from "@78feet/domain";
 import { cn } from "cn";
@@ -49,7 +51,7 @@ export function TemplateSchedule({
   }
 
   function startFromGrid(event: MouseEvent<HTMLDivElement>, weekday: number, kind: TemplateKind) {
-    if (!canWrite) return;
+    if (!canWrite || applying) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const requestedStart = axis.axisStart + ((event.clientY - bounds.top) / PX_PER_HOUR) * 60;
     const start = Math.min(22 * 60 + 45, Math.max(0, Math.round(requestedStart / 15) * 15));
@@ -60,10 +62,10 @@ export function TemplateSchedule({
     <section className={cn("flex min-h-0 flex-1 flex-col gap-3", moduleContentInset)}>
       {canWrite && isDirty ? (
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" className="min-h-11" onClick={cancelDraftChanges}>
+          <Button type="button" variant="outline" className="min-h-11" disabled={applying} onClick={cancelDraftChanges}>
             Cancelar cambio
           </Button>
-          <Button type="button" className="min-h-11" onClick={() => setApplyOpen(true)}>
+          <Button type="button" className="min-h-11" disabled={applying} onClick={() => setApplyOpen(true)}>
             Aplicar plantilla
           </Button>
         </div>
@@ -94,9 +96,7 @@ export function TemplateSchedule({
       ) : null}
 
       {types.length === 0 ? (
-        <p className="rounded-lg bg-card p-4 text-sm text-muted-foreground ring-1 ring-foreground/10">
-          Primero creá un tipo de clase para poder añadirlo a la plantilla.
-        </p>
+        <EmptyState title="Primero hace falta un tipo de clase" description={canWrite ? "Creá un tipo para añadir el primer hueco de la plantilla." : "El admin tiene que crear los tipos y configurar la plantilla."} href={canWrite ? "/staff/tipos" : undefined} action="Crear tipo" />
       ) : (
         <TemplateKindPanel
           className="min-h-0 flex-1"
@@ -105,7 +105,7 @@ export function TemplateSchedule({
           types={types}
           coaches={coaches}
           openingHours={openingHours}
-          canWrite={canWrite}
+          canWrite={canWrite && !applying}
           mobileDay={mobileDay}
           onMobileDayChange={setMobileDay}
           axis={axis}

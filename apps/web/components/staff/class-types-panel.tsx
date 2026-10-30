@@ -1,7 +1,12 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+import { ResourceImage } from "@/components/feedback/resource-image";
+
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Field, controlClass } from "@/components/staff/field";
@@ -27,8 +32,7 @@ function kindName(kind: ClassType["kind"]): string {
 }
 
 export function ClassTypesPanel({ types }: { types: ClassType[] }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClassType | null>(null);
   const [deleting, setDeleting] = useState<ClassType | null>(null);
@@ -47,7 +51,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    setPending(true);
+    if (!begin()) return;
     try {
       if (editing) {
         await api(`/api/v1/admin/class-types/${editing.id}`, { method: "PATCH", body: data });
@@ -68,7 +72,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
 
   async function onDelete() {
     if (!deleting) return;
-    setPending(true);
+    if (!begin()) return;
     try {
       await api(`/api/v1/admin/class-types/${deleting.id}`, { method: "DELETE" });
       setDeleting(null);
@@ -99,7 +103,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
           >
             Crear tipo
           </DialogTrigger>
-          <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+          <DialogContent aria-busy={pending} showCloseButton={!pending} className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{editing ? "Editar tipo de clase" : "Crear tipo de clase"}</DialogTitle>
               <DialogDescription>
@@ -109,46 +113,41 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
-              <Field label="Nombre">
-                <Input name="name" required defaultValue={editing?.name ?? ""} />
-              </Field>
-              {editing ? (
-                <Field label="Grilla">
-                  <p className="text-sm text-muted-foreground">{kindName(editing.kind)} · no se cambia</p>
-                </Field>
-              ) : (
-                <Field label="Grilla">
-                  <select name="kind" required className={controlClass} defaultValue="directed">
-                    <option value="directed">Dirigida</option>
-                    <option value="open">Open</option>
-                  </select>
-                </Field>
-              )}
-              <Field label="Imagen">
-                <Input
-                  name="image"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  required={!editing}
-                />
-                {editing ? (
-                  <p className="text-xs text-muted-foreground">Dejá vacío para mantener la imagen actual.</p>
-                ) : null}
-              </Field>
-              <DialogFooter>
-                <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
-                  Cancelar
-                </DialogClose>
-                <Button type="submit" disabled={pending} className="min-h-11">
-                  {pending ? "Guardando…" : editing ? "Guardar cambios" : "Crear tipo"}
-                </Button>
-              </DialogFooter>
-            </form>
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <Field label="Nombre">
+            <Input name="name" required defaultValue={editing?.name ?? ""} />
+          </Field>
+          {editing ? (
+            <Field label="Grilla">
+              <p className="text-sm text-muted-foreground">{kindName(editing.kind)} · no se cambia</p>
+            </Field>
+          ) : (
+            <Field label="Grilla">
+              <select name="kind" required className={controlClass} defaultValue="directed">
+                <option value="directed">Dirigida</option>
+                <option value="open">Open</option>
+              </select>
+            </Field>
+          )}
+          <Field label="Imagen">
+            <Input name="image" type="file" accept="image/jpeg,image/png,image/webp" required={!editing} />
+            {editing ? <p className="text-xs text-muted-foreground">Dejá vacío para mantener la imagen actual.</p> : null}
+          </Field>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
+              Cancelar
+            </DialogClose>
+            <PendingButton type="submit" disabled={pending} className="min-h-11" pending={pending} pendingLabel={"Guardando…"}>
+              {editing ? "Guardar cambios" : "Crear tipo"}
+            </PendingButton>
+          </DialogFooter>
+        </fieldset>
+      </form>
           </DialogContent>
         </Dialog>
       </ModulePrimaryAction>
       {types.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Todavía no hay tipos de clase.</p>
+        <EmptyState title="Todavía no hay tipos de clase" description="Creá un tipo con su nombre, imagen y grilla para empezar a programar clases."><Button type="button" className="min-h-11" onClick={openCreate}>Crear tipo</Button></EmptyState>
       ) : (
         <ul className="grid gap-3 lg:grid-cols-2">
           {types.map((type) => (
@@ -162,8 +161,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
                 aria-label={`Editar ${type.name}`}
                 className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:ring-1 [@media(hover:hover)_and_(pointer:fine)]:hover:ring-foreground/25"
               />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+                            <ResourceImage
                 src={type.imageUrl}
                 alt=""
                 className="pointer-events-none relative size-12 shrink-0 rounded-md object-cover"

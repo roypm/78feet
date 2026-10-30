@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { eachDate } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
@@ -18,7 +19,7 @@ export default function Page({
         <ModulePage>
           <ModuleHeader title="Semana" />
           <ModuleBody fill>
-            <p className="px-4 py-6 text-muted-foreground md:px-6">Cargando la semana…</p>
+            <div className="px-4 py-3 md:px-6"><LoadingState variant="calendar" label="Cargando la semana…" /></div>
           </ModuleBody>
         </ModulePage>
       }

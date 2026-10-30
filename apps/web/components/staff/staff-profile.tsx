@@ -1,7 +1,9 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { useState, type FormEvent, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Badge } from "@/components/ui/badge";
@@ -33,16 +35,15 @@ function ProfileField({ label, value }: { label: string; value: ReactNode }) {
 }
 
 export function StaffProfile({ person }: { person: StaffProfileData }) {
-  const router = useRouter();
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [editing, setEditing] = useState(false);
-  const [pending, setPending] = useState(false);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const phone = String(form.get("phone") ?? "").trim();
     const email = String(form.get("email") ?? "").trim();
-    setPending(true);
+    if (!begin()) return;
     try {
       await api(`/api/v1/admin/staff/${person.id}`, {
         method: "PATCH",
@@ -77,26 +78,28 @@ export function StaffProfile({ person }: { person: StaffProfileData }) {
       description="Actualiza los datos personales y de contacto de esta cuenta."
     >
       <form onSubmit={(event) => void saveProfile(event)} className="flex flex-col gap-4">
-        <Field label="Nombre">
-          <Input name="firstName" required defaultValue={person.firstName} autoComplete="given-name" />
-        </Field>
-        <Field label="Apellidos">
-          <Input name="lastName" required defaultValue={person.lastName} autoComplete="family-name" />
-        </Field>
-        <Field label="Teléfono">
-          <Input name="phone" type="tel" defaultValue={person.phone ?? ""} autoComplete="tel" />
-        </Field>
-        <Field label="Correo">
-          <Input name="email" type="email" defaultValue={person.email ?? ""} autoComplete="email" />
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setEditing(false)}>
-            Cancelar
-          </Button>
-          <Button type="submit" className="min-h-11" disabled={pending}>
-            {pending ? "Guardando…" : "Guardar cambios"}
-          </Button>
-        </DialogFooter>
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <Field label="Nombre">
+            <Input name="firstName" required defaultValue={person.firstName} autoComplete="given-name" />
+          </Field>
+          <Field label="Apellidos">
+            <Input name="lastName" required defaultValue={person.lastName} autoComplete="family-name" />
+          </Field>
+          <Field label="Teléfono">
+            <Input name="phone" type="tel" defaultValue={person.phone ?? ""} autoComplete="tel" />
+          </Field>
+          <Field label="Correo">
+            <Input name="email" type="email" defaultValue={person.email ?? ""} autoComplete="email" />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+            <PendingButton type="submit" className="min-h-11" disabled={pending} pending={pending} pendingLabel={"Guardando…"}>
+              {"Guardar cambios"}
+            </PendingButton>
+          </DialogFooter>
+        </fieldset>
       </form>
     </FormDialog>
   );

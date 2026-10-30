@@ -1,7 +1,9 @@
 "use client";
 
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import type { SubscriptionBilling } from "@78feet/domain";
 import { formatPrice } from "@/lib/box/format";
 import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
@@ -50,12 +52,12 @@ export function UnpaidMembersTable({ members }: { members: UnpaidMemberRow[] }) 
         placeholder="Buscar por nombre, tarifa o periodo…"
       />
       {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Ningún impago coincide con la búsqueda.</p>
+        <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra los impagos de la página actual. Podés limpiar el texto o consultar otra página."><button type="button" className="min-h-11 text-primary" onClick={() => setQuery("")}>Limpiar búsqueda</button></EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
           <Table className="min-w-[20rem] md:min-w-[36rem]">
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow className="pointer-hover:bg-transparent">
                 <TableHead className="h-10 min-w-[9rem] px-3">Socio</TableHead>
                 <TableHead className="h-10 px-3">Tarifa</TableHead>
                 <TableHead className="h-10 px-3">Periodo</TableHead>

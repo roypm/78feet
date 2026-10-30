@@ -1,5 +1,6 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { getMember } from "@/lib/box/members";
@@ -18,7 +19,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <ModulePage>
           <ModuleHeader title="Perfil de socio" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando el socio…</p>
+            <LoadingState variant="profile" label="Cargando el socio…" />
           </ModuleBody>
         </ModulePage>
       }

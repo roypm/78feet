@@ -1,7 +1,9 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
@@ -11,12 +13,11 @@ import { FormDialog } from "@/components/staff/form-dialog";
 type DeleteConfirmation = { mode: "delete" | "detach"; description: string };
 
 export function TrainingDeleteButton({ trainingId }: { trainingId: string }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [confirmation, setConfirmation] = useState<DeleteConfirmation | null>(null);
 
   async function remove(confirmDetach = false) {
-    setPending(true);
+    if (!begin()) return;
     try {
       await api(
         `/api/v1/admin/trainings/${trainingId}${confirmDetach ? "?confirmDetach=true" : ""}`,
@@ -70,9 +71,9 @@ export function TrainingDeleteButton({ trainingId }: { trainingId: string }) {
           <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setConfirmation(null)}>
             Cancelar
           </Button>
-          <Button type="button" variant="destructive" className="min-h-11" disabled={pending} onClick={confirmDelete}>
-            {pending ? "Borrando…" : confirmation?.mode === "detach" ? "Borrar y quitar el plan" : "Borrar entrenamiento"}
-          </Button>
+          <PendingButton type="button" variant="destructive" className="min-h-11" disabled={pending} onClick={confirmDelete} pending={pending} pendingLabel={"Borrando…"}>
+            {confirmation?.mode === "detach" ? "Borrar y quitar el plan" : "Borrar entrenamiento"}
+          </PendingButton>
         </DialogFooter>
       </FormDialog>
     </>

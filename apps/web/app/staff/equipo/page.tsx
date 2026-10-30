@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/current";
 import { listStaff } from "@/lib/box/staff-users";
@@ -12,7 +13,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Equipo" />
           <ModuleBody width="full">
-            <p className="text-muted-foreground">Cargando el equipo…</p>
+            <LoadingState variant="table" label="Cargando el equipo…" />
           </ModuleBody>
         </ModulePage>
       }

@@ -1,5 +1,6 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { listClassTypes } from "@/lib/box/class-types";
@@ -15,7 +16,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <ModulePage>
           <ModuleHeader title="Editar entrenamiento" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando el entrenamiento…</p>
+            <LoadingState variant="form" label="Cargando el entrenamiento…" />
           </ModuleBody>
         </ModulePage>
       }

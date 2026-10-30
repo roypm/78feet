@@ -1,7 +1,9 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { createExtraInstance } from "@/lib/box/instance-mutations";
 import { Button } from "@/components/ui/button";
@@ -20,14 +22,13 @@ export function ExtraClassForm({
   classTypes: ClassType[];
   coaches: Coach[];
 }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setPending(true);
+    if (!begin()) return;
     try {
       const created = await createExtraInstance({
         date: String(form.get("date")),
@@ -58,6 +59,7 @@ export function ExtraClassForm({
         description="Fuera de la plantilla semanal. Elegí el día (también más allá del horizonte de Semana)."
       >
         <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
           <Field label="Día">
             <Input name="date" type="date" required defaultValue={defaultDate} />
           </Field>
@@ -70,14 +72,20 @@ export function ExtraClassForm({
           <Field label="Tipo">
             <select name="classTypeId" required className={controlClass}>
               {classTypes.map((type) => (
-                <option key={type.id} value={type.id}>{type.name}</option>
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
               ))}
             </select>
           </Field>
           <Field label="Coach">
             <select name="coachId" className={controlClass} defaultValue="">
               <option value="">Sin coach</option>
-              {coaches.map((coach) => <option key={coach.id} value={coach.id}>{coach.name}</option>)}
+              {coaches.map((coach) => (
+                <option key={coach.id} value={coach.id}>
+                  {coach.name}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Aforo">
@@ -87,11 +95,18 @@ export function ExtraClassForm({
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" className="min-h-11" disabled={pending || classTypes.length === 0}>
-              {pending ? "Creando…" : "Añadir clase"}
-            </Button>
+            <PendingButton
+              type="submit"
+              className="min-h-11"
+              disabled={pending || classTypes.length === 0}
+              pending={pending}
+              pendingLabel={"Creando…"}
+            >
+              {"Añadir clase"}
+            </PendingButton>
           </DialogFooter>
-        </form>
+        </fieldset>
+      </form>
       </FormDialog>
   );
 }

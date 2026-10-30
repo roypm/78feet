@@ -1,8 +1,11 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { useState, type FormEvent, type ReactNode } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import type { MemberSummary } from "@/lib/box/summary";
@@ -104,8 +107,7 @@ export function MemberProfile({
   tariffs: Tariff[];
   isAdmin: boolean;
 }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [openAction, setOpenAction] = useState<"tariff" | "password" | "edit" | null>(null);
   const [tariffConfirmation, setTariffConfirmation] = useState<{ tariffId: string; hasMembership: boolean } | null>(null);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
@@ -140,7 +142,7 @@ export function MemberProfile({
   async function confirmTariffChange() {
     if (!tariffConfirmation) return;
     const { tariffId, hasMembership } = tariffConfirmation;
-    setPending(true);
+    if (!begin()) return;
     try {
       const result = await api<{ cancelledBookingCount: number }>(`/api/v1/admin/members/${member.id}/tariff`, {
         method: "POST",
@@ -165,7 +167,7 @@ export function MemberProfile({
     event.preventDefault();
     const formElement = event.currentTarget;
     const password = String(new FormData(formElement).get("password"));
-    setPending(true);
+    if (!begin()) return;
     try {
       await api(`/api/v1/admin/members/${member.id}/reset-password`, {
         method: "POST",
@@ -182,7 +184,7 @@ export function MemberProfile({
   }
 
   async function deactivate() {
-    setPending(true);
+    if (!begin()) return;
     try {
       await api(`/api/v1/admin/members/${member.id}/deactivate`, { method: "POST" });
       setConfirmDeactivate(false);
@@ -197,7 +199,7 @@ export function MemberProfile({
   }
 
   async function reactivate() {
-    setPending(true);
+    if (!begin()) return;
     try {
       await api(`/api/v1/admin/members/${member.id}/reactivate`, { method: "POST" });
       toast.success("Socio reactivado. Asigná una tarifa si hace falta.");
@@ -214,7 +216,7 @@ export function MemberProfile({
     const form = new FormData(event.currentTarget);
     const phoneRaw = String(form.get("phone") ?? "").trim();
     const emailRaw = String(form.get("email") ?? "").trim();
-    setPending(true);
+    if (!begin()) return;
     try {
       await api(`/api/v1/admin/members/${member.id}`, {
         method: "PATCH",
@@ -250,29 +252,31 @@ export function MemberProfile({
       description="Nombre, DNI, teléfono y email. Si cambiás el DNI, también cambia el usuario de acceso."
     >
       <form onSubmit={(event) => void saveProfile(event)} className="flex flex-col gap-4">
-        <Field label="Nombre">
-          <Input name="firstName" required defaultValue={member.firstName} autoComplete="given-name" />
-        </Field>
-        <Field label="Apellidos">
-          <Input name="lastName" required defaultValue={member.lastName} autoComplete="family-name" />
-        </Field>
-        <Field label="DNI">
-          <Input name="dni" required defaultValue={member.dni ?? member.loginId} />
-        </Field>
-        <Field label="Teléfono">
-          <Input name="phone" type="tel" defaultValue={member.phone ?? ""} autoComplete="tel" />
-        </Field>
-        <Field label="Email">
-          <Input name="email" type="email" defaultValue={member.email ?? ""} autoComplete="email" />
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
-            Cancelar
-          </Button>
-          <Button type="submit" className="min-h-11" disabled={pending}>
-            {pending ? "Guardando…" : "Guardar cambios"}
-          </Button>
-        </DialogFooter>
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <Field label="Nombre">
+            <Input name="firstName" required defaultValue={member.firstName} autoComplete="given-name" />
+          </Field>
+          <Field label="Apellidos">
+            <Input name="lastName" required defaultValue={member.lastName} autoComplete="family-name" />
+          </Field>
+          <Field label="DNI">
+            <Input name="dni" required defaultValue={member.dni ?? member.loginId} />
+          </Field>
+          <Field label="Teléfono">
+            <Input name="phone" type="tel" defaultValue={member.phone ?? ""} autoComplete="tel" />
+          </Field>
+          <Field label="Email">
+            <Input name="email" type="email" defaultValue={member.email ?? ""} autoComplete="email" />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
+              Cancelar
+            </Button>
+            <PendingButton type="submit" className="min-h-11" disabled={pending} pending={pending} pendingLabel={"Guardando…"}>
+              {"Guardar cambios"}
+            </PendingButton>
+          </DialogFooter>
+        </fieldset>
       </form>
     </FormDialog>
   );
@@ -291,17 +295,19 @@ export function MemberProfile({
       description="Definí la nueva contraseña que usará el socio para entrar."
     >
       <form onSubmit={(event) => void resetPassword(event)} className="flex flex-col gap-4">
-        <Field label="Nueva contraseña">
-          <Input name="password" type="password" required minLength={8} autoComplete="new-password" />
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
-            Cancelar
-          </Button>
-          <Button type="submit" className="min-h-11" disabled={pending}>
-            {pending ? "Guardando…" : "Resetear contraseña"}
-          </Button>
-        </DialogFooter>
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <Field label="Nueva contraseña">
+            <Input name="password" type="password" required minLength={8} autoComplete="new-password" />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
+              Cancelar
+            </Button>
+            <PendingButton type="submit" className="min-h-11" disabled={pending} pending={pending} pendingLabel={"Guardando…"}>
+              {"Resetear contraseña"}
+            </PendingButton>
+          </DialogFooter>
+        </fieldset>
       </form>
     </FormDialog>
   );
@@ -340,19 +346,20 @@ export function MemberProfile({
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setTariffConfirmation(null)}>
               Volver
             </Button>
-            <Button
+            <PendingButton
               type="button"
               variant={tariffConfirmation.hasMembership ? "destructive" : "default"}
               className="min-h-11"
               disabled={pending}
               onClick={() => void confirmTariffChange()}
-            >
-              {pending ? "Guardando…" : tariffConfirmation.hasMembership ? "Cambiar y cancelar reservas" : "Asignar tarifa"}
-            </Button>
+             pending={pending} pendingLabel={"Guardando…"}>
+              {tariffConfirmation.hasMembership ? "Cambiar y cancelar reservas" : "Asignar tarifa"}
+            </PendingButton>
           </DialogFooter>
         </>
       ) : (
         <form onSubmit={(event) => void changeTariff(event)} className="flex flex-col gap-4">
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
           <Field label="Tarifa">
             <select name="tariffId" required defaultValue={member.membership?.tariffId ?? ""} className={controlClass}>
               {assignable.map((item) => (
@@ -379,7 +386,8 @@ export function MemberProfile({
               {member.membership ? "Cambiar tarifa" : "Asignar tarifa"}
             </Button>
           </DialogFooter>
-        </form>
+        </fieldset>
+      </form>
       )}
     </FormDialog>
   );
@@ -442,9 +450,7 @@ export function MemberProfile({
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <ProfileSection title="Tarifa" action={active ? changeTariffDialog : null}>
             {!tariff ? (
-              <p className="text-sm text-muted-foreground">
-                {active ? "Sin tarifa activa. Asigná una con el botón de arriba." : "Sin tarifa activa."}
-              </p>
+              <EmptyState compact title="Sin tarifa activa" description={active ? assignable.length > 0 ? "Asigná una tarifa desde el botón de esta sección." : "El admin tiene que crear o activar una tarifa para poder asignarla." : "La cuenta está dada de baja. La tarifa podrá asignarse al reactivarla."} />
             ) : (
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -528,9 +534,9 @@ export function MemberProfile({
 
       {!active && isAdmin ? (
         <div className="flex justify-start pt-1">
-          <Button type="button" className="min-h-11" disabled={pending} onClick={() => void reactivate()}>
-            {pending ? "Reactivando…" : "Reactivar socio"}
-          </Button>
+          <PendingButton type="button" className="min-h-11" disabled={pending} onClick={() => void reactivate()} pending={pending} pendingLabel={"Reactivando…"}>
+            {"Reactivar socio"}
+          </PendingButton>
         </div>
       ) : null}
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +23,10 @@ export type TeamMember = {
 };
 
 export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; currentUserId: string }) {
-  const router = useRouter();
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const { router, pending, begin, setPending } = useActionFeedback();
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const pendingId = pending ? activeId : null;
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const [confirmingPerson, setConfirmingPerson] = useState<TeamMember | null>(null);
 
   async function setActive(person: TeamMember, active: boolean, confirmed = false) {
@@ -32,7 +36,9 @@ export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; curre
       return;
     }
 
-    setPendingId(person.id);
+    if (!begin()) return;
+    setOpeningId(null);
+    setActiveId(person.id);
     try {
       await api(`/api/v1/admin/staff/${person.id}`, {
         method: "PATCH",
@@ -44,11 +50,13 @@ export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; curre
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar el estado");
     } finally {
-      setPendingId(null);
+      setPending(false);
     }
   }
 
   function openProfile(id: string) {
+    setActiveId(null);
+    setOpeningId(id);
     router.push(`/staff/equipo/${id}`);
   }
 
@@ -57,7 +65,7 @@ export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; curre
       <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
         <Table className="min-w-[24rem] table-fixed xl:min-w-[64rem]">
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
+          <TableRow className="pointer-hover:bg-transparent">
             <TableHead className="h-10 min-w-[12rem] px-3">Persona</TableHead>
             <TableHead className="hidden h-10 min-w-[12rem] px-3 sm:table-cell">Usuario</TableHead>
             <TableHead className="hidden h-10 min-w-[10rem] px-3 xl:table-cell">Teléfono</TableHead>
@@ -70,7 +78,7 @@ export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; curre
           {staff.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="px-3 py-6 text-center text-sm text-muted-foreground">
-                No hay cuentas de equipo todavía.
+                <EmptyState compact title="No hay cuentas de equipo" description="Usá el alta de equipo para crear una cuenta de coach o admin." />
               </TableCell>
             </TableRow>
           ) : (
@@ -83,6 +91,7 @@ export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; curre
                   key={person.id}
                   role="link"
                   tabIndex={0}
+                  aria-busy={pending && (pendingId === person.id || openingId === person.id)}
                   aria-label={`Abrir perfil de ${person.firstName} ${person.lastName}`}
                   className="cursor-pointer border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   onClick={() => openProfile(person.id)}
@@ -98,6 +107,7 @@ export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; curre
                     <div className="min-w-0">
                       <span className="block font-medium wrap-break-word">
                         {person.firstName} {person.lastName}
+                        {pending && openingId === person.id && <Spinner aria-label="Abriendo perfil" />}
                       </span>
                       {isAdminAccount && (
                         <span className="mt-0.5 block text-sm text-muted-foreground">Cuenta principal del box</span>
@@ -134,7 +144,8 @@ export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; curre
                       <Switch
                         size="sm"
                         checked={active}
-                        disabled={pendingId === person.id || (isCurrentUser && active)}
+                        disabled={pending || (isCurrentUser && active)}
+                        aria-busy={pendingId === person.id}
                         aria-label={
                           isCurrentUser && active
                             ? "No puedes desactivar tu propia cuenta"
@@ -145,7 +156,7 @@ export function TeamTable({ staff, currentUserId }: { staff: TeamMember[]; curre
                         onCheckedChange={(checked) => void setActive(person, checked)}
                       />
                       <span className="text-sm text-muted-foreground" title={isCurrentUser && active ? "No puedes desactivar tu propia cuenta" : undefined}>
-                        {active ? "Activo" : "Inactivo"}
+                        {pendingId === person.id ? <span role="status" className="inline-flex items-center gap-1"><Spinner aria-hidden="true" />Actualizando…</span> : active ? "Activo" : "Inactivo"}
                       </span>
                     </div>
                   </TableCell>

@@ -1,5 +1,8 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireMember } from "@/lib/auth/current";
 import { listBookingHistory, type HistoryBookingView } from "@/lib/box/bookings";
 import { formatDay, formatMonth, formatTime, kindLabel } from "@/lib/box/format";
@@ -14,7 +17,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Historial" description="Clases que ya empezaron, agrupadas por mes." />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando tu historial…</p>
+            <LoadingState variant="list" label="Cargando tu historial…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -43,7 +46,7 @@ async function History() {
       />
       <ModuleBody>
         {months.length === 0 ? (
-          <p className="text-muted-foreground">No tenés clases anteriores.</p>
+          <EmptyState title="Todavía no hay reservas anteriores" description="Acá aparecerán tus reservas cuando la clase haya empezado. Este historial no registra asistencia." href="/calendario" action="Ver calendario" />
         ) : (
           <div className="flex flex-col gap-8">
             {months.map((group) => (

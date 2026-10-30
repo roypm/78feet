@@ -42,10 +42,12 @@ export function InstanceEditDialog({
   coaches: Coach[];
 }) {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
 
   return (
     <FormDialog
       open={open}
+      busy={pending}
       onOpenChange={setOpen}
       title="Editar clase"
       description="Hora, tipo, coach, aforo o entrenamiento."
@@ -62,6 +64,7 @@ export function InstanceEditDialog({
         coaches={coaches}
         onSaved={() => setOpen(false)}
         onCancelEdit={() => setOpen(false)}
+        onPendingChange={setPending}
       />
     </FormDialog>
   );

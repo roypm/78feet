@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function NotFound() {

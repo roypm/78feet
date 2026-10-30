@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/current";
 import { listTariffs } from "@/lib/box/tariffs";
@@ -11,7 +12,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Tarifas" />
           <ModuleBody width="full" inset="content">
-            <p className="text-muted-foreground">Cargando tarifas…</p>
+            <LoadingState variant="table" label="Cargando tarifas…" />
           </ModuleBody>
         </ModulePage>
       }

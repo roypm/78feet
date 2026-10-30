@@ -1,3 +1,6 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { ListPagination } from "@/components/member/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
@@ -20,7 +23,7 @@ export default function Page({
         <ModulePage>
           <ModuleHeader title="Socios" />
           <ModuleBody width="full">
-            <p className="text-muted-foreground">Cargando socios…</p>
+            <LoadingState variant="table" label="Cargando socios…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -31,7 +34,7 @@ export default function Page({
 }
 
 async function Members({ searchParams }: { searchParams: Promise<{ estado?: string; pagina?: string }> }) {
-  await requireStaff();
+  const user = await requireStaff();
   const query = await searchParams;
   const inactive = query.estado === "baja";
   const [result, tariffs] = await Promise.all([
@@ -60,13 +63,11 @@ async function Members({ searchParams }: { searchParams: Promise<{ estado?: stri
       <ModuleBody width="full" inset="content">
         {!inactive ? (
           <ModulePrimaryAction>
-            <CreateMemberAltaButton tariffs={tariffs} />
+            <CreateMemberAltaButton tariffs={tariffs} canManageTariffs={user.role === "admin"} />
           </ModulePrimaryAction>
         ) : null}
         {members.length === 0 ? (
-          <p className="text-muted-foreground">
-            {inactive ? "No hay socios dados de baja." : "Todavía no hay socios."}
-          </p>
+          <EmptyState title={inactive ? "No hay socios dados de baja" : "Todavía no hay socios"} description={inactive ? "Las cuentas dadas de baja se conservan acá para poder consultarlas o reactivarlas." : "Usá Alta de socio para crear la primera cuenta del box."} href={inactive ? "/staff/socios" : undefined} action={inactive ? "Ver socios activos" : undefined} />
         ) : (
           <MembersTable members={members} />
         )}

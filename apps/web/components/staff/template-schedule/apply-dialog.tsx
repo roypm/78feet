@@ -1,5 +1,7 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -18,7 +20,7 @@ export function ApplyTemplateDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!pending) onOpenChange(next); }}>
-      <DialogContent>
+      <DialogContent aria-busy={pending} showCloseButton={!pending}>
         <DialogHeader>
           <DialogTitle>¿Aplicar plantilla?</DialogTitle>
           <DialogDescription>
@@ -32,9 +34,9 @@ export function ApplyTemplateDialog({
           <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
             Volver
           </DialogClose>
-          <Button type="button" className="min-h-11" disabled={pending} onClick={onConfirm}>
-            {pending ? "Aplicando…" : "Aplicar plantilla"}
-          </Button>
+          <PendingButton type="button" className="min-h-11" disabled={pending} onClick={onConfirm} pending={pending} pendingLabel={"Aplicando…"}>
+            {"Aplicar plantilla"}
+          </PendingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { cn } from "cn";
 import { formatWeekChip, formatWeekRange } from "@/lib/box/format";
 import { calendarHref } from "@/lib/box/calendar-navigation";
@@ -20,7 +20,7 @@ export function WeekNav({
   width?: "content" | "calendar";
 }) {
   const navLink =
-    "flex min-h-8 shrink-0 items-center rounded-sm px-2 text-sm text-primary transition-transform duration-150 ease-out active:scale-[0.97]";
+    "flex min-h-8 shrink-0 items-center rounded-sm px-2 text-sm text-primary pointer-hover:bg-card pointer-hover:underline underline-offset-4 transition-transform duration-150 ease-out active:scale-[0.97]";
   const navDisabled = "flex min-h-8 shrink-0 items-center rounded-sm px-2 text-sm text-muted-foreground";
 
   const chips = (

@@ -1,23 +1,23 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/box/api";
 import { patchInstance, instanceEditFromForm, type InstanceEdit } from "@/lib/box/instance-mutations";
 
 export function useInstanceEdit(instanceId: string, onSaved?: () => void) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [capacityConfirmation, setCapacityConfirmation] = useState<{
     body: InstanceEdit;
     message: string;
   } | null>(null);
 
   async function send(body: InstanceEdit, confirmCapacity = false) {
-    setPending(true);
+    if (!begin()) return;
     try {
       const payload = await patchInstance(instanceId, body, confirmCapacity);
+      setCapacityConfirmation(null);
       if (payload.cancelledBookingCount > 0) {
         toast.success(`Guardado. ${payload.cancelledBookingCount} reservas canceladas.`);
       } else {
@@ -45,7 +45,6 @@ export function useInstanceEdit(instanceId: string, onSaved?: () => void) {
   function confirmCapacityChange() {
     if (!capacityConfirmation) return;
     const { body } = capacityConfirmation;
-    setCapacityConfirmation(null);
     void send(body, true);
   }
 

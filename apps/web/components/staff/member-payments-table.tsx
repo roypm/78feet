@@ -26,7 +26,7 @@ export function MemberPaymentsTable({ payments }: { payments: MemberPaymentRow[]
     <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
       <Table className="min-w-[20rem]">
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
+          <TableRow className="pointer-hover:bg-transparent">
             <TableHead className="h-10 px-3">Fecha</TableHead>
             <TableHead className="h-10 px-3">Concepto</TableHead>
             <TableHead className="h-10 px-3 text-right">Importe</TableHead>

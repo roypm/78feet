@@ -1,7 +1,9 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,12 +24,11 @@ export function CancelBookingButton({
   bookingId: string;
   nextHref: "/calendario" | "/reservas";
 }) {
-  const router = useRouter();
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
 
   async function cancel() {
-    setPending(true);
+    if (!begin()) return;
     try {
       const response = await fetch(`/api/v1/bookings/${bookingId}`, {
         method: "DELETE",
@@ -49,26 +50,26 @@ export function CancelBookingButton({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" className="min-h-11 w-full" />}>
+    <Dialog open={open} onOpenChange={(next) => { if (!pending) setOpen(next); }}>
+      <DialogTrigger render={<Button variant="outline" className="min-h-11 w-full" disabled={pending} />}>
         Cancelar
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-busy={pending} showCloseButton={!pending}>
         <DialogHeader>
           <DialogTitle>¿Cancelar esta reserva?</DialogTitle>
           <DialogDescription>El cupo vuelve.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose render={<Button variant="ghost" className="min-h-11" />}>Volver</DialogClose>
-          <Button
+          <DialogClose render={<Button variant="ghost" className="min-h-11" disabled={pending} />}>Volver</DialogClose>
+          <PendingButton
             type="button"
             variant="destructive"
             className="min-h-11"
             disabled={pending}
             onClick={() => void cancel()}
-          >
-            {pending ? "Cancelando…" : "Cancelar reserva"}
-          </Button>
+           pending={pending} pendingLabel={"Cancelando…"}>
+            {"Cancelar reserva"}
+          </PendingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

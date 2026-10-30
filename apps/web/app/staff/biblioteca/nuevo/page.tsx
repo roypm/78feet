@@ -1,5 +1,8 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireStaff } from "@/lib/auth/current";
 import { listClassTypes } from "@/lib/box/class-types";
 import { TrainingForm } from "@/components/staff/training-form";
@@ -12,7 +15,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Nuevo entrenamiento" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando…</p>
+            <LoadingState variant="form" label="Cargando el editor de entrenamientos…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -23,7 +26,7 @@ export default function Page() {
 }
 
 async function NewTraining() {
-  await requireStaff();
+  const user = await requireStaff();
   const types = (await listClassTypes()).filter((type) => type.kind === "directed");
 
   return (
@@ -39,7 +42,7 @@ async function NewTraining() {
       />
       <ModuleBody>
         {types.length === 0 ? (
-          <p className="text-muted-foreground">Primero el admin tiene que crear un tipo dirigido.</p>
+          <EmptyState title="Hace falta un tipo dirigido" description={user.role === "admin" ? "Creá un tipo de clase dirigido para asociar el entrenamiento." : "Pedile al admin que cree un tipo dirigido. Los tipos Open no tienen entrenamientos."} href={user.role === "admin" ? "/staff/tipos" : undefined} action="Crear tipo dirigido" />
         ) : (
           <TrainingForm types={types} />
         )}

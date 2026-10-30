@@ -1,5 +1,9 @@
 "use client";
 
+import { ResourceImage } from "@/components/feedback/resource-image";
+
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import type { MouseEvent } from "react";
 import { clockToMinutes, type BoxHoursConfig } from "@78feet/domain";
 import { toast } from "sonner";
@@ -58,11 +62,10 @@ export function TemplateKindPanel({
       ) : null}
 
       {typesForKind.length === 0 ? (
-        <p className="rounded-lg bg-card p-4 text-sm text-muted-foreground ring-1 ring-foreground/10">
-          No hay tipos {kind === "open" ? "Open" : "dirigidos"}. Creá uno en tipos de clase.
-        </p>
+        <EmptyState compact title={kind === "open" ? "No hay tipos Open" : "No hay tipos dirigidos"} description={canWrite ? "Creá un tipo de esta grilla para añadir huecos." : "Pedile al admin que configure los tipos de esta grilla."} href={canWrite ? "/staff/tipos" : undefined} action="Crear tipo" />
       ) : (
         <>
+          {kindsWorking.length === 0 && <EmptyState compact title="Esta grilla todavía no tiene huecos" description={canWrite ? "Usá Añadir hueco o elegí un espacio abierto. Los cambios quedan en borrador hasta aplicar la plantilla." : "El admin todavía no ha añadido huecos a esta grilla."} />}
           <p className="text-xs text-muted-foreground">Las franjas tramadas indican que el box está cerrado; no se pueden añadir clases ahí.</p>
           <div className="flex gap-1 overflow-x-auto pb-1 md:hidden" role="tablist" aria-label="Día de la plantilla">
             {DAYS.map((day, index) => {
@@ -212,7 +215,7 @@ function DayTrack({
 
   return (
     <div
-      className={`relative border-l border-border ${canWrite ? "cursor-pointer" : ""}`}
+      className={cn("relative border-l border-border", canWrite && "cursor-pointer pointer-hover:bg-muted/20")}
       style={{ height }}
       onClick={handleCreate}
       aria-label={DAYS[weekday - 1]}
@@ -225,7 +228,8 @@ function DayTrack({
             key={`${band.start}-${band.end}`}
             role="note"
             aria-label={band.label}
-            className="pointer-events-none absolute inset-x-0 z-[2] flex items-center justify-center bg-muted/40 px-1 text-center text-xs font-medium text-muted-foreground"
+            className="absolute inset-x-0 z-[2] flex cursor-default items-center justify-center bg-muted/40 px-1 text-center text-xs font-medium text-muted-foreground"
+            onClick={(event) => event.stopPropagation()}
             style={{
               top,
               height: bandHeight,
@@ -241,7 +245,7 @@ function DayTrack({
         const box = templateBlockBox(template, axisStart, PX_PER_HOUR);
         const coach = coaches.find((item) => item.id === template.coachId)?.name;
         const details = `${template.classTypeName}, ${template.startTime}–${template.endTime}, ${template.defaultCapacity} plazas${coach ? `, ${coach}` : ", sin coach"}`;
-        const classNames = "absolute z-10 overflow-hidden rounded-md ring-1 ring-foreground/15 transition-transform duration-150 ease-out active:scale-[0.97]";
+        const classNames = cn("absolute z-10 overflow-hidden rounded-md ring-1 ring-foreground/15", canWrite && "transition-[scale,box-shadow] duration-150 ease-out active:scale-[0.97] pointer-hover:ring-2 pointer-hover:ring-primary focus-visible:ring-2 focus-visible:ring-primary");
         const style = {
           top: box.top + BLOCK_INSET,
           height: Math.max(box.height - BLOCK_INSET * 2, 56),
@@ -250,8 +254,7 @@ function DayTrack({
         };
         const contents = (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={template.imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
+                        <ResourceImage src={template.imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
             <span className="absolute inset-x-0 bottom-0 flex justify-center px-1 pb-0.5 text-center leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.85)]">
               <span className="truncate text-xs font-medium tabular-nums">
                 {template.defaultCapacity} plazas{coach ? ` · ${coach}` : ""}

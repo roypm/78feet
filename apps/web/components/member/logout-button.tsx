@@ -1,27 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/feedback/pending-button";
+
+import { useActionFeedback } from "@/hooks/use-action-feedback";
+import { toast } from "sonner";
 
 export function LogoutButton() {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const { router, pending, begin, setPending } = useActionFeedback();
 
   async function logout() {
-    setPending(true);
+    if (!begin()) return;
     try {
-      await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+      const response = await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+      if (!response.ok) throw new Error("No se pudo cerrar la sesión");
       router.push("/login");
       router.refresh();
+    } catch {
+      toast.error("No se pudo cerrar la sesión. Probá de nuevo.");
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => void logout()}>
-      {pending ? "Saliendo…" : "Salir"}
-    </Button>
+    <PendingButton type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => void logout()} pending={pending} pendingLabel={"Saliendo…"}>
+      {"Salir"}
+    </PendingButton>
   );
 }

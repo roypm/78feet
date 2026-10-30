@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { clockToMinutes, isWithinOpeningIntervals, type BoxHoursConfig } from "@78feet/domain";
 import { toast } from "sonner";
 import { applyTemplateDraft, summaryMessage } from "@/lib/box/apply-template-draft";
@@ -16,7 +16,7 @@ function minutesToClock(minutes: number): string {
 export function useTemplateDraft({ templates, types, openingHours }: {
   templates: ScheduleTemplate[]; types: ClassType[]; openingHours: BoxHoursConfig;
 }) {
-  const router = useRouter();
+  const { router, pending: applying, begin, setPending: setApplying } = useActionFeedback();
   const baseline = useMemo(() => templatesSnapshot(templates), [templates]);
   const baselineKey = JSON.stringify(baseline);
   const [workingState, setWorkingState] = useState(() => ({
@@ -26,7 +26,6 @@ export function useTemplateDraft({ templates, types, openingHours }: {
   const working = workingState.baselineKey === baselineKey ? workingState.value : baseline;
   const [draft, setDraft] = useState<Draft | null>(null);
   const [applyOpen, setApplyOpen] = useState(false);
-  const [applying, setApplying] = useState(false);
   const editorKey = useRef(0);
 
   function setWorking(next: ScheduleTemplate[] | ((current: ScheduleTemplate[]) => ScheduleTemplate[])) {
@@ -135,7 +134,7 @@ export function useTemplateDraft({ templates, types, openingHours }: {
   }
 
   async function applyTemplate() {
-    setApplying(true);
+    if (!begin()) return;
     try {
       const summary = await applyTemplateDraft(baseline, working);
       toast.success(summaryMessage(summary));

@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/current";
 import { getBoxHours } from "@/lib/box/hours";
@@ -12,7 +13,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Horario del box" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando el horario…</p>
+            <LoadingState variant="form" label="Cargando el horario…" />
           </ModuleBody>
         </ModulePage>
       }

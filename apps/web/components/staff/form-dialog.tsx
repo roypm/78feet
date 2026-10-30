@@ -33,7 +33,7 @@ export function FormDialog({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!busy) onOpenChange(nextOpen); }}>
       {trigger ? <DialogTrigger render={trigger} /> : null}
-      <DialogContent className={cn("max-h-[calc(100dvh-2rem)] overflow-y-auto", wide ? "sm:max-w-xl" : "sm:max-w-lg")}>
+      <DialogContent aria-busy={busy} showCloseButton={!busy} className={cn("max-h-[calc(100dvh-2rem)] overflow-y-auto", wide ? "sm:max-w-xl" : "sm:max-w-lg")}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

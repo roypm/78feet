@@ -1,7 +1,9 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import type { SubscriptionBilling } from "@78feet/domain";
 import { api } from "@/lib/box/api";
@@ -45,9 +47,8 @@ export function MarkPaidButton({
   periodLabel: string;
   amountCents: number;
 }) {
-  const router = useRouter();
+  const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,7 +64,7 @@ export function MarkPaidButton({
       return;
     }
 
-    setPending(true);
+    if (!begin()) return;
     try {
       await api("/api/v1/admin/payments", {
         method: "POST",
@@ -99,37 +100,39 @@ export function MarkPaidButton({
       description={`${periodLabel}. Tarifa ${formatPrice(amountCents)}.`}
     >
       <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
-        <input type="hidden" name="periodStart" value={periodStart} />
-        <Field label="Periodo">
-          <Input readOnly value={periodLabel} className="bg-muted/40" />
-        </Field>
-        <Field label="Importe cobrado (€)">
-          <Input
-            name="amountEuros"
-            inputMode="decimal"
-            required
-            defaultValue={eurosInputDefault(amountCents)}
-            className="tabular-nums"
-            autoComplete="off"
-          />
-        </Field>
-        <Field label="Método de pago">
-          <select name="method" required className={controlClass} defaultValue="cash">
-            {PAYMENT_METHODS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
-            Cancelar
-          </Button>
-          <Button type="submit" className="min-h-11" disabled={pending}>
-            {pending ? "Guardando…" : "Registrar pago"}
-          </Button>
-        </DialogFooter>
+        <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <input type="hidden" name="periodStart" value={periodStart} />
+          <Field label="Periodo">
+            <Input readOnly value={periodLabel} className="bg-muted/40" />
+          </Field>
+          <Field label="Importe cobrado (€)">
+            <Input
+              name="amountEuros"
+              inputMode="decimal"
+              required
+              defaultValue={eurosInputDefault(amountCents)}
+              className="tabular-nums"
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Método de pago">
+            <select name="method" required className={controlClass} defaultValue="cash">
+              {PAYMENT_METHODS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <PendingButton type="submit" className="min-h-11" disabled={pending} pending={pending} pendingLabel={"Guardando…"}>
+              {"Registrar pago"}
+            </PendingButton>
+          </DialogFooter>
+        </fieldset>
       </form>
     </FormDialog>
   );

@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
 import { kindViewFromParam } from "@/lib/box/day-groups";
@@ -20,7 +21,7 @@ export default function Page({
         <ModulePage>
           <ModuleHeader title="Plantilla" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando la plantilla…</p>
+            <div className="px-4 py-3 md:px-6"><LoadingState variant="calendar" label="Cargando la plantilla…" /></div>
           </ModuleBody>
         </ModulePage>
       }

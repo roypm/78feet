@@ -1,3 +1,5 @@
+import { LoadingState } from "@/components/feedback/loading-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
 import { getOwnProfile } from "@/lib/box/summary";
@@ -11,7 +13,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Mi cuenta" description="Datos de contacto y cierre de sesión." />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando tu cuenta…</p>
+            <LoadingState variant="profile" label="Cargando tu cuenta…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -29,7 +31,7 @@ async function Account() {
       <ModulePage>
         <ModuleHeader title="Mi cuenta" description="Datos de contacto y cierre de sesión." />
         <ModuleBody>
-          <p className="text-muted-foreground">No encontramos tu cuenta.</p>
+          <EmptyState title="No encontramos los datos de tu cuenta" description="Hablá con el staff para revisar tu cuenta. Podés cerrar la sesión y volver a entrar."><LogoutButton /></EmptyState>
         </ModuleBody>
       </ModulePage>
     );
@@ -40,7 +42,7 @@ async function Account() {
     { label: "DNI", value: profile.dni },
     { label: "Teléfono", value: profile.phone },
     { label: "Email", value: profile.email },
-  ].filter((row): row is { label: string; value: string } => Boolean(row.value));
+  ];
 
   return (
     <ModulePage>
@@ -51,7 +53,7 @@ async function Account() {
             {rows.map((row) => (
               <div key={row.label} className="min-w-0">
                 <dt className="text-sm text-muted-foreground">{row.label}</dt>
-                <dd className="wrap-break-word">{row.value}</dd>
+                <dd className="wrap-break-word">{row.value || "Sin indicar"}</dd>
               </div>
             ))}
           </dl>

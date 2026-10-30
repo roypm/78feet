@@ -1,3 +1,6 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
@@ -15,7 +18,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Excepciones" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando excepciones…</p>
+            <LoadingState variant="list" label="Cargando excepciones…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -26,7 +29,7 @@ export default function Page() {
 }
 
 async function Exceptions() {
-  await requireStaff();
+  const user = await requireStaff();
   const today = localDateString(new Date());
   const [items, classTypes, coaches] = await Promise.all([
     listExceptions(today),
@@ -42,7 +45,7 @@ async function Exceptions() {
       />
       <ModuleBody width="full" inset="content">
         {classTypes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Primero el admin tiene que crear un tipo de clase.</p>
+          <EmptyState title="Primero hace falta un tipo de clase" description={user.role === "admin" ? "Creá un tipo antes de añadir clases extra." : "Pedile al admin que cree un tipo de clase para poder añadir sesiones."} href={user.role === "admin" ? "/staff/tipos" : undefined} action="Crear tipo" />
         ) : (
           <>
             <ModulePrimaryAction>

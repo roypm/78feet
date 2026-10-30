@@ -1,3 +1,6 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { ListPagination } from "@/components/member/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
@@ -13,7 +16,7 @@ export default function Page({ searchParams }: { searchParams: Promise<{ pagina?
         <ModulePage>
           <ModuleHeader title="Impagos" />
           <ModuleBody width="full">
-            <p className="text-muted-foreground">Cargando impagos…</p>
+            <LoadingState variant="table" label="Cargando impagos…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -36,7 +39,7 @@ async function Unpaid({ searchParams }: { searchParams: Promise<{ pagina?: strin
       />
       <ModuleBody width="full" inset="content">
         {unpaid.items.length === 0 ? (
-          <p className="text-muted-foreground">Nadie con impago en el periodo en curso.</p>
+          <EmptyState title="No hay pagos pendientes" description="No hay socios con un pago periódico pendiente de registrar en su periodo en curso." />
         ) : (
           <UnpaidMembersTable members={unpaid.items} />
         )}

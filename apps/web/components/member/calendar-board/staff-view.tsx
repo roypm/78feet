@@ -1,5 +1,7 @@
 "use client";
 
+import { EmptyState } from "@/components/feedback/empty-state";
+
 import { BLOCK_INSET, calendarAxis, columnHeight } from "@/lib/box/calendar-layout";
 import { calendarHref } from "@/lib/box/calendar-navigation";
 import { KindTabs } from "@/components/member/kind-tabs";
@@ -51,7 +53,7 @@ export function StaffCalendarBoard({
       <ModuleBody fill>
         <section className={cn("flex min-h-0 flex-1 flex-col gap-3", moduleContentInset)}>
           {classes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+            <EmptyState compact title={emptyMessage} description="Podés consultar otra semana o añadir una clase puntual desde Excepciones." href="/staff/excepciones" action="Ver excepciones" />
           ) : null}
           {openingHours ? (
             <p className="text-xs text-muted-foreground">Las franjas tramadas indican que el box está cerrado.</p>

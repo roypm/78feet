@@ -1,3 +1,6 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
 import { billingPeriodKindLabel, consumptionModelLabel, usesPeriodicQuota } from "@78feet/domain";
@@ -14,7 +17,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo semanal y saldo de bono." />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando tu tarifa…</p>
+            <LoadingState variant="profile" label="Cargando tu tarifa…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -34,7 +37,7 @@ async function Tariff() {
       <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo semanal y saldo de bono." />
       <ModuleBody>
       {!tariff ? (
-        <p className="text-muted-foreground">Sin membresía activa</p>
+        <EmptyState title="Sin membresía activa" description="Hablá con el staff del box para que te asigne una tarifa. Tu cuenta no permite cambiarla directamente." />
       ) : (
         <Card>
           <CardHeader>

@@ -1,5 +1,10 @@
+
+import { ResourceImage } from "@/components/feedback/resource-image";
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listDay } from "@/lib/box/staff-calendar";
@@ -32,7 +37,7 @@ export default function Page({ searchParams }: { searchParams: Promise<{ tipo?: 
         <ModulePage>
           <ModuleHeader title="Hoy" />
           <ModuleBody width="full">
-            <p className="text-muted-foreground">Cargando el día…</p>
+            <LoadingState variant="list" label="Cargando el día…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -67,7 +72,7 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string }
       />
       <ModuleBody width="full" inset="content">
         {classes.length === 0 ? (
-          <p className="text-muted-foreground">No hay clases hoy.</p>
+          <EmptyState title="Hoy no hay clases programadas" description="Podés consultar las próximas clases en Semana." href="/staff/semana" action="Ver semana" />
         ) : (
           <div className="flex flex-col gap-3 xl:grid xl:grid-cols-2 xl:items-start">
             {groups.map((group) => (
@@ -81,7 +86,7 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string }
               >
                 <h2 className="text-sm font-medium text-muted-foreground">{kindGroupLabel(group.kind)}</h2>
                 {group.items.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Sin clases.</p>
+                  <EmptyState compact title="Sin clases en esta grilla hoy" />
                 ) : (
                   <ul className="grid gap-3 lg:grid-cols-2 xl:grid-cols-1">
                     {group.items.map((item) => {
@@ -103,8 +108,7 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string }
                             className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/40"
                           />
                           <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                                                        <ResourceImage
                               src={item.imageUrl}
                               alt=""
                               className={

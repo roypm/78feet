@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/current";
 import { listClassTypes } from "@/lib/box/class-types";
@@ -11,7 +12,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Tipos de clase" />
           <ModuleBody width="full">
-            <p className="text-muted-foreground">Cargando los tipos de clase…</p>
+            <LoadingState variant="catalog" label="Cargando los tipos de clase…" />
           </ModuleBody>
         </ModulePage>
       }

@@ -1,5 +1,8 @@
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { listMemberPayments } from "@/lib/box/payments";
@@ -15,7 +18,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <ModulePage>
           <ModuleHeader title="Historial de pagos" />
           <ModuleBody width="full" inset="content">
-            <p className="text-muted-foreground">Cargando pagos…</p>
+            <LoadingState variant="table" label="Cargando pagos…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -53,7 +56,7 @@ async function MemberPayments({ params }: { params: Promise<{ id: string }> }) {
       />
       <ModuleBody width="full" inset="content">
         {data.payments.length === 0 ? (
-          <p className="text-muted-foreground">Este socio aún no tiene pagos registrados.</p>
+          <EmptyState title="Todavía no hay pagos registrados" description="Los pagos que registre el staff aparecerán en este historial." href={`/staff/socios/${id}`} action="Volver al socio" />
         ) : (
           <MemberPaymentsTable payments={data.payments} />
         )}

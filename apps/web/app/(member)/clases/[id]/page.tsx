@@ -1,5 +1,10 @@
+
+import { ResourceImage } from "@/components/feedback/resource-image";
+
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import Link from "next/link";
+import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { notFound } from "next/navigation";
 import { requireMember } from "@/lib/auth/current";
 import { getInstanceDetail } from "@/lib/box/calendar";
@@ -19,7 +24,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <ModulePage>
           <ModuleHeader title="Clase" />
           <ModuleBody>
-            <p className="text-muted-foreground">Cargando la clase…</p>
+            <LoadingState variant="class" label="Cargando la clase…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -62,12 +67,11 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         }
       />
       <ModuleBody>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
+                <ResourceImage src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
         <section className="flex flex-col gap-3 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
           <h2 className="text-sm font-medium">Roster</h2>
           {detail.roster.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nadie apuntado</p>
+            <EmptyState compact title="Todavía no hay nadie apuntado" description="Las reservas de esta clase aparecerán acá." />
           ) : (
             <ul className="flex flex-col gap-2">
               {detail.roster.map((name, index) => (
@@ -113,9 +117,9 @@ function Action({
       return <CancelBookingButton bookingId={detail.bookingId} nextHref="/reservas" />;
     }
     return (
-      <Button type="button" variant="outline" className="min-h-11 w-full" disabled>
+      <div className="flex flex-col gap-2"><Button type="button" variant="outline" className="min-h-11 w-full" disabled>
         Cancelación cerrada
-      </Button>
+      </Button><p className="text-sm text-muted-foreground">La cancelación se cierra dos horas antes del inicio de la clase.</p></div>
     );
   }
   if (detail.canBook) return <BookButton instanceId={detail.id} />;

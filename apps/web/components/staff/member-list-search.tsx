@@ -18,6 +18,7 @@ export function MemberListSearch({
   return (
     <Input
       type="search"
+      aria-label="Buscar en esta página"
       value={value}
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}

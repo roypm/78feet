@@ -1,5 +1,7 @@
 "use client";
 
+import { PendingButton } from "@/components/feedback/pending-button";
+
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FormDialog } from "@/components/staff/form-dialog";
@@ -39,9 +41,9 @@ export function ConfirmDialog({
         <Button type="button" variant="outline" className="min-h-11" disabled={busy} onClick={() => onOpenChange(false)}>
           {cancelLabel}
         </Button>
-        <Button type="button" variant={confirmVariant} className="min-h-11" disabled={busy} onClick={onConfirm}>
-          {busy ? busyLabel : confirmLabel}
-        </Button>
+        <PendingButton type="button" variant={confirmVariant} className="min-h-11" disabled={busy} onClick={onConfirm} pending={busy} pendingLabel={busyLabel}>
+          {confirmLabel}
+        </PendingButton>
       </DialogFooter>
     </FormDialog>
   );
