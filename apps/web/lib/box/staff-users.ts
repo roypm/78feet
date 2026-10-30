@@ -31,13 +31,37 @@ function staffView(user: {
 export async function listStaff() {
   const rows = await prisma.user.findMany({
     where: { role: { in: ["coach", "admin"] } },
+    select: {
+      id: true,
+      loginId: true,
+      role: true,
+      status: true,
+      firstName: true,
+      lastName: true,
+      dni: true,
+      phone: true,
+      email: true,
+    },
     orderBy: [{ role: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
   });
   return rows.map(staffView);
 }
 
 export async function getStaff(id: string) {
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      loginId: true,
+      role: true,
+      status: true,
+      firstName: true,
+      lastName: true,
+      dni: true,
+      phone: true,
+      email: true,
+    },
+  });
   if (!user || (user.role !== "coach" && user.role !== "admin")) {
     throw new BoxError(404, "FORBIDDEN", "La cuenta de equipo no existe");
   }
@@ -47,6 +71,7 @@ export async function getStaff(id: string) {
 export async function listCoaches() {
   const rows = await prisma.user.findMany({
     where: { role: { in: ["coach", "admin"] }, status: "active" },
+    select: { id: true, firstName: true, lastName: true, role: true },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
   return rows.map((row) => ({
@@ -70,6 +95,17 @@ export async function createStaff(input: CreateStaff) {
         phone: input.phone ?? null,
         email: input.email ?? null,
       },
+      select: {
+        id: true,
+        loginId: true,
+        role: true,
+        status: true,
+        firstName: true,
+        lastName: true,
+        dni: true,
+        phone: true,
+        email: true,
+      },
     });
     return staffView(user);
   } catch (error) {
@@ -81,7 +117,7 @@ export async function createStaff(input: CreateStaff) {
 }
 
 export async function patchStaff(id: string, patch: PatchStaff) {
-  const existing = await prisma.user.findUnique({ where: { id } });
+  const existing = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } });
   if (!existing || (existing.role !== "coach" && existing.role !== "admin")) {
     throw new BoxError(404, "FORBIDDEN", "La cuenta de staff no existe");
   }
@@ -107,6 +143,20 @@ export async function patchStaff(id: string, patch: PatchStaff) {
     data.passwordHash = await hashPassword(patch.password);
     data.tokenVersion = { increment: 1 };
   }
-  const user = await prisma.user.update({ where: { id }, data });
+  const user = await prisma.user.update({
+    where: { id },
+    data,
+    select: {
+      id: true,
+      loginId: true,
+      role: true,
+      status: true,
+      firstName: true,
+      lastName: true,
+      dni: true,
+      phone: true,
+      email: true,
+    },
+  });
   return staffView(user);
 }

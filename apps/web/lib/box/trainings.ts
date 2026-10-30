@@ -1,3 +1,4 @@
+import { paginate, type PageWindow } from "./pagination";
 import {
   assertDirectedClassType,
   assertTrainingContent,
@@ -62,23 +63,35 @@ export function trainingCard(row: {
   };
 }
 
-export async function listTrainings(classTypeId?: string) {
+export async function listTrainingsPage(classTypeId?: string, page = 1) {
+  const total = await prisma.training.count({ where: classTypeId ? { classTypeId } : undefined });
+  return paginate(total, page, (window) => listTrainings(classTypeId, window));
+}
+
+export async function listTrainings(classTypeId?: string, window?: PageWindow) {
   const rows = await prisma.training.findMany({
+    ...window,
     where: classTypeId ? { classTypeId } : undefined,
     include: { classType: true },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
   });
   return rows.map(trainingCard);
 }
 
-export async function listStaffTrainings(classTypeId?: string) {
+export async function listStaffTrainingsPage(classTypeId?: string, page = 1) {
+  const total = await prisma.training.count({ where: classTypeId ? { classTypeId } : undefined });
+  return paginate(total, page, (window) => listStaffTrainings(classTypeId, window));
+}
+
+export async function listStaffTrainings(classTypeId?: string, window?: PageWindow) {
   const rows = await prisma.training.findMany({
+    ...window,
     where: classTypeId ? { classTypeId } : undefined,
     include: {
       classType: true,
       phases: { select: { name: true, position: true }, orderBy: { position: "asc" } },
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
   });
   return rows.map((row) => ({
     ...trainingCard(row),
@@ -122,17 +135,24 @@ export async function getTraining(
 }
 
 async function replacePhases(db: Db, trainingId: string, phases: TrainingWrite["phases"]) {
-  await db.trainingPhase.deleteMany({ where: { trainingId } });
-  for (const [phaseIndex, phase] of phases.entries()) {
-    const created = await db.trainingPhase.create({
-      data: { trainingId, name: phase.name, position: phaseIndex },
-    });
-    for (const [blockIndex, block] of phase.blocks.entries()) {
-      await db.trainingBlock.create({
-        data: { phaseId: created.id, body: block.body, position: blockIndex },
-      });
-    }
-  }
+  await db.training.update({
+    where: { id: trainingId },
+    data: {
+      phases: {
+        deleteMany: {},
+        create: phases.map((phase, phaseIndex) => ({
+          name: phase.name,
+          position: phaseIndex,
+          blocks: {
+            create: phase.blocks.map((block, blockIndex) => ({
+              body: block.body,
+              position: blockIndex,
+            })),
+          },
+        })),
+      },
+    },
+  });
 }
 
 export async function createTraining(input: TrainingWrite) {

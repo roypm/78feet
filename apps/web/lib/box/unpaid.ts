@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+import { paginate, type PageWindow } from "./pagination";
 import {
   isSubscriptionBilling,
   localDateString,
@@ -12,61 +14,48 @@ import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
 import { isoDateFromDb, isoDateToDb } from "./time";
 
-export async function listUnpaid(onDate?: string) {
+function unpaidWhere(today: string): Prisma.UserWhereInput {
+  return {
+    role: "member", status: "active",
+    OR: (["monthly", "quarterly", "semiannual", "annual"] as const).map((billingPeriod) => ({
+      memberships: { some: { endedAt: null, tariff: { billingPeriod } } },
+      paymentsReceived: { none: { billingPeriod, periodStart: isoDateToDb(periodStartForDate(today, billingPeriod)) } },
+    })),
+  };
+}
+
+export async function listUnpaidPage(onDate?: string, page = 1) {
+  const today = onDate ?? localDateString(new Date());
+  const total = await prisma.user.count({ where: unpaidWhere(today) });
+  const result = await paginate(total, page, async (window) => (await listUnpaid(today, window)).members);
+  return { ...result, asOf: today };
+}
+
+export async function listUnpaid(onDate?: string, window?: PageWindow) {
   const today = onDate ?? localDateString(new Date());
   const members = await prisma.user.findMany({
-    where: {
-      role: "member",
-      status: "active",
+    ...window,
+    where: unpaidWhere(today),
+    select: {
+      id: true, firstName: true, lastName: true, dni: true, phone: true,
       memberships: {
-        some: {
-          endedAt: null,
-          tariff: {
-            billingPeriod: { in: ["monthly", "quarterly", "semiannual", "annual"] },
-          },
-        },
+        where: { endedAt: null }, take: 1,
+        select: { tariff: { select: { name: true, billingPeriod: true, priceCents: true } } },
       },
     },
-    include: {
-      memberships: {
-        where: { endedAt: null },
-        include: { tariff: true },
-        take: 1,
-      },
-      paymentsReceived: {
-        select: { billingPeriod: true, periodStart: true },
-      },
-    },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
   });
-
   const rows = members.flatMap((user) => {
     const tariff = user.memberships[0]?.tariff;
     if (!tariff || !isSubscriptionBilling(tariff.billingPeriod)) return [];
     const periodStart = periodStartForDate(today, tariff.billingPeriod);
-    const paid = user.paymentsReceived.some(
-      (payment) =>
-        payment.billingPeriod === tariff.billingPeriod &&
-        payment.periodStart &&
-        isoDateFromDb(payment.periodStart) === periodStart,
-    );
-    if (paid) return [];
-    return [
-      {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        dni: user.dni,
-        phone: user.phone,
-        tariffName: tariff.name,
-        priceCents: tariff.priceCents,
-        billingPeriod: tariff.billingPeriod as SubscriptionBilling,
-        periodStart,
-        periodLabel: subscriptionPeriodLabel(tariff.billingPeriod, periodStart),
-      },
-    ];
+    return [{
+      id: user.id, firstName: user.firstName, lastName: user.lastName, dni: user.dni, phone: user.phone,
+      tariffName: tariff.name, priceCents: tariff.priceCents,
+      billingPeriod: tariff.billingPeriod as SubscriptionBilling,
+      periodStart, periodLabel: subscriptionPeriodLabel(tariff.billingPeriod, periodStart),
+    }];
   });
-
   return { asOf: today, members: rows };
 }
 

@@ -1,3 +1,4 @@
+import { paginate, type PageWindow } from "./pagination";
 import type { Prisma } from "@prisma/client";
 import {
   localDateString,
@@ -57,7 +58,14 @@ function userView(user: MemberUser) {
 }
 
 const membershipInclude = {
-  tariff: true,
+  tariff: {
+    select: {
+      name: true,
+      consumptionModel: true,
+      billingPeriod: true,
+      priceCents: true,
+    },
+  },
 } satisfies Prisma.MembershipInclude;
 
 function membershipView(
@@ -114,44 +122,48 @@ async function cancelFutureBookings(
   return bookings.length;
 }
 
-export async function listMembers(status: "active" | "inactive" | "all") {
+export async function listMembersPage(status: "active" | "inactive" | "all", page = 1) {
+  const total = await prisma.user.count({ where: { role: "member", ...(status === "all" ? {} : { status }) } });
+  return paginate(total, page, (window) => listMembers(status, window));
+}
+
+export async function listMembers(status: "active" | "inactive" | "all", window?: PageWindow) {
   const users = await prisma.user.findMany({
+    ...window,
     where: {
       role: "member",
       ...(status === "all" ? {} : { status }),
     },
-    include: {
+    select: {
+      id: true,
+      loginId: true,
+      dni: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      email: true,
+      status: true,
       memberships: {
         where: { endedAt: null },
         include: membershipInclude,
         take: 1,
       },
-      creditGrantsReceived: { select: { userId: true, quantity: true } },
-      bookingsAsMember: {
-        where: { pool: "pack" },
-        select: { userId: true, pool: true, status: true, quotaReturned: true },
-      },
     },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
   });
+  const ids = users.map((user) => user.id);
+  const [grants, spent] = ids.length ? await Promise.all([
+    prisma.creditGrant.groupBy({ by: ["userId"], where: { userId: { in: ids } }, _sum: { quantity: true } }),
+    prisma.booking.groupBy({ by: ["userId"], where: {
+      userId: { in: ids }, pool: "pack", OR: [{ status: "active" }, { quotaReturned: false }],
+    }, _count: { _all: true } }),
+  ]) : [[], []];
+  const granted = new Map(grants.map((row) => [row.userId, row._sum.quantity ?? 0]));
+  const consumed = new Map(spent.map((row) => [row.userId, row._count._all]));
   return users.map((user) => ({
     ...userView(user),
     membership: membershipView(user.memberships[0] ?? null),
-    packBalance: packBalance({
-      userId: user.id,
-      grants: user.creditGrantsReceived,
-      bookings: user.bookingsAsMember.map((booking) => ({
-        id: "",
-        instanceId: "",
-        userId: booking.userId,
-        pool: booking.pool,
-        status: booking.status,
-        quotaReturned: booking.quotaReturned,
-        createdBy: "",
-        cancelledAt: null,
-        cancelledBy: null,
-      })),
-    }),
+    packBalance: (granted.get(user.id) ?? 0) - (consumed.get(user.id) ?? 0),
   }));
 }
 

@@ -333,6 +333,29 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     expect(rows.some((row) => row.id === templateId)).toBe(false);
   }, 30_000);
 
+  it("pagina socios sin duplicarlos y ajusta páginas fuera de rango", async () => {
+    const members = await Promise.all(Array.from({ length: 28 }, (_, index) => prisma.user.create({
+      data: {
+        loginId: `page-${suffix}-${index}`, passwordHash: "unused-test-hash",
+        role: "member", status: "active", firstName: "Página", lastName: `Prueba ${index}`,
+      },
+    })));
+    userIds.push(...members.map((member) => member.id));
+    const first = await call(listMembers, "GET", "/api/v1/admin/members?page=1", coachToken);
+    const second = await call(listMembers, "GET", "/api/v1/admin/members?page=2", coachToken);
+    const last = await call(listMembers, "GET", "/api/v1/admin/members?page=999999", coachToken);
+    expect(first.status).toBe(200);
+    const a = first.json as unknown as { items: { id: string }[]; pageInfo: { total: number } };
+    const b = second.json as unknown as { items: { id: string }[] };
+    const c = last.json as unknown as { items: { id: string }[]; pageInfo: { page: number; totalPages: number } };
+    expect(a.items).toHaveLength(25);
+    expect(a.pageInfo.total).toBeGreaterThanOrEqual(28);
+    expect(b.items.length).toBeGreaterThan(0);
+    expect(b.items.some((row) => a.items.some((previous) => row.id === previous.id))).toBe(false);
+    expect(c.pageInfo.page).toBe(c.pageInfo.totalPages);
+    expect(c.items.length).toBeGreaterThan(0);
+  }, 30_000);
+
   it("rejects the cron without its secret and materializes with it", async () => {
     const denied = await call(materialize, "POST", "/api/v1/cron/materialize", null);
     expect(denied.status).toBe(401);

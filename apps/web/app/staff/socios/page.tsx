@@ -1,6 +1,8 @@
+import { ListPagination } from "@/components/member/list-pagination";
+import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
-import { listMembers } from "@/lib/box/members";
+import { listMembersPage } from "@/lib/box/members";
 import { listTariffs } from "@/lib/box/tariffs";
 import { CreateMemberAltaButton } from "@/components/staff/member-forms";
 import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
@@ -10,7 +12,7 @@ import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/com
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string }>;
+  searchParams: Promise<{ estado?: string; pagina?: string }>;
 }) {
   return (
     <Suspense
@@ -28,14 +30,16 @@ export default function Page({
   );
 }
 
-async function Members({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
+async function Members({ searchParams }: { searchParams: Promise<{ estado?: string; pagina?: string }> }) {
   await requireStaff();
   const query = await searchParams;
   const inactive = query.estado === "baja";
-  const [members, tariffs] = await Promise.all([
-    listMembers(inactive ? "inactive" : "active"),
+  const [result, tariffs] = await Promise.all([
+    listMembersPage(inactive ? "inactive" : "active", pageNumber(query.pagina)),
     listTariffs(),
   ]);
+
+  const members = result.items;
 
   return (
     <ModulePage>
@@ -66,6 +70,7 @@ async function Members({ searchParams }: { searchParams: Promise<{ estado?: stri
         ) : (
           <MembersTable members={members} />
         )}
+        <ListPagination pageInfo={result.pageInfo} path="/staff/socios" filters={{ estado: query.estado }} />
       </ModuleBody>
     </ModulePage>
   );

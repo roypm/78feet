@@ -1,14 +1,16 @@
+import { ListPagination } from "@/components/member/list-pagination";
+import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import Link from "next/link";
 import { requireMember } from "@/lib/auth/current";
-import { listTrainingFilterTypes, listTrainings } from "@/lib/box/trainings";
+import { listTrainingFilterTypes, listTrainingsPage } from "@/lib/box/trainings";
 import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string }>;
+  searchParams: Promise<{ tipo?: string; pagina?: string }>;
 }) {
   return (
     <Suspense
@@ -26,11 +28,13 @@ export default function Page({
   );
 }
 
-async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string; pagina?: string }> }) {
   await requireMember();
   const query = await searchParams;
   const classTypeId = query.tipo && query.tipo !== "todos" ? query.tipo : undefined;
-  const [trainings, types] = await Promise.all([listTrainings(classTypeId), listTrainingFilterTypes()]);
+  const [result, types] = await Promise.all([listTrainingsPage(classTypeId, pageNumber(query.pagina)), listTrainingFilterTypes()]);
+
+  const trainings = result.items;
 
   return (
     <ModulePage>
@@ -72,6 +76,7 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
             ))}
           </ul>
         )}
+        <ListPagination pageInfo={result.pageInfo} path="/biblioteca" filters={{ tipo: query.tipo }} />
       </ModuleBody>
     </ModulePage>
   );

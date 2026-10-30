@@ -1,7 +1,9 @@
+import { ListPagination } from "@/components/member/list-pagination";
+import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import Link from "next/link";
 import { requireStaff } from "@/lib/auth/current";
-import { listStaffTrainings, listTrainingFilterTypes } from "@/lib/box/trainings";
+import { listStaffTrainingsPage, listTrainingFilterTypes } from "@/lib/box/trainings";
 import { Button } from "@/components/ui/button";
 import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
 import { TrainingLibraryTable } from "@/components/staff/training-library-table";
@@ -10,7 +12,7 @@ import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/com
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string }>;
+  searchParams: Promise<{ tipo?: string; pagina?: string }>;
 }) {
   return (
     <Suspense
@@ -28,11 +30,13 @@ export default function Page({
   );
 }
 
-async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string; pagina?: string }> }) {
   await requireStaff();
   const query = await searchParams;
   const classTypeId = query.tipo && query.tipo !== "todos" ? query.tipo : undefined;
-  const [trainings, types] = await Promise.all([listStaffTrainings(classTypeId), listTrainingFilterTypes()]);
+  const [result, types] = await Promise.all([listStaffTrainingsPage(classTypeId, pageNumber(query.pagina)), listTrainingFilterTypes()]);
+
+  const trainings = result.items;
 
   return (
     <ModulePage>
@@ -63,6 +67,7 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
           </Button>
         </ModulePrimaryAction>
         <TrainingLibraryTable trainings={trainings} hasTypeFilter={Boolean(classTypeId)} />
+        <ListPagination pageInfo={result.pageInfo} path="/staff/biblioteca" filters={{ tipo: query.tipo }} />
       </ModuleBody>
     </ModulePage>
   );
