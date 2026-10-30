@@ -5,14 +5,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["argon2", "@prisma/client"],
   cacheComponents: true,
   partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
 };
 
 export default nextConfig;

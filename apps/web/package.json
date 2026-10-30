@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "prisma generate && next dev",
-    "build": "next build --webpack",
+    "build": "next build --webpack && node scripts/check-built-css.mjs",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "test:styles": "node scripts/check-built-css.mjs"
   },
   "prisma": {
     "schema": "prisma/schema.prisma",
@@ -35,7 +36,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.12",
-    "@tailwindcss/turbopack": "^4",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
