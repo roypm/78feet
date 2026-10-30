@@ -54,7 +54,8 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
     const tariff = await prisma.tariff.create({
       data: {
         name: `Mensual ${suffix}`,
-        kind: "monthly",
+        consumptionModel: "weekly_quota",
+        billingPeriod: "monthly",
         priceCents: 7000,
         weeklyDirected: 2,
         weeklyOpen: 1,
@@ -155,8 +156,8 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
     const before = await call(summary, "GET", "/api/v1/me/summary", memberToken);
     expect(before.status).toBe(200);
     expect(before.json).toMatchObject({
-      tariff: { kind: "monthly", priceCents: 7000 },
-      payment: "pending",
+      tariff: { consumptionModel: "weekly_quota", billingPeriod: "monthly", priceCents: 7000 },
+      payment: { status: "pending" },
       quota: { directedLimit: 2, openLimit: 1, packBalance: 0 },
     });
 
@@ -187,13 +188,13 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
     await prisma.payment.create({
       data: {
         userId: memberId,
-        kind: "monthly",
-        month: isoDateToDb(`${today.slice(0, 7)}-01`),
+        billingPeriod: "monthly",
+        periodStart: isoDateToDb(`${today.slice(0, 7)}-01`),
         amountCents: 7000,
         recordedBy: admin.id,
       },
     });
     const paid = await call(summary, "GET", "/api/v1/me/summary", memberToken);
-    expect(paid.json).toMatchObject({ payment: "paid" });
+    expect(paid.json).toMatchObject({ payment: { status: "paid" } });
   });
 });

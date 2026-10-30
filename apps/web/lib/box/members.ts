@@ -2,12 +2,14 @@ import type { Prisma } from "@prisma/client";
 import {
   localDateString,
   packBalance,
+  usesPeriodicQuota,
   weekStartDate,
   weeklyQuotaAdjustmentTotal,
   weeklyUsed,
   type CreateMember,
   type GrantCredits,
   type PatchMember,
+  type TariffConsumption,
   type WeeklyQuotaAdjustment,
 } from "@78feet/domain";
 import { hashPassword } from "../auth/password";
@@ -34,7 +36,8 @@ type MembershipView = {
   id: string;
   tariffId: string;
   tariffName: string;
-  tariffKind: "monthly" | "pack";
+  consumptionModel: TariffConsumption;
+  billingPeriod: import("@78feet/domain").TariffBilling;
   priceCents: number;
   startedAt: string;
   endedAt: string | null;
@@ -65,7 +68,8 @@ function membershipView(
     id: membership.id,
     tariffId: membership.tariffId,
     tariffName: membership.tariff.name,
-    tariffKind: membership.tariff.kind,
+    consumptionModel: membership.tariff.consumptionModel,
+    billingPeriod: membership.tariff.billingPeriod,
     priceCents: membership.tariff.priceCents,
     startedAt: membership.startedAt.toISOString(),
     endedAt: membership.endedAt?.toISOString() ?? null,
@@ -252,8 +256,8 @@ export async function getMember(id: string) {
     })),
     payments: user.paymentsReceived.map((payment) => ({
       id: payment.id,
-      kind: payment.kind,
-      month: payment.month ? isoDateFromDb(payment.month) : null,
+      billingPeriod: payment.billingPeriod,
+      periodStart: payment.periodStart ? isoDateFromDb(payment.periodStart) : null,
       amountCents: payment.amountCents,
       method: payment.method,
       createdAt: payment.createdAt.toISOString(),
@@ -411,7 +415,7 @@ export async function adjustMemberWeeklyQuota(
     where: { userId: id, endedAt: null },
     include: { tariff: true },
   });
-  if (!membership?.tariff || membership.tariff.kind !== "monthly") {
+  if (!membership?.tariff || !usesPeriodicQuota(membership.tariff.consumptionModel)) {
     throw new BoxError(403, "FORBIDDEN", "Solo aplica con tarifa mensual");
   }
   const today = localDateString(now);

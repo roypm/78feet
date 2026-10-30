@@ -4,7 +4,7 @@ import { parseSchema } from "@/lib/box/parse";
 import { staffHandler } from "@/lib/box/guard";
 
 export const GET = staffHandler(["coach", "admin"], async (_user, request) => {
-  const month = new URL(request.url).searchParams.get("month") ?? undefined;
-  const query = parseSchema(unpaidQuerySchema, month ? { month } : {});
-  return listUnpaid(query.month);
+  const date = new URL(request.url).searchParams.get("date") ?? undefined;
+  const query = parseSchema(unpaidQuerySchema, date ? { date } : {});
+  return listUnpaid(query.date);
 });

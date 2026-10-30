@@ -1,3 +1,4 @@
+import type { PaymentBilling } from "@78feet/domain";
 import { prisma } from "../db";
 import { BoxError } from "./errors";
 import { isoDateFromDb } from "./time";
@@ -18,8 +19,8 @@ export function paymentMethodLabel(method: string | null | undefined): string {
 
 export type MemberPaymentRow = {
   id: string;
-  kind: "monthly" | "pack";
-  month: string | null;
+  billingPeriod: PaymentBilling;
+  periodStart: string | null;
   amountCents: number;
   method: string | null;
   createdAt: string;
@@ -60,8 +61,8 @@ export async function listMemberPayments(memberId: string) {
     },
     payments: rows.map((payment) => ({
       id: payment.id,
-      kind: payment.kind,
-      month: payment.month ? isoDateFromDb(payment.month) : null,
+      billingPeriod: payment.billingPeriod,
+      periodStart: payment.periodStart ? isoDateFromDb(payment.periodStart) : null,
       amountCents: payment.amountCents,
       method: payment.method,
       createdAt: payment.createdAt.toISOString(),

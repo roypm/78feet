@@ -164,7 +164,7 @@ export async function reserveForMember(params: {
         tariff: membership
           ? {
               id: membership.tariff.id,
-              kind: membership.tariff.kind,
+              consumptionModel: membership.tariff.consumptionModel,
               weeklyDirected: membership.tariff.weeklyDirected,
               weeklyOpen: membership.tariff.weeklyOpen,
             }

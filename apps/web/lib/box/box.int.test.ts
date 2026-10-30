@@ -115,7 +115,8 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
   it("lets an admin manage tariffs and blocks a coach from writing them", async () => {
     const denied = await call(createTariff, "POST", "/api/v1/admin/tariffs", coachToken, {
       name: `Mensual ${suffix}`,
-      kind: "monthly",
+      consumptionModel: "weekly_quota",
+      billingPeriod: "monthly",
       priceCents: 7000,
       weeklyDirected: 3,
       weeklyOpen: 1,
@@ -124,18 +125,20 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
 
     const created = await call(createTariff, "POST", "/api/v1/admin/tariffs", adminToken, {
       name: `Mensual ${suffix}`,
-      kind: "monthly",
+      consumptionModel: "weekly_quota",
+      billingPeriod: "monthly",
       priceCents: 7000,
       weeklyDirected: 3,
       weeklyOpen: 1,
     });
     expect(created.status).toBe(201);
-    const tariff = created.json as { id: string; kind: string };
+    const tariff = created.json as { id: string; consumptionModel: string };
     tariffIds.push(tariff.id);
 
     const invalid = await call(createTariff, "POST", "/api/v1/admin/tariffs", adminToken, {
       name: `Rota ${suffix}`,
-      kind: "pack",
+      consumptionModel: "pack",
+      billingPeriod: "one_time",
       priceCents: 1000,
     });
     expect(invalid.status).toBe(400);
@@ -159,14 +162,16 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
   it("creates a member, reloads pack balance, and returns quota when the tariff changes", async () => {
     const monthly = await call(createTariff, "POST", "/api/v1/admin/tariffs", adminToken, {
       name: `Base ${suffix}`,
-      kind: "monthly",
+      consumptionModel: "weekly_quota",
+      billingPeriod: "monthly",
       priceCents: 6000,
       weeklyDirected: 2,
       weeklyOpen: 1,
     });
     const pack = await call(createTariff, "POST", "/api/v1/admin/tariffs", adminToken, {
       name: `Bono ${suffix}`,
-      kind: "pack",
+      consumptionModel: "pack",
+      billingPeriod: "one_time",
       priceCents: 5000,
       packClasses: 8,
     });

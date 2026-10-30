@@ -1,4 +1,11 @@
 import {
+  isSubscriptionBilling,
+  periodStartForDate,
+  subscriptionPeriodLabel,
+  type TariffBilling,
+  type TariffConsumption,
+} from "@78feet/domain";
+import {
   tariffWriteSchema,
   type PatchTariff,
   type TariffWrite,
@@ -10,7 +17,8 @@ import { parseSchema } from "./parse";
 export type TariffView = {
   id: string;
   name: string;
-  kind: "monthly" | "pack";
+  consumptionModel: TariffConsumption;
+  billingPeriod: TariffBilling;
   priceCents: number;
   weeklyDirected: number;
   weeklyOpen: number;
@@ -22,7 +30,8 @@ export type TariffView = {
 function toView(row: {
   id: string;
   name: string;
-  kind: "monthly" | "pack";
+  consumptionModel: TariffConsumption;
+  billingPeriod: TariffBilling;
   priceCents: number;
   weeklyDirected: number;
   weeklyOpen: number;
@@ -33,7 +42,8 @@ function toView(row: {
   return {
     id: row.id,
     name: row.name,
-    kind: row.kind,
+    consumptionModel: row.consumptionModel,
+    billingPeriod: row.billingPeriod,
     priceCents: row.priceCents,
     weeklyDirected: row.weeklyDirected,
     weeklyOpen: row.weeklyOpen,
@@ -60,7 +70,8 @@ export async function updateTariff(id: string, patch: PatchTariff): Promise<Tari
   if (!existing) throw new BoxError(404, "FORBIDDEN", "La tarifa no existe");
   const next = parseSchema(tariffWriteSchema, {
     name: patch.name ?? existing.name,
-    kind: patch.kind ?? existing.kind,
+    consumptionModel: patch.consumptionModel ?? existing.consumptionModel,
+    billingPeriod: patch.billingPeriod ?? existing.billingPeriod,
     priceCents: patch.priceCents ?? existing.priceCents,
     weeklyDirected: patch.weeklyDirected ?? existing.weeklyDirected,
     weeklyOpen: patch.weeklyOpen ?? existing.weeklyOpen,

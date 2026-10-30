@@ -56,7 +56,8 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
     const tariff = await prisma.tariff.create({
       data: {
         name: `Mensual ${suffix}`,
-        kind: "monthly",
+        consumptionModel: "weekly_quota",
+        billingPeriod: "monthly",
         priceCents: 7000,
         weeklyDirected: 2,
         weeklyOpen: 0,
@@ -185,13 +186,17 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
 
     const listed = await call(unpaid, "GET", "/api/v1/admin/unpaid", coachToken);
     expect(listed.status).toBe(200);
-    const rows = listed.json as { month: string; members: { id: string }[] };
-    expect(rows.members.some((row) => row.id === memberId)).toBe(true);
+    const rows = listed.json as {
+      asOf: string;
+      members: { id: string; billingPeriod: string; periodStart: string }[];
+    };
+    const row = rows.members.find((item) => item.id === memberId);
+    expect(row).toBeDefined();
 
     const recorded = await call(pay, "POST", "/api/v1/admin/payments", coachToken, {
       userId: memberId,
-      kind: "monthly",
-      month: rows.month,
+      billingPeriod: row!.billingPeriod,
+      periodStart: row!.periodStart,
       amountCents: 7000,
     });
     expect(recorded.status).toBe(201);

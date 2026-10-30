@@ -1,16 +1,19 @@
-import { localDateString, type CreatePayment } from "@78feet/domain";
+import {
+  isSubscriptionBilling,
+  localDateString,
+  periodStartForDate,
+  subscriptionPeriodLabel,
+  type CreatePayment,
+  type SubscriptionBilling,
+  type TariffBilling,
+} from "@78feet/domain";
 import { prisma } from "../db";
 import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
 import { isoDateFromDb, isoDateToDb } from "./time";
 
-function monthStart(iso: string): string {
-  return `${iso.slice(0, 7)}-01`;
-}
-
-export async function listUnpaid(month?: string) {
-  const today = month ? monthStart(month) : monthStart(localDateString(new Date()));
-  const monthDate = isoDateToDb(today);
+export async function listUnpaid(onDate?: string) {
+  const today = onDate ?? localDateString(new Date());
   const members = await prisma.user.findMany({
     where: {
       role: "member",
@@ -18,10 +21,11 @@ export async function listUnpaid(month?: string) {
       memberships: {
         some: {
           endedAt: null,
-          tariff: { kind: "monthly" },
+          tariff: {
+            billingPeriod: { in: ["monthly", "quarterly", "semiannual", "annual"] },
+          },
         },
       },
-      paymentsReceived: { none: { kind: "monthly", month: monthDate } },
     },
     include: {
       memberships: {
@@ -29,21 +33,47 @@ export async function listUnpaid(month?: string) {
         include: { tariff: true },
         take: 1,
       },
+      paymentsReceived: {
+        select: { billingPeriod: true, periodStart: true },
+      },
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
-  return {
-    month: today,
-    members: members.map((user) => ({
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      dni: user.dni,
-      phone: user.phone,
-      tariffName: user.memberships[0]?.tariff.name ?? "",
-      priceCents: user.memberships[0]?.tariff.priceCents ?? 0,
-    })),
-  };
+
+  const rows = members.flatMap((user) => {
+    const tariff = user.memberships[0]?.tariff;
+    if (!tariff || !isSubscriptionBilling(tariff.billingPeriod)) return [];
+    const periodStart = periodStartForDate(today, tariff.billingPeriod);
+    const paid = user.paymentsReceived.some(
+      (payment) =>
+        payment.billingPeriod === tariff.billingPeriod &&
+        payment.periodStart &&
+        isoDateFromDb(payment.periodStart) === periodStart,
+    );
+    if (paid) return [];
+    return [
+      {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        dni: user.dni,
+        phone: user.phone,
+        tariffName: tariff.name,
+        priceCents: tariff.priceCents,
+        billingPeriod: tariff.billingPeriod as SubscriptionBilling,
+        periodStart,
+        periodLabel: subscriptionPeriodLabel(tariff.billingPeriod, periodStart),
+      },
+    ];
+  });
+
+  return { asOf: today, members: rows };
+}
+
+function normalizePeriodStart(billingPeriod: CreatePayment["billingPeriod"], periodStart?: string): string | null {
+  if (billingPeriod === "one_time") return null;
+  if (!periodStart) return null;
+  return periodStartForDate(periodStart, billingPeriod);
 }
 
 export async function recordPayment(input: CreatePayment, actorId: string) {
@@ -51,18 +81,19 @@ export async function recordPayment(input: CreatePayment, actorId: string) {
   if (!user || user.role !== "member") {
     throw new BoxError(404, "FORBIDDEN", "El socio no existe");
   }
-  if (input.kind === "monthly" && !input.month) {
-    throw new BoxError(400, "FORBIDDEN", "El pago mensual necesita el mes");
+  const periodStart = normalizePeriodStart(input.billingPeriod, input.periodStart);
+  if (input.billingPeriod !== "one_time" && !periodStart) {
+    throw new BoxError(400, "FORBIDDEN", "Falta el inicio del periodo");
   }
-  if (input.kind === "pack" && input.month) {
-    throw new BoxError(400, "FORBIDDEN", "Un bono no lleva mes");
+  if (input.billingPeriod === "one_time" && periodStart) {
+    throw new BoxError(400, "FORBIDDEN", "Un pago único no lleva periodo");
   }
   try {
     const payment = await prisma.payment.create({
       data: {
         userId: input.userId,
-        kind: input.kind,
-        month: input.kind === "monthly" && input.month ? isoDateToDb(monthStart(input.month)) : null,
+        billingPeriod: input.billingPeriod,
+        periodStart: periodStart ? isoDateToDb(periodStart) : null,
         amountCents: input.amountCents,
         method: input.method ?? null,
         recordedBy: actorId,
@@ -71,16 +102,32 @@ export async function recordPayment(input: CreatePayment, actorId: string) {
     return {
       id: payment.id,
       userId: payment.userId,
-      kind: payment.kind,
-      month: payment.month ? isoDateFromDb(payment.month) : null,
+      billingPeriod: payment.billingPeriod,
+      periodStart: payment.periodStart ? isoDateFromDb(payment.periodStart) : null,
       amountCents: payment.amountCents,
       method: payment.method,
       createdAt: payment.createdAt.toISOString(),
     };
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new BoxError(409, "FORBIDDEN", "Ese mes ya está marcado como pagado");
+      throw new BoxError(409, "FORBIDDEN", "Ese periodo ya está marcado como pagado");
     }
     throw error;
   }
+}
+
+export function suggestPaymentForTariff(
+  tariff: { billingPeriod: TariffBilling; priceCents: number },
+  onDate = localDateString(new Date()),
+) {
+  if (!isSubscriptionBilling(tariff.billingPeriod)) {
+    return null;
+  }
+  const periodStart = periodStartForDate(onDate, tariff.billingPeriod);
+  return {
+    billingPeriod: tariff.billingPeriod,
+    periodStart,
+    periodLabel: subscriptionPeriodLabel(tariff.billingPeriod, periodStart),
+    amountCents: tariff.priceCents,
+  };
 }

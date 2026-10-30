@@ -64,7 +64,8 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     const tariff = await prisma.tariff.create({
       data: {
         name: `Mensual ${suffix}`,
-        kind: "monthly",
+        consumptionModel: "weekly_quota",
+        billingPeriod: "monthly",
         priceCents: 7000,
         weeklyDirected: 1,
         weeklyOpen: 1,

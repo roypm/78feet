@@ -1,4 +1,14 @@
-import { localDateString, packBalance, weekStartDate, weeklyQuotaAdjustmentTotal, weeklyUsed } from "@78feet/domain";
+import {
+  billingPeriodKindLabel,
+  isSubscriptionBilling,
+  localDateString,
+  packBalance,
+  periodStartForDate,
+  subscriptionPeriodLabel,
+  weekStartDate,
+  weeklyQuotaAdjustmentTotal,
+  weeklyUsed,
+} from "@78feet/domain";
 import { prisma } from "../db";
 import { isoDateFromDb, isoDateToDb } from "./time";
 import { listWeeklyQuotaAdjustments } from "./weekly-quota-adjustments";
@@ -6,7 +16,8 @@ import { listWeeklyQuotaAdjustments } from "./weekly-quota-adjustments";
 export type MemberSummary = {
   tariff: {
     name: string;
-    kind: "monthly" | "pack";
+    consumptionModel: import("@78feet/domain").TariffConsumption;
+    billingPeriod: import("@78feet/domain").TariffBilling;
     priceCents: number;
     weeklyDirected: number;
     weeklyOpen: number;
@@ -20,7 +31,12 @@ export type MemberSummary = {
     openAdjustment: number;
     packBalance: number;
   };
-  payment: "paid" | "pending" | null;
+  payment: {
+    status: "paid" | "pending";
+    billingPeriod: "monthly" | "quarterly" | "semiannual" | "annual";
+    periodStart: string;
+    periodLabel: string;
+  } | null;
 };
 
 export type OwnProfile = {
@@ -90,39 +106,44 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
     packBalance: packBalance({ grants, bookings: domainBookings, userId }),
   };
 
-  if (!tariff || tariff.kind !== "monthly") {
-    return {
-      tariff: tariff
-        ? {
-            name: tariff.name,
-            kind: tariff.kind,
-            priceCents: tariff.priceCents,
-            weeklyDirected: tariff.weeklyDirected,
-            weeklyOpen: tariff.weeklyOpen,
-          }
-        : null,
-      quota,
-      payment: null,
-    };
+  const tariffView = tariff
+    ? {
+        name: tariff.name,
+        consumptionModel: tariff.consumptionModel,
+        billingPeriod: tariff.billingPeriod,
+        priceCents: tariff.priceCents,
+        weeklyDirected: tariff.weeklyDirected,
+        weeklyOpen: tariff.weeklyOpen,
+      }
+    : null;
+
+  if (!tariff || !isSubscriptionBilling(tariff.billingPeriod)) {
+    return { tariff: tariffView, quota, payment: null };
   }
 
-  const monthStart = `${today.slice(0, 7)}-01`;
+  const periodStart = periodStartForDate(today, tariff.billingPeriod);
   const payment = await prisma.payment.findFirst({
-    where: { userId, kind: "monthly", month: isoDateToDb(monthStart) },
+    where: {
+      userId,
+      billingPeriod: tariff.billingPeriod,
+      periodStart: isoDateToDb(periodStart),
+    },
     select: { id: true },
   });
+
   return {
-    tariff: {
-      name: tariff.name,
-      kind: tariff.kind,
-      priceCents: tariff.priceCents,
-      weeklyDirected: tariff.weeklyDirected,
-      weeklyOpen: tariff.weeklyOpen,
-    },
+    tariff: tariffView,
     quota,
-    payment: payment ? "paid" : "pending",
+    payment: {
+      status: payment ? "paid" : "pending",
+      billingPeriod: tariff.billingPeriod,
+      periodStart,
+      periodLabel: subscriptionPeriodLabel(tariff.billingPeriod, periodStart),
+    },
   };
 }
+
+export { billingPeriodKindLabel };
 
 export async function getOwnProfile(userId: string): Promise<OwnProfile | null> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
