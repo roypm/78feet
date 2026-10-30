@@ -14,7 +14,8 @@ export function isSubscriptionBilling(billing: TariffBilling): billing is Subscr
 }
 
 export function periodStartForDate(isoDate: string, billing: SubscriptionBilling): string {
-  const [year, month] = isoDate.split("-").map(Number);
+  const year = Number(isoDate.slice(0, 4));
+  const month = Number(isoDate.slice(5, 7));
   if (billing === "monthly") {
     return `${isoDate.slice(0, 7)}-01`;
   }
@@ -66,7 +67,9 @@ export function consumptionModelLabel(consumption: TariffConsumption): string {
 /** Etiqueta corta del periodo de cobro en curso (es-ES, Madrid). */
 export function subscriptionPeriodLabel(billing: SubscriptionBilling, periodStart: string): string {
   const start = periodStartForDate(periodStart, billing);
-  const [year, month, day] = start.split("-").map(Number);
+  const year = Number(start.slice(0, 4));
+  const month = Number(start.slice(5, 7));
+  const day = Number(start.slice(8, 10));
   const monthNames = [
     "ene",
     "feb",
@@ -81,10 +84,10 @@ export function subscriptionPeriodLabel(billing: SubscriptionBilling, periodStar
     "nov",
     "dic",
   ];
-  const m = monthNames[month - 1] ?? "";
+  const monthLabel = monthNames[month - 1] ?? "";
   switch (billing) {
     case "monthly":
-      return `${monthNames[month - 1]} ${year}`;
+      return `${monthLabel} ${year}`;
     case "annual":
       return `Año ${year}`;
     case "semiannual":

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { openingIntervalsForDate, type BoxHoursConfig } from "@78feet/domain";
 import type { CalendarClass } from "@/lib/box/calendar";
@@ -20,6 +20,8 @@ import { cn } from "cn";
 import { closedTimeBands } from "@/lib/box/time-bands";
 
 const DENSITY_KEY = "78feet.calendario.densidad";
+const DENSITY_CHANGE_EVENT = "78feet:calendario-densidad";
+const DESKTOP_QUERY = "(min-width: 768px)";
 const STAFF_DAY_COLUMN_PX = 136;
 type Density = "pequeno" | "mediano" | "grande";
 const PX_BY_DENSITY: Record<Density, number> = {
@@ -28,6 +30,35 @@ const PX_BY_DENSITY: Record<Density, number> = {
   grande: PX_PER_HOUR_LARGE,
 };
 type CalendarView = KindView;
+
+function subscribeDesktop(callback: () => void): () => void {
+  const media = window.matchMedia(DESKTOP_QUERY);
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+
+function getDesktopSnapshot(): boolean {
+  return window.matchMedia(DESKTOP_QUERY).matches;
+}
+
+function subscribeDensity(callback: () => void): () => void {
+  window.addEventListener("storage", callback);
+  window.addEventListener(DENSITY_CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(DENSITY_CHANGE_EVENT, callback);
+  };
+}
+
+function getDensitySnapshot(): Density {
+  const stored = window.localStorage.getItem(DENSITY_KEY);
+  return stored === "mediano" || stored === "grande" ? stored : "pequeno";
+}
+
+function saveDensity(next: Density): void {
+  window.localStorage.setItem(DENSITY_KEY, next);
+  window.dispatchEvent(new Event(DENSITY_CHANGE_EVENT));
+}
 
 type WeekNav = {
   start: string;
@@ -52,23 +83,11 @@ function useCalendarScale(): {
   choose: (next: Density) => void;
   pxPerHour: number;
 } {
-  const [desktop, setDesktop] = useState(false);
-  const [density, setDensity] = useState<Density>("pequeno");
-
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 768px)");
-    const apply = () => setDesktop(media.matches);
-    apply();
-    media.addEventListener("change", apply);
-    const stored = window.localStorage.getItem(DENSITY_KEY);
-    if (stored === "mediano" || stored === "grande") setDensity(stored);
-    else if (stored === "comodo") setDensity("pequeno");
-    return () => media.removeEventListener("change", apply);
-  }, []);
+  const desktop = useSyncExternalStore(subscribeDesktop, getDesktopSnapshot, () => false);
+  const density = useSyncExternalStore<Density>(subscribeDensity, getDensitySnapshot, () => "pequeno");
 
   function choose(next: Density) {
-    setDensity(next);
-    window.localStorage.setItem(DENSITY_KEY, next);
+    saveDensity(next);
   }
 
   return {
@@ -215,7 +234,6 @@ function StaffCalendarBoard({
           <div className="flex w-max max-w-full min-h-0 flex-1 flex-col gap-2 self-start">
             <WeekNav
               basePath={basePath}
-              semana={semana}
               view={view}
               week={week}
               width="calendar"
@@ -293,7 +311,7 @@ function MemberCalendarBoard({
         }
         toolbar={
           <div className="flex w-full justify-center">
-            <WeekNav basePath={basePath} semana={semana} view={view} week={week} width="content" />
+            <WeekNav basePath={basePath} view={view} week={week} width="content" />
           </div>
         }
       />
@@ -335,14 +353,12 @@ function MemberCalendarBoard({
 
 function WeekNav({
   basePath,
-  semana,
   view,
   week,
   align,
   width = "content",
 }: {
   basePath: string;
-  semana: string | undefined;
   view: CalendarView;
   week: WeekNav;
   align?: "start" | "center";

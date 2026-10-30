@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { clockToMinutes, isWithinOpeningIntervals, localDateString, nextMondayDate, type BoxHoursConfig } from "@78feet/domain";
 import { toast } from "sonner";
@@ -112,21 +112,30 @@ export function TemplateSchedule({
   canWrite: boolean;
 }) {
   const router = useRouter();
-  const [baseline, setBaseline] = useState(() => templatesSnapshot(templates));
-  const [working, setWorking] = useState(() => templatesSnapshot(templates));
+  const baseline = useMemo(() => templatesSnapshot(templates), [templates]);
+  const baselineKey = JSON.stringify(baseline);
+  const [workingState, setWorkingState] = useState(() => ({
+    baselineKey,
+    value: templatesSnapshot(templates),
+  }));
+  const working = workingState.baselineKey === baselineKey ? workingState.value : baseline;
   const [mobileDay, setMobileDay] = useState(1);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [applyOpen, setApplyOpen] = useState(false);
   const [applying, setApplying] = useState(false);
   const editorKey = useRef(0);
 
-  useEffect(() => {
-    const next = templatesSnapshot(templates);
-    setBaseline(next);
-    setWorking(next);
-  }, [templates]);
+  function setWorking(next: ScheduleTemplate[] | ((current: ScheduleTemplate[]) => ScheduleTemplate[])) {
+    setWorkingState((previous) => {
+      const current = previous.baselineKey === baselineKey ? previous.value : baseline;
+      return {
+        baselineKey,
+        value: typeof next === "function" ? next(current) : next,
+      };
+    });
+  }
 
-  const isDirty = useMemo(() => !templatesEqual(baseline, working), [baseline, working]);
+  const isDirty = !templatesEqual(baseline, working);
   const effectiveFrom = formatDay(nextMondayDate(localDateString(new Date())));
 
   function axisForKind(kind: TemplateKind) {
