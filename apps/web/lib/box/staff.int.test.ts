@@ -83,9 +83,16 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
       });
     }
     const ids = [...new Set(userIds)];
+    const imageKeys = classTypeIds.length
+      ? (await prisma.classType.findMany({
+          where: { id: { in: classTypeIds } },
+          select: { imageKey: true },
+        })).map((classType) => classType.imageKey)
+      : [];
     await prisma.booking.deleteMany({ where: { userId: { in: ids } } });
     if (trainingIds.length) await prisma.training.deleteMany({ where: { id: { in: trainingIds } } });
     if (classTypeIds.length) await prisma.classType.deleteMany({ where: { id: { in: classTypeIds } } });
+    if (imageKeys.length) await prisma.classTypeImage.deleteMany({ where: { id: { in: imageKeys } } });
     await prisma.payment.deleteMany({ where: { userId: { in: ids } } });
     await prisma.creditGrant.deleteMany({
       where: { OR: [{ userId: { in: ids } }, { createdBy: { in: ids } }] },
@@ -97,7 +104,7 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
   });
 
   async function call(
-    handler: (request: Request, context?: { params: Promise<Record<string, string>> }) => Promise<Response>,
+    handler: (request: Request, context: { params: Promise<Record<string, string>> }) => Promise<Response>,
     method: string,
     path: string,
     token: string,
@@ -113,7 +120,7 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
       },
       body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     });
-    const response = await handler(request, params ? { params: Promise.resolve(params) } : undefined);
+    const response = await handler(request, { params: Promise.resolve(params ?? {}) });
     return { status: response.status, json: (await response.json()) as Record<string, unknown> };
   }
 

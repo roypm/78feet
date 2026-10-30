@@ -3,10 +3,13 @@ import { atBoxTime } from "./time";
 import {
   instanceConflicts,
   instanceKey,
+  isOpenDuring,
+  isWithinOpeningIntervals,
   planMaterializedInstances,
   propagateTemplateChange,
   templateConflicts,
 } from "./schedule";
+import type { BoxHoursConfig } from "./schemas";
 import { makeBooking, makeInstance, makeTemplate, resetIds } from "./test/fixtures";
 import type { ClassInstance } from "./types";
 
@@ -121,6 +124,27 @@ describe("schedule overlap", () => {
       endAt: atBoxTime("2026-10-26", "19:45"),
     });
     expect(instanceConflicts(second, [first])).toBe(true);
+  });
+});
+
+describe("box opening intervals", () => {
+  const config: BoxHoursConfig = {
+    weekly: Array.from({ length: 7 }, (_, index) => ({
+      weekday: index + 1,
+      intervals: [{ openTime: "07:00", closeTime: "12:00" }, { openTime: "13:00", closeTime: "21:00" }],
+    })),
+    exceptions: [{ date: "2026-11-01", intervals: [] }],
+  };
+
+  it("allows a class inside either opening band but rejects one crossing the midday closure", () => {
+    expect(isWithinOpeningIntervals(config.weekly[0]!.intervals, "10:00", "11:00")).toBe(true);
+    expect(isWithinOpeningIntervals(config.weekly[0]!.intervals, "15:00", "16:00")).toBe(true);
+    expect(isWithinOpeningIntervals(config.weekly[0]!.intervals, "11:30", "13:30")).toBe(false);
+  });
+
+  it("uses the dated exception to close a normally open Sunday", () => {
+    expect(isOpenDuring(config, "2026-10-25", "10:00", "11:00")).toBe(true);
+    expect(isOpenDuring(config, "2026-11-01", "10:00", "11:00")).toBe(false);
   });
 });
 

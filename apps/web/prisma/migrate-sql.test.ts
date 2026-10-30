@@ -9,16 +9,29 @@ const sql = [
   readFileSync(join(root, "migrations/20261029100000_init/migration.sql"), "utf8"),
   readFileSync(join(root, "migrations/20261029140000_class_types/migration.sql"), "utf8"),
   readFileSync(join(root, "migrations/20261030150000_tariff_billing/migration.sql"), "utf8"),
+  readFileSync(join(root, "migrations/20261030170000_weekly_box_hours/migration.sql"), "utf8"),
+  readFileSync(join(root, "migrations/20261030180000_shared_class_type_images/migration.sql"), "utf8"),
 ].join("\n");
 
-describe("init migration", () => {
-  it("applies against Postgres, including partial unique indexes", async () => {
+describe("migration chain", () => {
+  it("applies against Postgres, including recent schema changes and partial unique indexes", async () => {
     const db = new PGlite();
     await db.exec(sql);
     const types = await db.query<{ relname: string }>(
-      `SELECT relname FROM pg_class WHERE relname IN ('class_type', 'training', 'box_settings') ORDER BY relname`,
+      `SELECT relname FROM pg_class WHERE relname IN ('class_type', 'class_type_image', 'training', 'box_settings') ORDER BY relname`,
     );
-    expect(types.rows.map((row) => row.relname)).toEqual(["box_settings", "class_type", "training"]);
+    expect(types.rows.map((row) => row.relname)).toEqual([
+      "box_settings",
+      "class_type",
+      "class_type_image",
+      "training",
+    ]);
+    const hoursColumns = await db.query<{ column_name: string }>(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'box_settings' AND column_name IN ('weekly_hours', 'exceptions')
+       ORDER BY column_name`,
+    );
+    expect(hoursColumns.rows.map((row) => row.column_name)).toEqual(["exceptions", "weekly_hours"]);
     const indexes = await db.query<{ indexname: string }>(
       `SELECT indexname FROM pg_indexes WHERE indexname IN (
         'membership_one_current',

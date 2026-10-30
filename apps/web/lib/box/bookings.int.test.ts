@@ -109,7 +109,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
   }
 
   async function call(
-    handler: (request: Request, context?: { params: Promise<Record<string, string>> }) => Promise<Response>,
+    handler: (request: Request, context: { params: Promise<Record<string, string>> }) => Promise<Response>,
     method: string,
     path: string,
     token: string | null,
@@ -124,7 +124,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    const response = await handler(request, params ? { params: Promise.resolve(params) } : undefined);
+    const response = await handler(request, { params: Promise.resolve(params ?? {}) });
     const text = await response.text();
     return {
       status: response.status,
