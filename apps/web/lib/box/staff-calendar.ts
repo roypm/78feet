@@ -5,6 +5,7 @@ import { ensureInstances } from "./materialize";
 import { classTypeImageUrl } from "./images";
 import { personName } from "./map";
 import { isoDateFromDb, isoDateToDb } from "./time";
+import { isCalendarException } from "./exceptions";
 import { horizonRange, localDateString } from "@78feet/domain";
 
 function spots(capacity: number, bookedCount: number): number {
@@ -85,6 +86,7 @@ export async function listWeek(from: string, now = new Date()) {
     freeSpots: spots(row.capacity, row.bookings.length),
     coachName: personName(row.coach),
     bookedByMe: false,
+    isException: isCalendarException(row),
   }));
 }
 

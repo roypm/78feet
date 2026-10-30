@@ -11,6 +11,7 @@ import { ensureInstances } from "./materialize";
 import { classTypeImageUrl } from "./images";
 import { personName } from "./map";
 import { isoDateFromDb, isoDateToDb } from "./time";
+import { isCalendarException } from "./exceptions";
 
 export type CalendarClass = {
   id: string;
@@ -27,6 +28,7 @@ export type CalendarClass = {
   freeSpots: number;
   coachName: string | null;
   bookedByMe: boolean;
+  isException: boolean;
 };
 
 export type TrainingDetail = {
@@ -61,6 +63,8 @@ function toCalendarClass(
     classType: { name: string; imageKey: string };
     coach: { firstName: string; lastName: string } | null;
     bookings: { userId: string }[];
+    templateId: string | null;
+    editedAt: Date | null;
   },
   userId: string | null,
 ): CalendarClass {
@@ -80,6 +84,7 @@ function toCalendarClass(
     freeSpots: spots(row.capacity, bookedCount),
     coachName: personName(row.coach),
     bookedByMe: userId ? row.bookings.some((booking) => booking.userId === userId) : false,
+    isException: isCalendarException(row),
   };
 }
 

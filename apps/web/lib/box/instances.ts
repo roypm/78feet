@@ -35,13 +35,14 @@ function clocksFromInstance(startAt: Date, endAt: Date): { startTime: string; en
 
 async function assertNoInstanceOverlap(
   db: Db,
-  candidate: { id?: string; date: string; startAt: Date; endAt: Date },
+  candidate: { id?: string; date: string; startAt: Date; endAt: Date; kind: "directed" | "open" },
 ): Promise<void> {
   const others = await db.classInstance.findMany({
     where: { date: isoDateToDb(candidate.date) },
   });
   if (instanceConflicts(candidate, others.map(toDomainInstance))) {
-    throw new BoxError(409, "OVERLAP", "Esa hora se solapa con otra clase del mismo día");
+    const lane = candidate.kind === "open" ? "open" : "clase dirigida";
+    throw new BoxError(409, "OVERLAP", `Esa hora se solapa con otro ${lane} del mismo día`);
   }
 }
 
@@ -72,7 +73,7 @@ export async function createExtraInstance(input: CreateInstance, now = new Date(
   assertValidTimeRange(startTime, endTime);
   const startAt = atBoxTime(input.date, startTime);
   const endAt = atBoxTime(input.date, endTime);
-  await assertNoInstanceOverlap(prisma, { date: input.date, startAt, endAt });
+  await assertNoInstanceOverlap(prisma, { date: input.date, startAt, endAt, kind: classType.kind });
   const row = await prisma.classInstance.create({
     data: {
       date: isoDateToDb(input.date),
@@ -145,7 +146,7 @@ export async function patchInstance(id: string, patch: PatchInstance, actorId: s
     trainingId !== existing.trainingId;
 
   return prisma.$transaction(async (tx) => {
-    await assertNoInstanceOverlap(tx, { id, date, startAt, endAt });
+    await assertNoInstanceOverlap(tx, { id, date, startAt, endAt, kind });
     let cancelledBookingCount = 0;
     if (status === "cancelled" && existing.status !== "cancelled") {
       cancelledBookingCount = await cancelActives(tx, id, actorId, now);
@@ -166,7 +167,7 @@ export async function patchInstance(id: string, patch: PatchInstance, actorId: s
         cancelReason:
           status === "cancelled"
             ? (patch.cancelReason ?? existing.cancelReason ?? "Cancelada por el box")
-            : existing.cancelReason,
+            : null,
         editedAt: edited ? now : existing.editedAt,
       },
     });

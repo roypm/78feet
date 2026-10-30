@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/auth/current";
 import { listStaff } from "@/lib/box/staff-users";
 import { StaffForm } from "@/components/staff/staff-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
 
 export default function Page() {
   return (
@@ -28,8 +28,14 @@ async function Team() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Equipo" />
-      <ModuleBody width="full">
+      <ModuleHeader
+        title="Equipo"
+        description="Cuentas de coach y admin con acceso al panel de staff."
+      />
+      <ModuleBody width="full" inset="content">
+        <ModulePrimaryAction>
+          <StaffForm />
+        </ModulePrimaryAction>
         <Table>
           <TableHeader>
             <TableRow>
@@ -52,7 +58,6 @@ async function Team() {
             ))}
           </TableBody>
         </Table>
-        <StaffForm />
       </ModuleBody>
     </ModulePage>
   );

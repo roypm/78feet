@@ -37,22 +37,24 @@ export function templatesOverlap(
 }
 
 export function templateConflicts(
-  candidate: Pick<ClassTemplate, "weekday" | "startTime" | "endTime"> & { id?: string },
-  others: readonly (Pick<ClassTemplate, "id" | "weekday" | "startTime" | "endTime" | "active">)[],
+  candidate: Pick<ClassTemplate, "weekday" | "startTime" | "endTime" | "kind"> & { id?: string },
+  others: readonly (Pick<ClassTemplate, "id" | "weekday" | "startTime" | "endTime" | "active" | "kind">)[],
 ): boolean {
   return others.some((other) => {
     if (!other.active) return false;
+    if (other.kind !== candidate.kind) return false;
     if (candidate.id !== undefined && other.id === candidate.id) return false;
     return templatesOverlap(candidate, other);
   });
 }
 
 export function instanceConflicts(
-  candidate: Pick<ClassInstance, "date" | "startAt" | "endAt"> & { id?: string },
-  others: readonly Pick<ClassInstance, "id" | "date" | "startAt" | "endAt" | "status">[],
+  candidate: Pick<ClassInstance, "date" | "startAt" | "endAt" | "kind"> & { id?: string },
+  others: readonly Pick<ClassInstance, "id" | "date" | "startAt" | "endAt" | "status" | "kind">[],
 ): boolean {
   return others.some((other) => {
     if (other.status !== "scheduled") return false;
+    if (other.kind !== candidate.kind) return false;
     if (candidate.id !== undefined && other.id === candidate.id) return false;
     if (other.date !== candidate.date) return false;
     return intervalsOverlap(candidate.startAt, candidate.endAt, other.startAt, other.endAt);

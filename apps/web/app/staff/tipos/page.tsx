@@ -10,7 +10,7 @@ export default function Page() {
       fallback={
         <ModulePage>
           <ModuleHeader title="Tipos de clase" />
-          <ModuleBody>
+          <ModuleBody width="full">
             <p className="text-muted-foreground">Cargando los tipos de clase…</p>
           </ModuleBody>
         </ModulePage>
@@ -27,10 +27,11 @@ async function ClassTypes() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Tipos de clase">
-        <p className="text-sm text-muted-foreground">Catálogo de imágenes y grillas que usa el horario del box.</p>
-      </ModuleHeader>
-      <ModuleBody>
+      <ModuleHeader
+        title="Tipos de clase"
+        description="Catálogo de imágenes y grillas que usa el horario del box."
+      />
+      <ModuleBody width="full" inset="content">
         <ClassTypesPanel types={types} />
       </ModuleBody>
     </ModulePage>

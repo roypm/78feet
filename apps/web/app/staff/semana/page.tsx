@@ -16,7 +16,7 @@ export default function Page({
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader dense title="Semana" />
+          <ModuleHeader title="Semana" />
           <ModuleBody fill>
             <p className="px-4 py-6 text-muted-foreground md:px-6">Cargando la semana…</p>
           </ModuleBody>
@@ -39,6 +39,8 @@ async function Week({ searchParams }: { searchParams: Promise<{ semana?: string;
 
   return (
     <CalendarBoard
+      variant="staff"
+      description="Clases de la semana. Tocá un bloque para ver detalle, roster y acciones."
       view={view}
       title="Semana"
       basePath="/staff/semana"

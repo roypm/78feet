@@ -31,12 +31,11 @@ async function Bookings() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Reservas" />
-      <ModuleBody>
-        <p className="text-sm text-muted-foreground">
-          Reserva o cancelá a nombre de un socio. Las clases de hoy aparecen abajo; para otra fecha, abrí la clase desde
-          Excepciones.
-        </p>
+      <ModuleHeader
+        title="Reservas"
+        description="Reservá o cancelá a nombre de un socio. Las clases de hoy aparecen abajo; para otra fecha, abrí la clase desde Excepciones."
+      />
+      <ModuleBody inset="content">
         <StaffBookingForm
           members={members.map((member) => ({
             id: member.id,

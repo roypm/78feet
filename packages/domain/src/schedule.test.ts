@@ -33,7 +33,7 @@ function fromPlanned(planned: ReturnType<typeof planMaterializedInstances>[numbe
 }
 
 describe("schedule overlap", () => {
-  it("rejects two active templates on the same weekday that share the space", () => {
+  it("allows directed and open templates on the same weekday at overlapping times", () => {
     const wod = makeTemplate({
       weekday: 1,
       startTime: "18:00",
@@ -48,7 +48,25 @@ describe("schedule overlap", () => {
       title: "Open",
       kind: "open",
     });
-    expect(templateConflicts(open, [wod])).toBe(true);
+    expect(templateConflicts(open, [wod])).toBe(false);
+  });
+
+  it("rejects two templates of the same kind on the same weekday that overlap", () => {
+    const first = makeTemplate({
+      weekday: 1,
+      startTime: "18:00",
+      endTime: "19:00",
+      title: "WOD",
+      kind: "directed",
+    });
+    const second = makeTemplate({
+      weekday: 1,
+      startTime: "18:30",
+      endTime: "19:30",
+      title: "Fuerza",
+      kind: "directed",
+    });
+    expect(templateConflicts(second, [first])).toBe(true);
   });
 
   it("allows templates on the same weekday that only touch at the boundary", () => {
@@ -69,7 +87,7 @@ describe("schedule overlap", () => {
     expect(templateConflicts(open, [wod])).toBe(false);
   });
 
-  it("rejects overlapping instances on the same day", () => {
+  it("allows directed and open instances on the same day at overlapping times", () => {
     const first = makeInstance({
       date: "2026-10-26",
       kind: "directed",
@@ -81,6 +99,24 @@ describe("schedule overlap", () => {
       date: "2026-10-26",
       kind: "open",
       title: "Open",
+      startAt: atBoxTime("2026-10-26", "18:45"),
+      endAt: atBoxTime("2026-10-26", "19:45"),
+    });
+    expect(instanceConflicts(second, [first])).toBe(false);
+  });
+
+  it("rejects overlapping instances of the same kind on the same day", () => {
+    const first = makeInstance({
+      date: "2026-10-26",
+      kind: "directed",
+      title: "WOD",
+      startAt: atBoxTime("2026-10-26", "18:00"),
+      endAt: atBoxTime("2026-10-26", "19:00"),
+    });
+    const second = makeInstance({
+      date: "2026-10-26",
+      kind: "directed",
+      title: "Fuerza",
       startAt: atBoxTime("2026-10-26", "18:45"),
       endAt: atBoxTime("2026-10-26", "19:45"),
     });

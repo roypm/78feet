@@ -11,7 +11,7 @@ export default function Page() {
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader title="Mi tarifa" />
+          <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo semanal y saldo de bono." />
           <ModuleBody>
             <p className="text-muted-foreground">Cargando tu tarifa…</p>
           </ModuleBody>
@@ -30,7 +30,7 @@ async function Tariff() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Mi tarifa" />
+      <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo semanal y saldo de bono." />
       <ModuleBody>
       {!tariff ? (
         <p className="text-muted-foreground">Sin membresía activa</p>

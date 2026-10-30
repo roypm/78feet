@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Field, controlClass } from "@/components/staff/field";
 import { FormDialog } from "@/components/staff/form-dialog";
+import { ModulePrimaryAction } from "@/components/member/module-page";
 
 export function StaffBookingForm({
   members,
@@ -64,7 +65,7 @@ export function StaffBookingForm({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
         <Field label="Clase de hoy">
           <select
@@ -81,14 +82,15 @@ export function StaffBookingForm({
           </select>
         </Field>
       </div>
-      <FormDialog
-        open={open}
-        onOpenChange={setOpen}
-        busy={pending}
-        trigger={<Button type="button" className="min-h-11" disabled={pending || members.length === 0 || classes.length === 0}>Anotar socio</Button>}
-        title="Crear reserva"
-        description={selected ? `Añadir un socio a ${selected.label}.` : "Elegí una clase de hoy para continuar."}
-      >
+      <ModulePrimaryAction>
+        <FormDialog
+          open={open}
+          onOpenChange={setOpen}
+          busy={pending}
+          trigger={<Button type="button" className="min-h-11" disabled={pending || members.length === 0 || classes.length === 0}>Anotar socio</Button>}
+          title="Crear reserva"
+          description={selected ? `Añadir un socio a ${selected.label}.` : "Elegí una clase de hoy para continuar."}
+        >
         <form onSubmit={(event) => void book(event)} className="flex flex-col gap-4">
           <Field label="Socio">
             <select name="userId" required className={controlClass}>
@@ -106,6 +108,7 @@ export function StaffBookingForm({
           </DialogFooter>
         </form>
       </FormDialog>
+      </ModulePrimaryAction>
       {selected ? (
         <section className="flex flex-col gap-2">
           <h2 className="font-medium">Apuntados</h2>

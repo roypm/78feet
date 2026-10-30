@@ -75,7 +75,7 @@ async function assertCoach(coachId: string | null | undefined): Promise<void> {
 }
 
 async function assertNoOverlap(
-  candidate: Pick<ClassTemplate, "weekday" | "startTime" | "endTime"> & { id?: string },
+  candidate: Pick<ClassTemplate, "weekday" | "startTime" | "endTime" | "kind"> & { id?: string },
 ): Promise<void> {
   const others = await prisma.classTemplate.findMany({
     where: { active: true, weekday: candidate.weekday },
@@ -83,7 +83,8 @@ async function assertNoOverlap(
   });
   const domainOthers = others.map((row) => toDomainTemplate(row));
   if (templateConflicts(candidate, domainOthers)) {
-    throw new BoxError(409, "OVERLAP", "Esa hora se solapa con otra clase del mismo día");
+    const lane = candidate.kind === "open" ? "open" : "clase dirigida";
+    throw new BoxError(409, "OVERLAP", `Esa hora se solapa con otro ${lane} del mismo día`);
   }
 }
 

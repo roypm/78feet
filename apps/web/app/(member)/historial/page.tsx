@@ -12,7 +12,7 @@ export default function Page() {
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader title="Historial" />
+          <ModuleHeader title="Historial" description="Clases que ya empezaron, agrupadas por mes." />
           <ModuleBody>
             <p className="text-muted-foreground">Cargando tu historial…</p>
           </ModuleBody>
@@ -37,7 +37,10 @@ async function History() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Historial" />
+      <ModuleHeader
+        title="Historial"
+        description="Clases que ya empezaron, agrupadas por mes. No registra asistencia."
+      />
       <ModuleBody>
         {months.length === 0 ? (
           <p className="text-muted-foreground">No tenés clases anteriores.</p>

@@ -222,14 +222,24 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     expect((template.json as { template: { startTime: string } }).template.startTime).toBe("05:10:00");
     templateIds.push(templateId);
 
-    const overlap = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
+    const parallelOpen = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
       weekday: 1,
       startTime: "05:40",
       endTime: "06:40",
       classTypeId: openType.id,
       defaultCapacity: 10,
     });
-    expect(overlap.status).toBe(409);
+    expect(parallelOpen.status).toBe(201);
+    templateIds.push((parallelOpen.json as { template: { id: string } }).template.id);
+
+    const sameKindOverlap = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
+      weekday: 1,
+      startTime: "05:40",
+      endTime: "06:40",
+      classTypeId: wodType.id,
+      defaultCapacity: 8,
+    });
+    expect(sameKindOverlap.status).toBe(409);
 
     const instance = await prisma.classInstance.findFirstOrThrow({
       where: { templateId, status: "scheduled", startAt: { gt: new Date() } },

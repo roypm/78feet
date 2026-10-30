@@ -16,7 +16,7 @@ export default function Page({
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader dense title="Calendario" />
+          <ModuleHeader title="Calendario" description="Cuatro semanas de clases." />
           <ModuleBody fill>
             <p className="px-4 py-6 text-muted-foreground md:px-6">Cargando el calendario…</p>
           </ModuleBody>

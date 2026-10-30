@@ -54,21 +54,16 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             {kindLabel(detail.kind)}
           </Badge>
         }
-      >
-        <div className="flex flex-col gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
-          <p className="text-muted-foreground tabular-nums">
-            {formatDay(detail.date)} · {formatTime(new Date(detail.startAt))}–{formatTime(new Date(detail.endAt))}
+        description={`${formatDay(detail.date)} · ${formatTime(new Date(detail.startAt))}–${formatTime(new Date(detail.endAt))}${detail.coachName ? ` · ${detail.coachName}` : ""}`}
+        toolbar={
+          <p className="text-sm tabular-nums text-muted-foreground">
+            {detail.bookedCount}/{detail.capacity} · {freeSpotLabel(detail.freeSpots)}
           </p>
-          {detail.coachName ? <p className="min-w-0 wrap-break-word">{detail.coachName}</p> : null}
-          <p className="tabular-nums">
-            {detail.bookedCount}/{detail.capacity}
-            <span className="text-muted-foreground"> · {freeSpotLabel(detail.freeSpots)}</span>
-          </p>
-        </div>
-      </ModuleHeader>
+        }
+      />
       <ModuleBody>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
         <section className="flex flex-col gap-3 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
           <h2 className="text-sm font-medium">Roster</h2>
           {detail.roster.length === 0 ? (

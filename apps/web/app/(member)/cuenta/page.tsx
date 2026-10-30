@@ -9,7 +9,7 @@ export default function Page() {
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader title="Mi cuenta" />
+          <ModuleHeader title="Mi cuenta" description="Datos de contacto y cierre de sesión." />
           <ModuleBody>
             <p className="text-muted-foreground">Cargando tu cuenta…</p>
           </ModuleBody>
@@ -27,7 +27,7 @@ async function Account() {
   if (!profile) {
     return (
       <ModulePage>
-        <ModuleHeader title="Mi cuenta" />
+        <ModuleHeader title="Mi cuenta" description="Datos de contacto y cierre de sesión." />
         <ModuleBody>
           <p className="text-muted-foreground">No encontramos tu cuenta.</p>
         </ModuleBody>
@@ -44,7 +44,7 @@ async function Account() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Mi cuenta" />
+      <ModuleHeader title="Mi cuenta" description="Datos de contacto y cierre de sesión." />
       <ModuleBody>
         <div className="flex flex-col gap-4 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
           <dl className="flex flex-col gap-4">

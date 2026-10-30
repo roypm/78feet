@@ -19,6 +19,7 @@ function klass(start: string, end: string): CalendarClass {
     freeSpots: 12,
     coachName: null,
     bookedByMe: false,
+    isException: false,
   };
 }
 

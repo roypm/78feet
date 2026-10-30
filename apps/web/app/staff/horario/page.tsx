@@ -27,11 +27,11 @@ async function Hours() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Horario del box" />
+      <ModuleHeader
+        title="Horario del box"
+        description="Apertura y cierre del eje horario en calendario, Semana y Plantilla."
+      />
       <ModuleBody>
-        <p className="text-sm text-muted-foreground">
-          Estas horas son el eje del calendario en las cuatro semanas y en las dos grillas.
-        </p>
         <HoursForm openTime={hours.openTime} closeTime={hours.closeTime} />
       </ModuleBody>
     </ModulePage>

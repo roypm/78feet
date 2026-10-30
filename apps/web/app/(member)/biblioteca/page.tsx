@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { requireMember } from "@/lib/auth/current";
 import { listTrainingFilterTypes, listTrainings } from "@/lib/box/trainings";
+import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page({
@@ -13,7 +14,7 @@ export default function Page({
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader title="Biblioteca" />
+          <ModuleHeader title="Biblioteca" description="Entrenamientos de clases dirigidas." />
           <ModuleBody>
             <p className="text-muted-foreground">Cargando la biblioteca…</p>
           </ModuleBody>
@@ -33,33 +34,26 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
 
   return (
     <ModulePage>
-      <ModuleHeader title="Biblioteca">
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/biblioteca"
-            className={
-              !classTypeId
-                ? "flex min-h-8 items-center rounded-sm bg-muted px-2.5 text-sm font-semibold"
-                : "flex min-h-8 items-center rounded-sm px-2.5 text-sm text-muted-foreground"
-            }
-          >
-            Todos
-          </Link>
-          {types.map((type) => (
-            <Link
-              key={type.id}
-              href={`/biblioteca?tipo=${type.id}`}
-              className={
-                classTypeId === type.id
-                  ? "flex min-h-8 items-center rounded-sm bg-muted px-2.5 text-sm font-semibold"
-                  : "flex min-h-8 items-center rounded-sm px-2.5 text-sm text-muted-foreground"
-              }
-            >
-              {type.name}
-            </Link>
-          ))}
-        </div>
-      </ModuleHeader>
+      <ModuleHeader
+        title="Biblioteca"
+        description="Entrenamientos de clases dirigidas."
+        tabs={
+          <FilterTabs aria-label="Tipo de entrenamiento">
+            <FilterTabLink href="/biblioteca" active={!classTypeId}>
+              Todos
+            </FilterTabLink>
+            {types.map((type) => (
+              <FilterTabLink
+                key={type.id}
+                href={`/biblioteca?tipo=${type.id}`}
+                active={classTypeId === type.id}
+              >
+                {type.name}
+              </FilterTabLink>
+            ))}
+          </FilterTabs>
+        }
+      />
       <ModuleBody>
         {trainings.length === 0 ? (
           <p className="text-muted-foreground">Todavía no hay entrenamientos.</p>

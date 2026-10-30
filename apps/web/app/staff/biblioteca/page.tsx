@@ -3,7 +3,8 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/auth/current";
 import { listTrainingFilterTypes, listTrainings } from "@/lib/box/trainings";
 import { Button } from "@/components/ui/button";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
+import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
 
 export default function Page({
   searchParams,
@@ -14,7 +15,7 @@ export default function Page({
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader title="Biblioteca" />
+          <ModuleHeader title="Biblioteca" description="Entrenamientos reutilizables por tipo dirigido." />
           <ModuleBody>
             <p className="text-muted-foreground">Cargando la biblioteca…</p>
           </ModuleBody>
@@ -36,28 +37,30 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
     <ModulePage>
       <ModuleHeader
         title="Biblioteca"
-        action={
-          <Button nativeButton={false} render={<Link href="/staff/biblioteca/nuevo" />}>
-            Nuevo
-          </Button>
+        description="Entrenamientos reutilizables por tipo dirigido."
+        tabs={
+          <FilterTabs aria-label="Tipo de entrenamiento">
+            <FilterTabLink href="/staff/biblioteca" active={!classTypeId}>
+              Todos
+            </FilterTabLink>
+            {types.map((type) => (
+              <FilterTabLink
+                key={type.id}
+                href={`/staff/biblioteca?tipo=${type.id}`}
+                active={classTypeId === type.id}
+              >
+                {type.name}
+              </FilterTabLink>
+            ))}
+          </FilterTabs>
         }
-      >
-        <div className="flex flex-wrap gap-2">
-          <FilterChip href="/staff/biblioteca" active={!classTypeId}>
-            Todos
-          </FilterChip>
-          {types.map((type) => (
-            <FilterChip
-              key={type.id}
-              href={`/staff/biblioteca?tipo=${type.id}`}
-              active={classTypeId === type.id}
-            >
-              {type.name}
-            </FilterChip>
-          ))}
-        </div>
-      </ModuleHeader>
-      <ModuleBody>
+      />
+      <ModuleBody inset="content">
+        <ModulePrimaryAction>
+          <Button nativeButton={false} variant="outline" className="min-h-11" render={<Link href="/staff/biblioteca/nuevo" />}>
+            Nuevo entrenamiento
+          </Button>
+        </ModulePrimaryAction>
         {trainings.length === 0 ? (
           <p className="text-muted-foreground">Todavía no hay entrenamientos.</p>
         ) : (
@@ -77,20 +80,5 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
         )}
       </ModuleBody>
     </ModulePage>
-  );
-}
-
-function FilterChip({ href, active, children }: { href: string; active: boolean; children: string }) {
-  return (
-    <Link
-      href={href}
-      className={
-        active
-          ? "flex min-h-8 items-center rounded-sm bg-muted px-2.5 text-sm font-semibold"
-          : "flex min-h-8 items-center rounded-sm px-2.5 text-sm text-muted-foreground"
-      }
-    >
-      {children}
-    </Link>
   );
 }

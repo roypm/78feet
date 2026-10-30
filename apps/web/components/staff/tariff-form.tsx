@@ -48,7 +48,7 @@ export function TariffForm() {
 
   return (
     <FormDialog
-      trigger={<Button type="button" className="min-h-11">Nueva tarifa</Button>}
+      trigger={<Button type="button" variant="outline" className="min-h-11">Nueva tarifa</Button>}
         open={open}
         onOpenChange={setOpen}
         busy={pending}

@@ -45,7 +45,7 @@ export function StaffForm() {
 
   return (
     <FormDialog
-        trigger={<Button type="button" className="min-h-11">Añadir cuenta</Button>}
+        trigger={<Button type="button" variant="outline" className="min-h-11">Añadir cuenta</Button>}
         open={open}
         onOpenChange={setOpen}
         busy={pending}

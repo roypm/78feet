@@ -30,6 +30,7 @@ async function NewTraining() {
     <ModulePage>
       <ModuleHeader
         title="Nuevo entrenamiento"
+        description="Fases y bloques de texto para un tipo dirigido."
         eyebrow={
           <Link href="/staff/biblioteca" className="text-sm text-primary">
             Biblioteca

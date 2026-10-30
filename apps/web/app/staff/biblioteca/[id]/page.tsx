@@ -41,6 +41,7 @@ async function TrainingDetail({ params }: { params: Promise<{ id: string }> }) {
     <ModulePage>
       <ModuleHeader
         title={training.name}
+        description={training.classType.name}
         eyebrow={
           <Link href="/staff/biblioteca" className="text-sm text-primary">
             Biblioteca

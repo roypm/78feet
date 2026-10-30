@@ -31,7 +31,7 @@ async function Bookings() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Mis reservas" />
+      <ModuleHeader title="Mis reservas" description="Clases futuras a las que estás apuntado." />
       <ModuleBody>
       {bookings.length === 0 ? (
         <p className="text-muted-foreground">No tenés reservas.</p>

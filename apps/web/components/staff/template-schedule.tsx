@@ -1,38 +1,56 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { localDateString, nextMondayDate } from "@78feet/domain";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, controlClass } from "@/components/staff/field";
 import { FormDialog } from "@/components/staff/form-dialog";
 import { api } from "@/lib/box/api";
 import { BLOCK_INSET, clockLabel } from "@/lib/box/calendar-layout";
 import { PX_PER_HOUR } from "@/lib/box/column";
+import { formatDay } from "@/lib/box/format";
+import type { KindView } from "@/lib/box/day-groups";
+import {
+  diffTemplates,
+  localTemplateOverlap,
+  newPendingTemplateId,
+  templatesEqual,
+  templatesSnapshot,
+  type ScheduleTemplate,
+  type TemplateSlotWrite,
+} from "@/lib/box/template-draft";
 import { templateAxis, templateBlockBox, type TemplateHours } from "@/lib/box/template-layout";
+import { cn } from "cn";
+import { moduleContentInset, ModulePrimaryAction } from "@/components/member/module-page";
+
+type TemplateKind = "directed" | "open";
+
+function kindFromView(view: KindView): TemplateKind {
+  return view === "open" ? "open" : "directed";
+}
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const SHORT_DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 type ClassType = { id: string; name: string; kind: "directed" | "open"; imageUrl: string };
-type Template = {
-  id: string;
-  weekday: number;
-  startTime: string;
-  endTime: string;
-  classTypeId: string;
-  classTypeName: string;
-  imageUrl: string;
-  defaultCapacity: number;
-  coachId: string | null;
-};
 type Coach = { id: string; name: string };
 type Summary = { cancelledClassCount: number; cancelledBookingCount: number; movedBookingCount: number };
 type Draft = {
   key: number;
-  template?: Template;
+  kind: TemplateKind;
+  template?: ScheduleTemplate;
   weekday: number;
   startTime: string;
   endTime: string;
@@ -56,42 +74,92 @@ function summaryMessage(summary: Summary): string {
   return changes.length ? `Plantilla actualizada. ${changes.join(" · ")}.` : "Plantilla actualizada.";
 }
 
+function mergeSummary(left: Summary, right: Summary): Summary {
+  return {
+    cancelledClassCount: left.cancelledClassCount + right.cancelledClassCount,
+    cancelledBookingCount: left.cancelledBookingCount + right.cancelledBookingCount,
+    movedBookingCount: left.movedBookingCount + right.movedBookingCount,
+  };
+}
+
+function slotBody(slot: TemplateSlotWrite) {
+  return {
+    weekday: slot.weekday,
+    startTime: slot.startTime.slice(0, 5),
+    endTime: slot.endTime.slice(0, 5),
+    classTypeId: slot.classTypeId,
+    coachId: slot.coachId,
+    defaultCapacity: slot.defaultCapacity,
+  };
+}
+
 export function TemplateSchedule({
+  view,
   templates,
   types,
   coaches,
   hours,
   canWrite,
 }: {
-  templates: Template[];
+  view: KindView;
+  templates: ScheduleTemplate[];
   types: ClassType[];
   coaches: Coach[];
   hours: TemplateHours;
   canWrite: boolean;
 }) {
+  const router = useRouter();
+  const [baseline, setBaseline] = useState(() => templatesSnapshot(templates));
+  const [working, setWorking] = useState(() => templatesSnapshot(templates));
   const [mobileDay, setMobileDay] = useState(1);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [applying, setApplying] = useState(false);
   const editorKey = useRef(0);
-  const axis = templateAxis(templates, hours);
-  const height = ((axis.axisEnd - axis.axisStart) / 60) * PX_PER_HOUR;
 
-  function startCreate(weekday: number, requestedStart = 18 * 60) {
+  useEffect(() => {
+    const next = templatesSnapshot(templates);
+    setBaseline(next);
+    setWorking(next);
+  }, [templates]);
+
+  const isDirty = useMemo(() => !templatesEqual(baseline, working), [baseline, working]);
+  const effectiveFrom = formatDay(nextMondayDate(localDateString(new Date())));
+
+  function axisForKind(kind: TemplateKind) {
+    return templateAxis(
+      working.filter((item) => item.kind === kind),
+      hours,
+    );
+  }
+
+  function heightForKind(kind: TemplateKind) {
+    const axis = axisForKind(kind);
+    return ((axis.axisEnd - axis.axisStart) / 60) * PX_PER_HOUR;
+  }
+
+  const activeKind = kindFromView(view);
+
+  function startCreate(weekday: number, kind: TemplateKind, requestedStart = 18 * 60) {
+    const typesForKind = types.filter((item) => item.kind === kind);
     const start = Math.min(22 * 60 + 45, Math.max(0, Math.round(requestedStart / 15) * 15));
     const end = start + 60;
     setDraft({
       key: ++editorKey.current,
+      kind,
       weekday,
       startTime: minutesToClock(start),
       endTime: minutesToClock(end),
-      classTypeId: types[0]?.id ?? "",
+      classTypeId: typesForKind[0]?.id ?? "",
       coachId: null,
       defaultCapacity: 12,
     });
   }
 
-  function startEdit(template: Template) {
+  function startEdit(template: ScheduleTemplate) {
     setDraft({
       key: ++editorKey.current,
+      kind: template.kind,
       template,
       weekday: template.weekday,
       startTime: template.startTime.slice(0, 5),
@@ -103,42 +171,195 @@ export function TemplateSchedule({
     setMobileDay(template.weekday);
   }
 
-  function startFromGrid(event: MouseEvent<HTMLDivElement>, weekday: number) {
+  function startFromGrid(event: MouseEvent<HTMLDivElement>, weekday: number, kind: TemplateKind) {
     if (!canWrite) return;
     const bounds = event.currentTarget.getBoundingClientRect();
-    const requestedStart = axis.axisStart + ((event.clientY - bounds.top) / PX_PER_HOUR) * 60;
-    startCreate(weekday, requestedStart);
+    const requestedStart = axisForKind(kind).axisStart + ((event.clientY - bounds.top) / PX_PER_HOUR) * 60;
+    startCreate(weekday, kind, requestedStart);
+  }
+
+  function cancelDraftChanges() {
+    setWorking(templatesSnapshot(baseline));
+    setDraft(null);
+    toast.message("Cambios descartados");
+  }
+
+  function commitSlot(slot: TemplateSlotWrite, existing?: ScheduleTemplate) {
+    const type = types.find((item) => item.id === slot.classTypeId);
+    if (!type) {
+      toast.error("Elegí un tipo de clase");
+      return;
+    }
+    const id = existing?.id ?? newPendingTemplateId();
+    if (
+      localTemplateOverlap(
+        { ...slot, id, kind: type.kind },
+        working.filter((item) => item.id !== id),
+      )
+    ) {
+      const lane = type.kind === "open" ? "open" : "clase dirigida";
+      toast.error(`Esa hora se solapa con otro ${lane} del mismo día`);
+      return;
+    }
+    const next: ScheduleTemplate = {
+      id,
+      weekday: slot.weekday,
+      startTime: slot.startTime.slice(0, 5),
+      endTime: slot.endTime.slice(0, 5),
+      classTypeId: slot.classTypeId,
+      kind: type.kind,
+      classTypeName: type.name,
+      imageUrl: type.imageUrl,
+      defaultCapacity: slot.defaultCapacity,
+      coachId: slot.coachId,
+    };
+    setWorking((prev) => [...prev.filter((item) => item.id !== id), next]);
+    setDraft(null);
+  }
+
+  function removeSlot(id: string) {
+    setWorking((prev) => prev.filter((item) => item.id !== id));
+    setDraft(null);
+  }
+
+  async function applyTemplate() {
+    const { deletedIds, created, updated } = diffTemplates(baseline, working);
+    setApplying(true);
+    let summary: Summary = { cancelledClassCount: 0, cancelledBookingCount: 0, movedBookingCount: 0 };
+    try {
+      for (const id of deletedIds) {
+        const result = await api<{ summary: Summary }>(`/api/v1/admin/templates/${id}`, { method: "DELETE" });
+        summary = mergeSummary(summary, result.summary);
+      }
+      for (const slot of updated) {
+        const result = await api<{ summary: Summary }>(`/api/v1/admin/templates/${slot.id}`, {
+          method: "PATCH",
+          body: JSON.stringify(slotBody(slot)),
+        });
+        summary = mergeSummary(summary, result.summary);
+      }
+      for (const slot of created) {
+        await api("/api/v1/admin/templates", { method: "POST", body: JSON.stringify(slotBody(slot)) });
+      }
+      toast.success(summaryMessage(summary));
+      setApplyOpen(false);
+      setDraft(null);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo aplicar la plantilla");
+    } finally {
+      setApplying(false);
+    }
   }
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold">Plantilla semanal</h2>
-          <p className="text-sm text-muted-foreground">
-            Horario recurrente. Los cambios rigen desde el lunes siguiente.
-          </p>
-        </div>
-        {canWrite && types.length > 0 ? (
-          <Button type="button" variant="outline" className="min-h-11" onClick={() => startCreate(mobileDay)}>
-            Añadir hueco
+    <section className={cn("flex min-h-0 flex-1 flex-col gap-3", moduleContentInset)}>
+      {canWrite && isDirty ? (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" className="min-h-11" onClick={cancelDraftChanges}>
+            Cancelar cambio
           </Button>
-        ) : null}
-      </div>
+          <Button type="button" className="min-h-11" onClick={() => setApplyOpen(true)}>
+            Aplicar plantilla
+          </Button>
+        </div>
+      ) : null}
+
+      {canWrite && isDirty ? (
+        <p className="text-sm text-muted-foreground">Hay cambios sin aplicar en la plantilla.</p>
+      ) : null}
+
+      <ApplyTemplateDialog
+        open={applyOpen}
+        onOpenChange={setApplyOpen}
+        effectiveFrom={effectiveFrom}
+        pending={applying}
+        onConfirm={() => void applyTemplate()}
+      />
 
       {draft ? (
         <TemplateEditor
           key={draft.key}
           draft={draft}
-          types={types}
+          types={types.filter((item) => item.kind === draft.kind)}
           coaches={coaches}
           onClose={() => setDraft(null)}
+          onCommit={commitSlot}
+          onRemove={removeSlot}
         />
       ) : null}
 
       {types.length === 0 ? (
         <p className="rounded-lg bg-card p-4 text-sm text-muted-foreground ring-1 ring-foreground/10">
           Primero creá un tipo de clase para poder añadirlo a la plantilla.
+        </p>
+      ) : (
+        <TemplateKindPanel
+          className="min-h-0 flex-1"
+          kind={activeKind}
+          working={working}
+          types={types}
+          coaches={coaches}
+          canWrite={canWrite}
+          mobileDay={mobileDay}
+          onMobileDayChange={setMobileDay}
+          axis={axisForKind(activeKind)}
+          height={heightForKind(activeKind)}
+          onCreate={startFromGrid}
+          onEdit={startEdit}
+          onAdd={() => startCreate(mobileDay, activeKind)}
+        />
+      )}
+
+    </section>
+  );
+}
+
+function TemplateKindPanel({
+  className,
+  kind,
+  working,
+  types,
+  coaches,
+  canWrite,
+  mobileDay,
+  onMobileDayChange,
+  axis,
+  height,
+  onCreate,
+  onEdit,
+  onAdd,
+}: {
+  className?: string;
+  kind: TemplateKind;
+  working: ScheduleTemplate[];
+  types: ClassType[];
+  coaches: Coach[];
+  canWrite: boolean;
+  mobileDay: number;
+  onMobileDayChange: (day: number) => void;
+  axis: ReturnType<typeof templateAxis>;
+  height: number;
+  onCreate: (event: MouseEvent<HTMLDivElement>, weekday: number, kind: TemplateKind) => void;
+  onEdit: (template: ScheduleTemplate) => void;
+  onAdd: () => void;
+}) {
+  const kindsWorking = working.filter((item) => item.kind === kind);
+  const typesForKind = types.filter((item) => item.kind === kind);
+
+  return (
+    <section className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-3", className)}>
+      {canWrite && typesForKind.length > 0 ? (
+        <ModulePrimaryAction>
+          <Button type="button" variant="outline" className="min-h-11" onClick={onAdd}>
+            Añadir hueco
+          </Button>
+        </ModulePrimaryAction>
+      ) : null}
+
+      {typesForKind.length === 0 ? (
+        <p className="rounded-lg bg-card p-4 text-sm text-muted-foreground ring-1 ring-foreground/10">
+          No hay tipos {kind === "open" ? "Open" : "dirigidos"}. Creá uno en tipos de clase.
         </p>
       ) : (
         <>
@@ -148,14 +369,14 @@ export function TemplateSchedule({
               const active = weekday === mobileDay;
               return (
                 <Button
-                  key={day}
+                  key={`${kind}-${day}`}
                   type="button"
                   role="tab"
                   aria-selected={active}
                   variant={active ? "secondary" : "ghost"}
                   size="sm"
                   className="min-h-11 min-w-11"
-                  onClick={() => setMobileDay(weekday)}
+                  onClick={() => onMobileDayChange(weekday)}
                 >
                   {SHORT_DAYS[index]}
                 </Button>
@@ -163,28 +384,29 @@ export function TemplateSchedule({
             })}
           </div>
 
-          <div className="max-h-[70dvh] min-h-[20rem] overflow-auto overscroll-contain rounded-lg border border-border bg-background">
+          <div className="min-h-[20rem] flex-1 w-fit max-w-full self-start overflow-auto overscroll-contain rounded-lg border border-border bg-background">
             <div
               className="hidden h-max w-max md:grid"
               style={{ gridTemplateColumns: `4rem repeat(7, 136px)` }}
             >
               <GridHeader label="Hora" />
               {DAYS.map((day) => (
-                <GridHeader key={day} label={day} />
+                <GridHeader key={`${kind}-${day}`} label={day} />
               ))}
               <TimeAxis axis={axis} height={height} />
               {DAYS.map((day, index) => (
                 <DayTrack
-                  key={day}
+                  key={`${kind}-${day}`}
                   weekday={index + 1}
-                  templates={templates.filter((template) => template.weekday === index + 1)}
+                  templates={kindsWorking.filter((template) => template.weekday === index + 1)}
                   coaches={coaches}
                   ticks={axis.ticks}
                   axisStart={axis.axisStart}
                   height={height}
                   canWrite={canWrite}
-                  onCreate={startFromGrid}
-                  onEdit={startEdit}
+                  kind={kind}
+                  onCreate={onCreate}
+                  onEdit={onEdit}
                 />
               ))}
             </div>
@@ -198,21 +420,18 @@ export function TemplateSchedule({
               <TimeAxis axis={axis} height={height} />
               <DayTrack
                 weekday={mobileDay}
-                templates={templates.filter((template) => template.weekday === mobileDay)}
+                templates={kindsWorking.filter((template) => template.weekday === mobileDay)}
                 coaches={coaches}
                 ticks={axis.ticks}
                 axisStart={axis.axisStart}
                 height={height}
                 canWrite={canWrite}
-                onCreate={startFromGrid}
-                onEdit={startEdit}
+                kind={kind}
+                onCreate={onCreate}
+                onEdit={onEdit}
               />
             </div>
           </div>
-
-          {canWrite ? (
-            <p className="text-xs text-muted-foreground">Tocá un espacio libre para añadir un hueco o un bloque para editarlo.</p>
-          ) : null}
         </>
       )}
     </section>
@@ -258,24 +477,26 @@ function DayTrack({
   axisStart,
   height,
   canWrite,
+  kind,
   onCreate,
   onEdit,
 }: {
   weekday: number;
-  templates: Template[];
+  templates: ScheduleTemplate[];
   coaches: Coach[];
   ticks: number[];
   axisStart: number;
   height: number;
   canWrite: boolean;
-  onCreate: (event: MouseEvent<HTMLDivElement>, weekday: number) => void;
-  onEdit: (template: Template) => void;
+  kind: TemplateKind;
+  onCreate: (event: MouseEvent<HTMLDivElement>, weekday: number, kind: TemplateKind) => void;
+  onEdit: (template: ScheduleTemplate) => void;
 }) {
   return (
     <div
       className={`relative border-l border-border ${canWrite ? "cursor-pointer" : ""}`}
       style={{ height }}
-      onClick={(event) => onCreate(event, weekday)}
+      onClick={(event) => onCreate(event, weekday, kind)}
       aria-label={DAYS[weekday - 1]}
     >
       <GridLines ticks={ticks} axisStart={axisStart} />
@@ -283,7 +504,7 @@ function DayTrack({
         const box = templateBlockBox(template, axisStart, PX_PER_HOUR);
         const coach = coaches.find((item) => item.id === template.coachId)?.name;
         const details = `${template.classTypeName}, ${template.startTime}–${template.endTime}, ${template.defaultCapacity} plazas${coach ? `, ${coach}` : ", sin coach"}`;
-        const classNames = "absolute z-10 grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-1 overflow-hidden rounded-md bg-card p-1 text-left ring-1 ring-foreground/15 transition-transform duration-150 ease-out active:scale-[0.97]";
+        const classNames = "absolute z-10 overflow-hidden rounded-md ring-1 ring-foreground/15 transition-transform duration-150 ease-out active:scale-[0.97]";
         const style = {
           top: box.top + BLOCK_INSET,
           height: Math.max(box.height - BLOCK_INSET * 2, 56),
@@ -293,13 +514,9 @@ function DayTrack({
         const contents = (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={template.imageUrl} alt="" className="size-7 rounded-sm object-cover" />
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="truncate text-xs font-semibold">{template.classTypeName}</span>
-              <span className="truncate text-[0.7rem] text-muted-foreground tabular-nums">
-                {template.startTime}–{template.endTime}
-              </span>
-              <span className="truncate text-[0.7rem] text-muted-foreground">
+            <img src={template.imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
+            <span className="absolute inset-x-0 bottom-0 flex justify-center px-1 pb-0.5 text-center leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.85)]">
+              <span className="truncate text-xs font-medium tabular-nums">
                 {template.defaultCapacity} plazas{coach ? ` · ${coach}` : ""}
               </span>
             </span>
@@ -350,89 +567,86 @@ function GridLines({ ticks, axisStart }: { ticks: number[]; axisStart: number })
   ));
 }
 
+function ApplyTemplateDialog({
+  open,
+  onOpenChange,
+  effectiveFrom,
+  pending,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  effectiveFrom: string;
+  pending: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!pending) onOpenChange(next); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>¿Aplicar plantilla?</DialogTitle>
+          <DialogDescription>
+            Los cambios rigen desde el {effectiveFrom}. La semana en curso no se toca. Las clases futuras del horario se
+            actualizarán; si cambia la hora, el tipo o desaparece un hueco, las reservas pueden cancelarse o moverse. Bajar
+            el aforo por debajo de los apuntados cancela todas las reservas de esa clase. Las excepciones ya hechas en
+            instancias concretas no se sobrescriben.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
+            Volver
+          </DialogClose>
+          <Button type="button" className="min-h-11" disabled={pending} onClick={onConfirm}>
+            {pending ? "Aplicando…" : "Aplicar plantilla"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function TemplateEditor({
   draft,
   types,
   coaches,
   onClose,
+  onCommit,
+  onRemove,
 }: {
   draft: Draft;
   types: ClassType[];
   coaches: Coach[];
   onClose: () => void;
+  onCommit: (slot: TemplateSlotWrite, existing?: ScheduleTemplate) => void;
+  onRemove: (id: string) => void;
 }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
   const isEditing = Boolean(draft.template);
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const body = {
-      weekday: Number(form.get("weekday")),
-      startTime: String(form.get("startTime")),
-      endTime: String(form.get("endTime")),
-      classTypeId: String(form.get("classTypeId")),
-      coachId: String(form.get("coachId") || "") || null,
-      defaultCapacity: Number(form.get("defaultCapacity")),
-    };
-
-    if (draft.template && !window.confirm(
-      "Este cambio puede afectar reservas futuras y rige desde el lunes siguiente. ¿Querés continuar?",
-    )) {
-      return;
-    }
-
-    setPending(true);
-    try {
-      if (draft.template) {
-        const result = await api<{ summary: Summary }>(`/api/v1/admin/templates/${draft.template.id}`, {
-          method: "PATCH",
-          body: JSON.stringify(body),
-        });
-        toast.success(summaryMessage(result.summary));
-      } else {
-        await api("/api/v1/admin/templates", { method: "POST", body: JSON.stringify(body) });
-        toast.success("Hueco añadido a la plantilla.");
-      }
-      onClose();
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar el hueco");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function onDelete() {
-    if (!draft.template || !window.confirm("¿Quitar este hueco de la plantilla? Rige desde el lunes siguiente.")) {
-      return;
-    }
-    setPending(true);
-    try {
-      const result = await api<{ summary: Summary }>(`/api/v1/admin/templates/${draft.template.id}`, {
-        method: "DELETE",
-      });
-      toast.success(summaryMessage(result.summary));
-      onClose();
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo quitar el hueco");
-    } finally {
-      setPending(false);
-    }
+    onCommit(
+      {
+        weekday: Number(form.get("weekday")),
+        startTime: String(form.get("startTime")),
+        endTime: String(form.get("endTime")),
+        classTypeId: String(form.get("classTypeId")),
+        coachId: String(form.get("coachId") || "") || null,
+        defaultCapacity: Number(form.get("defaultCapacity")),
+      },
+      draft.template,
+    );
   }
 
   return (
     <FormDialog
       open
       onOpenChange={(open) => { if (!open) onClose(); }}
-      busy={pending}
       wide
       title={isEditing ? "Editar hueco" : "Nuevo hueco"}
-      description={isEditing ? "Los cambios se aplican desde el próximo lunes." : "Elegí el día, el horario, el tipo y el aforo."}
+      description="El cambio se guarda en el borrador. Usá «Aplicar plantilla» para publicarlo desde el próximo lunes."
     >
-      <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Día">
             <select name="weekday" required className={controlClass} defaultValue={draft.weekday}>
@@ -463,16 +677,21 @@ function TemplateEditor({
           </Field>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={onClose}>
-            Cancelar
+          <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>
+            Cerrar
           </Button>
           {draft.template ? (
-            <Button type="button" variant="destructive" className="min-h-11" disabled={pending} onClick={() => void onDelete()}>
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-h-11"
+              onClick={() => onRemove(draft.template!.id)}
+            >
               Quitar hueco
             </Button>
           ) : null}
-          <Button type="submit" className="min-h-11" disabled={pending}>
-            {pending ? "Guardando…" : isEditing ? "Guardar cambios" : "Añadir hueco"}
+          <Button type="submit" className="min-h-11">
+            {isEditing ? "Guardar en borrador" : "Añadir al borrador"}
           </Button>
         </DialogFooter>
       </form>

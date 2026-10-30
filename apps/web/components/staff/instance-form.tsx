@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field, controlClass } from "@/components/staff/field";
 import { FormDialog } from "@/components/staff/form-dialog";
@@ -14,27 +23,44 @@ type ClassType = { id: string; name: string; kind: "directed" | "open" };
 type Training = { id: string; name: string; classTypeId: string };
 type Coach = { id: string; name: string };
 
+export type EditableInstance = {
+  id: string;
+  date: string;
+  startAt: string;
+  endAt: string;
+  classTypeId: string;
+  coachId: string | null;
+  capacity: number;
+  status: "scheduled" | "cancelled";
+  trainingId: string | null;
+  bookedCount: number;
+};
+
+async function patchInstance(
+  instanceId: string,
+  body: Record<string, unknown>,
+  confirmCapacity = false,
+): Promise<{ cancelledBookingCount: number }> {
+  return api<{ cancelledBookingCount: number }>(`/api/v1/admin/instances/${instanceId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ ...body, confirmCapacity }),
+  });
+}
+
 export function InstanceForm({
   instance,
   classTypes,
   trainings,
   coaches,
+  onSaved,
+  onCancelEdit,
 }: {
-  instance: {
-    id: string;
-    date: string;
-    startAt: string;
-    endAt: string;
-    classTypeId: string;
-    coachId: string | null;
-    capacity: number;
-    status: "scheduled" | "cancelled";
-    trainingId: string | null;
-    bookedCount: number;
-  };
+  instance: EditableInstance;
   classTypes: ClassType[];
   trainings: Training[];
   coaches: Coach[];
+  onSaved?: () => void;
+  onCancelEdit?: () => void;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -44,16 +70,14 @@ export function InstanceForm({
   async function send(body: Record<string, unknown>, confirmCapacity = false) {
     setPending(true);
     try {
-      const payload = await api<{ cancelledBookingCount: number }>(`/api/v1/admin/instances/${instance.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ ...body, confirmCapacity }),
-      });
+      const payload = await patchInstance(instance.id, body, confirmCapacity);
       if (payload.cancelledBookingCount > 0) {
         toast.success(`Guardado. ${payload.cancelledBookingCount} reservas canceladas.`);
       } else {
         toast.success("Clase actualizada");
       }
       router.refresh();
+      onSaved?.();
     } catch (error) {
       if (error instanceof ApiError && error.code === "CONFIRM_REQUIRED") {
         const ok = window.confirm(
@@ -123,32 +147,155 @@ export function InstanceForm({
           ))}
         </select>
       </Field>
-      <Button type="submit" className="min-h-11" disabled={pending}>
-        {pending ? "Guardando…" : "Guardar"}
-      </Button>
-      {instance.status === "scheduled" ? (
-        <Button
-          type="button"
-          variant="destructive"
-          className="min-h-11"
-          disabled={pending}
-          onClick={() => void send({ status: "cancelled" })}
-        >
-          Cancelar clase
+      <DialogFooter>
+        {onCancelEdit ? (
+          <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={onCancelEdit}>
+            Cancelar edición
+          </Button>
+        ) : null}
+        <Button type="submit" className="min-h-11" disabled={pending}>
+          {pending ? "Guardando…" : "Guardar"}
         </Button>
-      ) : (
-        <p className="text-sm text-destructive">Esta clase está cancelada.</p>
-      )}
+      </DialogFooter>
     </form>
   );
 }
 
+export function InstanceCancelButton({ instanceId, bookedCount }: { instanceId: string; bookedCount: number }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  const bookingLine =
+    bookedCount === 0
+      ? "No hay reservas activas."
+      : bookedCount === 1
+        ? "Se cancelará 1 reserva y el cupo vuelve."
+        : `Se cancelarán ${bookedCount} reservas y el cupo vuelve.`;
+
+  async function cancelClass() {
+    setPending(true);
+    try {
+      const payload = await patchInstance(instanceId, { status: "cancelled" });
+      if (payload.cancelledBookingCount > 0) {
+        toast.success(`Clase cancelada. ${payload.cancelledBookingCount} reservas canceladas.`);
+      } else {
+        toast.success("Clase cancelada");
+      }
+      setOpen(false);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cancelar la clase");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!pending) setOpen(next); }}>
+      <DialogTrigger
+        render={<Button type="button" variant="destructive" className="min-h-11 shrink-0" disabled={pending} />}
+      >
+        Cancelar clase
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>¿Cancelar esta clase?</DialogTitle>
+          <DialogDescription>{bookingLine} La clase dejará de estar disponible para nuevas reservas.</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
+            Volver
+          </DialogClose>
+          <Button
+            type="button"
+            variant="destructive"
+            className="min-h-11"
+            disabled={pending}
+            onClick={() => void cancelClass()}
+          >
+            {pending ? "Cancelando…" : "Cancelar clase"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function InstanceRecoverButton({ instanceId }: { instanceId: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function recoverClass() {
+    setPending(true);
+    try {
+      await patchInstance(instanceId, { status: "scheduled" });
+      toast.success("Clase recuperada");
+      setOpen(false);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo recuperar la clase");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!pending) setOpen(next); }}>
+      <DialogTrigger render={<Button type="button" variant="outline" className="min-h-11 shrink-0" disabled={pending} />}>
+        Recuperar clase
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>¿Recuperar esta clase?</DialogTitle>
+          <DialogDescription>
+            Vuelve a estar disponible para reservas. Las reservas que se cancelaron al dar de baja la clase no se
+            restauran solas.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
+            Volver
+          </DialogClose>
+          <Button type="button" className="min-h-11" disabled={pending} onClick={() => void recoverClass()}>
+            {pending ? "Recuperando…" : "Recuperar clase"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function InstanceDetailActions({
+  instance,
+  classTypes,
+  trainings,
+  coaches,
+}: {
+  instance: EditableInstance;
+  classTypes: ClassType[];
+  trainings: Training[];
+  coaches: Coach[];
+}) {
+  return (
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <InstanceEditDialog instance={instance} classTypes={classTypes} trainings={trainings} coaches={coaches} />
+      {instance.status === "scheduled" ? (
+        <InstanceCancelButton instanceId={instance.id} bookedCount={instance.bookedCount} />
+      ) : (
+        <InstanceRecoverButton instanceId={instance.id} />
+      )}
+    </div>
+  );
+}
+
 export function ExtraClassForm({
-  date,
+  defaultDate,
   classTypes,
   coaches,
 }: {
-  date: string;
+  defaultDate: string;
   classTypes: ClassType[];
   coaches: Coach[];
 }) {
@@ -164,7 +311,7 @@ export function ExtraClassForm({
       const created = await api<{ id: string }>("/api/v1/admin/instances", {
         method: "POST",
         body: JSON.stringify({
-          date,
+          date: String(form.get("date")),
           startTime: String(form.get("startTime")),
           endTime: String(form.get("endTime")),
           classTypeId: String(form.get("classTypeId")),
@@ -188,11 +335,14 @@ export function ExtraClassForm({
         open={open}
         onOpenChange={setOpen}
         busy={pending}
-        trigger={<Button type="button" variant="outline" className="min-h-11" disabled={classTypes.length === 0}>Añadir clase extra</Button>}
+        trigger={<Button type="button" variant="outline" className="min-h-11 shrink-0" disabled={classTypes.length === 0}>Añadir clase extra</Button>}
         title="Añadir clase extra"
-        description="La clase se añadirá al día seleccionado en Excepciones."
+        description="Fuera de la plantilla semanal. Elegí el día (también más allá del horizonte de Semana)."
       >
         <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+          <Field label="Día">
+            <Input name="date" type="date" required defaultValue={defaultDate} />
+          </Field>
           <Field label="Inicio">
             <Input name="startTime" type="time" required defaultValue="18:00" />
           </Field>
@@ -225,6 +375,43 @@ export function ExtraClassForm({
           </DialogFooter>
         </form>
       </FormDialog>
+  );
+}
+
+export function InstanceEditDialog({
+  instance,
+  classTypes,
+  trainings,
+  coaches,
+}: {
+  instance: EditableInstance;
+  classTypes: ClassType[];
+  trainings: Training[];
+  coaches: Coach[];
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <FormDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Editar clase"
+      description="Hora, tipo, coach, aforo o entrenamiento."
+      trigger={
+        <Button type="button" variant="outline" className="min-h-11 shrink-0">
+          Editar
+        </Button>
+      }
+    >
+      <InstanceForm
+        instance={instance}
+        classTypes={classTypes}
+        trainings={trainings}
+        coaches={coaches}
+        onSaved={() => setOpen(false)}
+        onCancelEdit={() => setOpen(false)}
+      />
+    </FormDialog>
   );
 }
 
