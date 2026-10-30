@@ -34,14 +34,16 @@ Cómo se construye (arquitectura, modelo de datos, API) está en [`trd.md`](./tr
 | Cancelar reserva de un socio (y elegir si devuelve cupo) | — | sí | sí |
 | Alta y edición de socios | — | sí | sí |
 | Asignar tarifa y saldo de bono | — | sí | sí |
-| Marcar pago del mes | — | sí | sí |
+| Ajustar cupo semanal individual para la semana en curso | — | sí | sí |
+| Registrar pago del periodo de facturación | — | sí | sí |
 | Resetear contraseña de un socio | — | sí | sí |
 | Cancelar / modificar una clase puntual (excepción) | — | sí | sí |
 | Catálogo de tarifas y precios | — | — | sí |
 | Plantilla semanal y aforos por defecto | — | — | sí |
 | Catálogo de tipos de clase (nombre, imagen, grilla) | — | — | sí |
-| Crear / desactivar cuentas de staff | — | — | sí |
-| Dar de baja a un socio | — | — | sí |
+| Definir horario semanal y excepciones de apertura | — | — | sí |
+| Crear, activar/desactivar cuentas de staff, consultar perfiles y editar datos de contacto | — | — | sí |
+| Dar de baja o reactivar a un socio | — | — | sí |
 
 Reglas:
 
@@ -53,6 +55,7 @@ Reglas:
 
 - Los **socios** entran con **DNI + contraseña**. Los **staff** entran con **usuario + contraseña** (el coach que entrena tiene dos cuentas con el mismo DNI, así que el identificador del staff es un usuario elegido por el admin).
 - El staff **fija la contraseña** en el alta y la **resetea** cuando haga falta. El socio no la cambia desde la app.
+- Al crear una cuenta de staff, el admin debe indicar el DNI de la persona. El DNI puede coincidir con el de su cuenta de socio; el acceso del staff sigue usando un usuario elegido por el admin.
 - **No hay recuperación automática**: no se envían emails. El que se olvida espera a que el staff se la resetee.
 - Las contraseñas se guardan hasheadas. Nadie puede verlas desde ningún panel; si se pierde, se resetea.
 
@@ -68,7 +71,9 @@ Cada fila del catálogo combina **dos ejes** independientes:
 | **Cupo semanal** | sin cobro (`0 €`) | 0 € | ej. 3 dirigidas + 0 opens | Prueba: misma mecánica de reservas, sin estado de pago periódico. |
 | **Bono** | pago único | pago único | X clases | Saldo que se consume hasta agotarse. Sin caducidad. |
 
-El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la tarifa: no se editan por socio.
+El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la tarifa, con una excepción operativa: coach y admin pueden ajustar por separado el cupo semanal de dirigidas y opens de un socio para la semana en curso.
+
+El catálogo implementado ofrece «Cupo semanal», «Cupo mensual» y «Bono». **Diferencia pendiente:** el motor actualmente calcula ambos tipos de cupo periódico con límites semanales (`dirigidas/semana` y `opens/semana`); «Cupo mensual» todavía no tiene contador ni renovación mensual distintos. No debe interpretarse como un cupo mensual funcional hasta definir e implementar esa regla.
 
 ### 4.2 Cupo semanal (tarifas mensuales)
 
@@ -85,9 +90,10 @@ El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la t
 - **Cualquier socio puede llevar saldo de bono**, no solo el que empezó con bono: es la misma mecánica para vender "5 clases extra" a un mensual.
 - El saldo **no caduca**.
 - El staff **recarga** el saldo cuando el socio paga.
+- En la ficha del socio, coach y admin pueden ajustar por separado el cupo semanal de dirigidas y opens para la semana en curso.
 - Al cambiar de tarifa, **el saldo se conserva** y sigue funcionando como desborde.
 - Un socio **solo bono** no tiene límite semanal: puede gastar el saldo cuando quiera.
-- En la app el socio ve tres números: `2 dirigidas + 2 opens + 4 bono`.
+- En su pantalla de tarifa, el socio ve tres números: `2 dirigidas + 2 opens + 4 bono`.
 
 ### 4.4 Cambio de tarifa
 
@@ -110,7 +116,7 @@ El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la t
 ### 5.1 Tipos de clase
 
 - El admin crea un **tipo de clase** (Endurance, Sweet, Crossfit, Tone, Especial, los que hagan falta). Cada tipo tiene **nombre**, **imagen obligatoria** y **grilla**: dirigida u open. El coach no crea tipos ni sube imágenes.
-- La imagen llega ya encuadrada. La app no la recorta. Una clase de 2 h usa **la misma imagen**, más alta.
+- La imagen llega ya encuadrada y no se recorta. Una clase de 2 h usa **la misma imagen**, más alta.
 - El tipo nace en una grilla y **no cambia de grilla**. Si hace falta la otra, se crea otro tipo.
 - El nombre escrito lo usan el staff, el detalle de la clase y Mis reservas. En el bloque del calendario no se pinta: ahí está la imagen.
 - Cambiar la **imagen** de un tipo no cancela reservas.
@@ -123,7 +129,11 @@ El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la t
 - El **coach es del hueco**, no del tipo. El mismo tipo a las 9:00 y a las 18:00 puede tener coaches distintos.
 - De la plantilla salen **instancias con fecha concreta**. Todo se reserva contra una instancia, nunca contra la plantilla.
 - El calendario es **rodante y automático**: la semana en curso y las tres siguientes, de lunes a domingo. Cierra el domingo de esa cuarta semana. **No hay botón de publicar** y el admin no tiene tarea semanal.
-- El **eje del día** abre a las **07:00** y cierra a las **21:00**. Es el mismo en las cuatro semanas y en Dirigidas y Open: no depende de la primera ni de la última clase. El admin cambia esas dos horas desde el panel de staff cuando el horario del box cambie. Hasta ese panel están fijas. Si una clase cae fuera, el eje se alarga lo justo para que se vea.
+- El admin define el **horario habitual por día** con uno o varios tramos abiertos; un día sin tramos está cerrado. El valor inicial es `07:00–21:00` todos los días. Puede añadir una **excepción por fecha** con tramos distintos o dejarla sin tramos para cerrar ese día. La excepción sustituye el horario semanal solo para esa fecha.
+- Los cambios de horario rigen **inmediatamente**, desde que se guardan. El sistema rechaza cualquier cambio que deje plantillas o clases futuras programadas fuera de apertura; el staff debe ajustar o cancelar esos elementos. Las reservas no se cancelan automáticamente.
+- No se puede crear ni editar una plantilla o clase puntual fuera de apertura. Cada clase debe quedar dentro de un único tramo. La materialización omite las ocurrencias recurrentes que caigan en una fecha cerrada por excepción.
+- Los cierres completos y las pausas entre tramos se distinguen con un tramado discreto y la etiqueta «Cerrado» cuando haya espacio. En Plantilla, la zona cerrada no permite añadir clases.
+- El eje de calendario es compartido entre Dirigidas y Open y entre semanas: parte de la apertura más temprana y el cierre más tardío de la configuración, y se extiende lo justo si una clase excepcional cae fuera.
 - **No hay ventana por socio**: si la clase está en el calendario y no empezó, se puede reservar. No hay límite de "solo 7 días vista".
 - El socio elige la grilla **Dirigidas** u **Open**. El bloque es la imagen del tipo. Centrado abajo, encima de la imagen, va la ocupación `apuntados/aforo`. Si está apuntado o la clase está cancelada, esa palabra va con el cupo, sin el nombre y sin hacer el bloque más alto. La hora la marca el eje, no el bloque.
 - En el detalle se ven la imagen, el nombre del tipo y el coach (si hay). Si la clase tiene entrenamiento, el plan va debajo (§5.5).
@@ -156,7 +166,7 @@ El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la t
 
 - La **biblioteca** guarda entrenamientos reutilizables. Cada uno tiene **nombre** (obligatorio, puede repetirse) y un solo **tipo de clase dirigido**. Un tipo open no tiene entrenamientos.
 - El texto es una lista ordenada de **fases**. Cada fase tiene nombre (obligatorio, puede repetirse) y una lista ordenada de **bloques**. Un bloque es texto plano y conserva los saltos de línea: un movimiento por línea, y también se puede escribir «AMRAP 12» o «EMOM 10». No hay cronómetro, negrita, viñetas, fotos ni enlaces. No se guarda un entrenamiento sin fases, una fase sin bloques ni un bloque vacío.
-- No hay borrador, ni versiones, ni duplicar, ni búsqueda por el texto. Al guardar, el socio ve ese texto. Editarlo cambia lo que ven todas las clases que lo señalan, pasadas y futuras.
+- No hay borrador, ni versiones, ni duplicar, ni búsqueda por el texto. Al guardar, el socio ve ese texto. Editarlo cambia lo que ven todas las clases que lo señalan, pasadas y futuras; si hay clases vinculadas, el staff confirma el impacto antes de guardar.
 - Cualquier socio que haya entrado ve toda la biblioteca. No hace falta haber reservado. La lista va por el último editado, en una sola lista, sin páginas. El filtro abre en **Todos** y ofrece cada tipo dirigido que tenga al menos un entrenamiento. La ficha muestra nombre, tipo, fases y bloques. Sin imagen, sin fecha y sin autor.
 - El coach y el admin crean, editan y borran cualquier entrenamiento. No hay dueño. Al crear, el tipo se elige entre todos los tipos dirigidos, también los que aún no tienen ninguno. El alta y la edición están en el panel de staff. El módulo del socio es solo lectura.
 - Una clase tiene como máximo un entrenamiento, del mismo tipo, o ninguno. Varias clases pueden señalar el mismo. El coach y el admin lo asocian o lo quitan desde la clase, pasada o futura. En el detalle, debajo de la imagen, la hora, el coach, las plazas, el roster y el botón, se ve el nombre del entrenamiento y luego las fases. El nombre abre la ficha. Si no hay entrenamiento, esa parte no aparece. El bloque del calendario no cambia. Una clase cancelada sigue mostrando el plan.
@@ -213,18 +223,18 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 | 8 | Un socio no puede tener dos reservas solapadas. |
 | 9 | Cancelación del socio hasta 2 h antes; después el botón se deshabilita. |
 | 10 | El staff puede cancelar siempre y decide si devuelve cupo. |
-| 11 | La membresía no vence; el pago es un estado mensual informativo. |
+| 11 | La membresía no vence; el estado de pago sigue el periodo de facturación configurado (mensual, trimestral, semestral o anual) y es informativo. |
 | 12 | Sin pagos online, sin notificaciones, sin asistencia, sin lista de espera. |
 | 13 | El roster se muestra como "Nombre I.". |
 | 14 | El staff controla las credenciales; las contraseñas se guardan hasheadas. |
-| 15 | La app es solo para socios; el staff trabaja en la web. |
+| 15 | El área de socio es solo para socios; el staff trabaja en la web. La app móvil de socios sigue pendiente en la hoja de ruta. |
 | 16 | Cualquier cambio de tarifa cancela las reservas futuras del socio. |
 | 17 | Un cambio de plantilla rige desde el lunes siguiente; la semana en curso no se toca. |
 | 18 | El aforo nunca queda por debajo de las reservas: si se baja, se cancelan todas las reservas de esa clase. |
 | 19 | El bloque del calendario es la imagen del tipo y la ocupación `apuntados/aforo`. El nombre no se pinta en el bloque. |
 | 20 | Cambiar la imagen de un tipo no cancela reservas. Cambiar el tipo de un hueco sí. |
 | 21 | Un tipo con clases de hoy en adelante no se borra. |
-| 22 | El eje del calendario es de 07:00 a 21:00 en todas las semanas y en las dos grillas. El admin cambia esas horas en el panel de staff. |
+| 22 | El horario de apertura se define por día y puede tener varios tramos. Las excepciones por fecha sustituyen el horario de ese día. Los cambios rigen al guardar y se rechazan si dejan clases programadas fuera de apertura. |
 | 23 | El historial del socio lista las reservas cuya clase ya empezó, agrupadas por mes. No registra asistencia. |
 | 24 | La biblioteca guarda entrenamientos reutilizables de tipos dirigidos, en fases y bloques de texto plano. Open no tiene. |
 | 25 | Editar un entrenamiento cambia el texto vivo en todas las clases que lo señalan. No hay versiones. |

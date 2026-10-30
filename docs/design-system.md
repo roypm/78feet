@@ -2,89 +2,90 @@
 
 Colores, tipografía, espaciado, componentes y reglas de interfaz.
 
-Salido del grilling de diseño (28/10/2026). Este documento es la versión vigente.
+La identidad visual salió del grilling de diseño (28/10/2026). Este documento es la fuente visual vigente. Las referencias a Expo describen una implementación futura: hoy la interfaz de socio y staff disponible está en `apps/web`; Expo sigue pendiente en la hoja de ruta.
 
 ---
 
-## 1. Stack de estilos
+## 1. Stack y tema
 
-- **Web:** Tailwind CSS + shadcn/ui.
-- **App:** NativeWind (Tailwind para React Native), con `lucide-react-native` para iconos.
-- Un solo lenguaje de estilos entre web y app: las clases y tokens coinciden.
+- **Web implementada:** Tailwind CSS 4, tokens CSS y componentes locales basados en shadcn/ui y Base UI. Iconos Lucide.
+- **App Expo pendiente:** NativeWind y `lucide-react-native` consumirán estos mismos valores cuando se implemente la app móvil.
+- Claro y oscuro se siguen automáticamente con `prefers-color-scheme`. No hay selector manual de tema.
+- Los valores de marca se declaran en `apps/web/app/globals.css`; las clases consumen los alias semánticos de Tailwind/shadcn (`bg-background`, `bg-card`, `text-foreground`, `border-border`, `bg-primary`).
 
-## 2. Modo
+## 2. Color
 
-Claro + oscuro desde el día 1. Los tokens se definen con variables CSS y se consumen con `dark:` en NativeWind/Tailwind.
+### Primario
 
-## 3. Color
+- Naranja cálido: `#ff931d` (`--primary` y `--color-primary`).
+- Texto del primario: `#111827` (`--primary-foreground`).
+- Uso: acción principal, enlaces, selección activa y énfasis. No usarlo como fondo de pantalla completa.
 
-### Primario (acento / acción)
+### Superficies y texto
 
-- `--color-primary: #ff931d` (naranja cálido).
-- Uso: botones principales, links, estados activos, badges importantes, iconos de acción.
-- Siempre sobre fondo neutro. Nunca como fondo de pantalla completa (salvo hero o botón grande).
-
-### Neutros (fondos, texto, bordes)
-
-Cuatro superficies, cada una con su color. El menú es frío, el lienzo del contenido es cálido en claro y más claro que el menú en oscuro, la cabecera del módulo es una banda propia y las cards son el plano más alto.
-
-| Token | Rol | Claro | Oscuro |
+| Rol | Claro | Oscuro | Alias principal |
 |---|---|---|---|
-| `--color-sidebar` | Menú | `#E4EBF3` | `#0E1620` |
-| `--color-bg` | Lienzo del contenido | `#F4F1EB` | `#1C2838` |
-| `--color-header` | Cabecera del módulo | `#FFFFFF` | `#2C3E54` |
-| `--color-surface` | Cards y bloques | `#FFFFFF` | `#3A516C` |
-| `--color-border` | Líneas | `#DDD6CC` | `#4A5E78` |
-| `--color-text` | Texto | `#111827` | `#F9FAFB` |
-| `--color-text-muted` | Texto secundario | `#6B7280` | `#B6C2CE` |
+| Menú lateral | `#E4EBF3` | `#0E1620` | `--sidebar` |
+| Lienzo | `#F4F1EB` | `#1C2838` | `--background`, `--color-bg` |
+| Cabecera de módulo | `#FFFFFF` | `#2C3E54` | `--header`, `--color-header` |
+| Cards y superficies | `#FFFFFF` | `#3A516C` | `--card`, `--color-surface` |
+| Bordes | `#DDD6CC` | `#4A5E78` | `--border`, `--color-border` |
+| Texto principal | `#111827` | `#F9FAFB` | `--foreground`, `--color-text` |
+| Texto secundario | `#6B7280` | `#B6C2CE` | `--muted-foreground`, `--color-text-muted` |
+| Superficie secundaria | `#EBE6DE` | `#31445C` | `--secondary`, `--muted` |
 
-### Semánticos
+El menú es frío, el lienzo claro es cálido, la cabecera separa el título del contenido y las cards forman la superficie elevada.
 
-- Éxito: `green-600` (`#16A34A`).
-- Error: `red-600` (`#DC2626`).
-- Advertencia: `amber-500` (`#F59E0B`).
-- Info: `blue-600` (`#2563EB`).
+### Feedback semántico
 
-Los semánticos se usan solo para feedback (toasts, badges de estado, mensajes), no como color de marca.
+- Éxito: `#16A34A` (`--success`).
+- Error/destructivo: `#DC2626` (`--color-error`, `--destructive`).
+- Advertencia: `#F59E0B` (`--warning`).
+- No hay un token informativo azul propio; no se usa como color de marca.
 
-## 4. Tipografía
+Los colores semánticos se reservan para feedback, badges y estados. No sustituyen al primario.
 
-- System font stack en v1 (sin fuente custom): `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`.
-- Escala de Tailwind: `text-xs` (12) … `text-4xl` (36). Base `text-base` (16px).
-- Pesos: `font-normal` (400), `font-medium` (500), `font-semibold` (600), `font-bold` (700).
-- Una fuente custom se agrega solo si la marca lo exige; requiere configuración en Expo (assets) y en Next.js.
+## 3. Tipografía
 
-## 5. Espaciado
+- System font stack: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` (`--font-sans`).
+- Base de lectura: `text-base` (16 px); se usa la escala Tailwind de `text-xs` a `text-4xl`.
+- Pesos habituales: `font-normal` (400), `font-medium` (500), `font-semibold` (600) y `font-bold` (700).
+- Sin fuente custom en v1.
 
-Escala de Tailwind (base 4px): `1` = 4px, `2` = 8px, `3` = 12px, `4` = 16px, `6` = 24px, `8` = 32px.
+## 4. Espaciado y layout
 
-- Padding de pantalla: `px-4` (16px) en móvil, `px-6` (24px) en web.
-- Gap entre elementos de lista: `gap-3` (12px).
-- Gap entre secciones: `gap-6` (24px).
+Escala de Tailwind con base de 4 px: `1` = 4, `2` = 8, `3` = 12, `4` = 16, `6` = 24 y `8` = 32 px.
 
-## 6. Radios
+- Padding lateral habitual: `px-4` en pantallas estrechas y `md:px-6` en escritorio.
+- Las cabeceras de módulo usan una banda de superficie propia; título, filtros y acción se ajustan en varias líneas si falta ancho.
+- Los listados largos ocupan el ancho disponible. Las fichas de lectura limitan su ancho para facilitar la lectura; tablas y calendario pueden usar todo el espacio.
+- Separación típica de listas: `gap-3`; entre secciones: `gap-6`. El cuerpo de módulos densos usa `pt-2` y `gap-3` para aprovechar la altura.
+- El shell ocupa el alto visible (`100svh`) y el contenido de cada módulo gestiona su propio scroll. En web táctil se respetan safe areas y los inputs mantienen 16 px para evitar zoom automático en iOS.
 
-- `rounded-sm`: 4px (inputs, badges).
-- `rounded-md`: 8px (botones, cards pequeñas).
-- `rounded-lg`: 12px (cards, modales).
-- `rounded-full`: 9999px (avatares, pills).
+## 5. Radios e interacción
 
-## 7. Iconos
+- `rounded-sm`: 4 px; `rounded-md`: 8 px; `rounded-lg`: 12 px; `rounded-full`: pill o círculo.
+- Los botones tienen foco visible, estado deshabilitado y respuesta de pulsación sutil (`scale(0.97)`, transición de 150 ms).
+- Hover solo debe aportar información adicional en dispositivos con puntero; no debe ser el único indicador de interacción.
+- No añadir animaciones decorativas de entrada, cascadas ni movimiento que retrase tareas.
 
-- Set: **Lucide** (`lucide-react` en web, `lucide-react-native` en app).
-- Tamaño estándar: 20px (`size-5`) en líneas de texto, 24px (`size-6`) en botones y headers.
-- Color: hereda del texto por defecto; primario solo para acciones destacadas.
+## 6. Iconos
 
-## 8. Componentes base (web)
+- Web: Lucide (`lucide-react`).
+- Tamaños generales: 20 px (`size-5`) en línea y 24 px (`size-6`) en cabeceras o acciones destacadas. Los iconos dentro de primitives Button/Input siguen el tamaño del componente.
+- El icono hereda el color del texto; primario solo para acciones destacadas.
+- Expo usará `lucide-react-native` cuando la app esté implementada.
 
-shadcn/ui con los tokens de arriba. Componentes que se usan en v1:
+## 7. Componentes y patrones web
 
-- `Button` (variantes: default/primary, secondary, outline, ghost, destructive).
-- `Card`, `Badge`, `Input`, `Select`, `Dialog`, `Toast` (sonner).
-- `Table` para listados de staff (socios, tarifas, impagos).
+- Primitives locales: `Button`, `Card`, `Badge`, `Input`, `Select`, `Switch`, `Table`, `Dialog`, `Sheet`, `Tooltip` y `Textarea`.
+- Botones: `default`, `outline`, `secondary`, `ghost`, `destructive` y `link`; tamaño compacto por defecto. Las acciones táctiles relevantes pueden subir a `min-h-11`.
+- Los listados del staff usan tablas. En pantallas estrechas se ocultan columnas secundarias y se integra ese dato en la celda principal o se permite scroll horizontal; el estado y las acciones conservan una columna estable.
+- Formularios de módulo usan `Field` y `FormDialog` para etiqueta, descripción, contenido y acciones consistentes.
+- Confirmaciones de impacto usan el `ConfirmDialog` propio, con explicación concreta, botón de cancelar y acción confirmada. No usar `window.confirm`, `alert` ni `prompt` del navegador.
+- Feedback asíncrono usa un único `Toaster` Sonner en el layout raíz, ligado al tema del sistema, con iconos para éxito, error, aviso, información y carga.
+- La app Expo queda fuera de este inventario hasta que se construya; no se afirma que los primitives web ya estén portados.
 
-En app se portan los equivalentes con NativeWind (mismos tokens, mismos nombres de variante).
+## 8. Fuera de alcance visual de v1
 
-## 9. Fuera de alcance v1
-
-Componentes individuales detallados, estados vacíos, copy fino, animaciones, ilustraciones, tipografía custom. Se agregan con la UI, no antes.
+Fuente custom, ilustraciones, motion decorativo, analítica visual y tematización manual. Los estados vacíos, errores y textos de cada módulo se definen al diseñar su flujo; deben seguir los componentes y tokens anteriores.
