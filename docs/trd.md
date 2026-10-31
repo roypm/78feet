@@ -580,6 +580,8 @@ multi-tenant, i18n, exportaciones, panel de métricas, app de staff, offline, Do
 
 Las pantallas de Socios, Impagos y Biblioteca consultan páginas de 25 filas con `skip`/`take` y un recuento filtrado. El orden añade `id` como desempate estable. El servidor normaliza páginas inválidas a 1 y ajusta las que exceden el total.
 
+El filtrado de texto de Socios, Impagos y Biblioteca staff se aplica en el cliente a la página cargada; Equipo filtra la lista de cuentas cargada. Comparten la normalización de mayúsculas y acentos en `lib/ui/search.ts`, sin parámetros ni peticiones adicionales de búsqueda. Biblioteca staff solo indexa nombre y tipo, no el contenido del entrenamiento.
+
 Los GET de `/api/v1/admin/members`, `/api/v1/admin/unpaid`, `/api/v1/admin/trainings` y `/api/v1/trainings` aceptan `page=N`. Con `page` devuelven `{ items, pageInfo: { page, pageSize, total, totalPages } }`; Impagos añade `asOf` y Biblioteca de socio añade `types`. Sin `page`, mantienen el contrato anterior para los consumidores existentes y selectores internos.
 
 El saldo de bonos del listado se calcula con agregaciones `SUM(quantity)` de créditos y recuento de reservas consumidas para los IDs cargados: `pool=pack` y (`status=active` o `quotaReturned=false`). Impagos filtra en SQL por tarifa vigente y ausencia del pago de su periodo, antes de contar y paginar; no carga el historial de pagos.
