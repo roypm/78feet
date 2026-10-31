@@ -43,6 +43,8 @@ async function Members({ searchParams }: { searchParams: Promise<{ estado?: stri
   ]);
 
   const members = result.items;
+  const memberAction = !inactive ? <CreateMemberAltaButton tariffs={tariffs} canManageTariffs={user.role === "admin"} /> : null;
+  const actionInToolbar = !inactive && members.length > 0 && tariffs.some((tariff) => tariff.active);
 
   return (
     <ModulePage>
@@ -61,15 +63,15 @@ async function Members({ searchParams }: { searchParams: Promise<{ estado?: stri
         }
       />
       <ModuleBody width="full" inset="content">
-        {!inactive ? (
+        {memberAction && !actionInToolbar ? (
           <ModulePrimaryAction>
-            <CreateMemberAltaButton tariffs={tariffs} canManageTariffs={user.role === "admin"} />
+            {memberAction}
           </ModulePrimaryAction>
         ) : null}
         {members.length === 0 ? (
           <EmptyState title={inactive ? "No hay socios dados de baja" : "Todavía no hay socios"} description={inactive ? "Las cuentas dadas de baja se conservan acá para poder consultarlas o reactivarlas." : "Usá Alta de socio para crear la primera cuenta del box."} href={inactive ? "/staff/socios" : undefined} action={inactive ? "Ver socios activos" : undefined} />
         ) : (
-          <MembersTable members={members} />
+          <MembersTable members={members} action={actionInToolbar ? memberAction : undefined} />
         )}
         <ListPagination pageInfo={result.pageInfo} path="/staff/socios" filters={{ estado: query.estado }} />
       </ModuleBody>

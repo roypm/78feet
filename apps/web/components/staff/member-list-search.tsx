@@ -1,30 +1,30 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { controlClass } from "@/components/staff/field";
+import type { Ref } from "react";
 import { cn } from "cn";
+import { SearchInput } from "@/components/ui/search-input";
 
 export function MemberListSearch({
+  ref,
   value,
   onChange,
   placeholder = "Buscar por nombre, DNI, teléfono o email…",
   className,
 }: {
+  ref?: Ref<HTMLInputElement>;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
 }) {
   return (
-    <Input
-      type="search"
+    <SearchInput
+      ref={ref}
       aria-label="Buscar en esta página"
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onValueChange={onChange}
       placeholder={placeholder}
-      className={cn(controlClass, "min-h-11", className)}
-      autoComplete="off"
-      enterKeyHint="search"
+      className={cn("w-full sm:max-w-md", className)}
     />
   );
 }

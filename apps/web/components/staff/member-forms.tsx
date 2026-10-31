@@ -10,7 +10,8 @@ import { api } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Field, controlClass } from "@/components/staff/field";
+import { Field } from "@/components/staff/field";
+import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 
 type Tariff = { id: string; name: string; active: boolean };
@@ -129,15 +130,8 @@ export function CreateMemberForm({
           <Field label="Email">
             <Input name="email" type="email" autoComplete="email" />
           </Field>
-          <Field label="Tarifa">
-            <select name="tariffId" required className={controlClass} defaultValue={assignable[0]?.id}>
-              {assignable.map((tariff) => (
-                <option key={tariff.id} value={tariff.id}>
-                  {tariff.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <FormSelect label="Tarifa" name="tariffId" required defaultValue={assignable[0]?.id} disabled={busy}
+            options={assignable.map((tariff) => ({ value: tariff.id, label: tariff.name }))} />
           {inDialog ? (
             <DialogFooter>
               <Button type="button" variant="outline" className="min-h-11" disabled={busy} onClick={onCancel}>

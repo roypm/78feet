@@ -1,4 +1,6 @@
 "use client";
+import { TimePicker } from "@/components/staff/time-picker";
+import { DatePicker } from "@/components/staff/date-picker";
 
 import { PendingButton } from "@/components/feedback/pending-button";
 
@@ -8,8 +10,8 @@ import { toast } from "sonner";
 import { createExtraInstance } from "@/lib/box/instance-mutations";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Field, controlClass } from "@/components/staff/field";
+import { QuantityField } from "@/components/staff/numeric-field";
+import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 import type { ClassType, Coach } from "./instance-form-types";
 
@@ -60,37 +62,14 @@ export function ExtraClassForm({
       >
         <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Día">
-            <Input name="date" type="date" required defaultValue={defaultDate} />
-          </Field>
-          <Field label="Inicio">
-            <Input name="startTime" type="time" required defaultValue="18:00" />
-          </Field>
-          <Field label="Fin">
-            <Input name="endTime" type="time" required defaultValue="19:00" />
-          </Field>
-          <Field label="Tipo">
-            <select name="classTypeId" required className={controlClass}>
-              {classTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Coach">
-            <select name="coachId" className={controlClass} defaultValue="">
-              <option value="">Sin coach</option>
-              {coaches.map((coach) => (
-                <option key={coach.id} value={coach.id}>
-                  {coach.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Aforo">
-            <Input name="capacity" type="number" min={1} required defaultValue={12} />
-          </Field>
+          <DatePicker label="Día" disabled={pending} name="date" required defaultValue={defaultDate} />
+          <TimePicker label="Inicio" disabled={pending} name="startTime" required defaultValue="18:00" />
+          <TimePicker label="Fin" disabled={pending} name="endTime" required defaultValue="19:00" />
+          <FormSelect label="Tipo" name="classTypeId" required disabled={pending}
+            options={classTypes.map((type) => ({ value: type.id, label: type.name }))} />
+          <FormSelect label="Coach" name="coachId" defaultValue="" disabled={pending}
+            options={[{ value: "", label: "Sin coach" }, ...coaches.map((coach) => ({ value: coach.id, label: coach.name }))]} />
+          <QuantityField label="Aforo" name="capacity" min={1} required defaultValue={12} disabled={pending} />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
               Cancelar

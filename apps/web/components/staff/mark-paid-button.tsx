@@ -11,7 +11,10 @@ import { formatPrice } from "@/lib/box/format";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Field, controlClass } from "@/components/staff/field";
+import { MoneyField } from "@/components/staff/numeric-field";
+import { parseEuroCents } from "@/lib/ui/numbers";
+import { Field } from "@/components/staff/field";
+import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 
 const PAYMENT_METHODS = [
@@ -21,18 +24,6 @@ const PAYMENT_METHODS = [
   { value: "card", label: "TPV / tarjeta" },
   { value: "other", label: "Otro" },
 ] as const;
-
-function eurosInputDefault(cents: number): string {
-  return (cents / 100).toFixed(2).replace(".", ",");
-}
-
-function parseEurosInput(raw: string): number | null {
-  const normalized = raw.trim().replace(",", ".");
-  if (!normalized) return null;
-  const value = Number(normalized);
-  if (!Number.isFinite(value) || value < 0) return null;
-  return Math.round(value * 100);
-}
 
 export function MarkPaidButton({
   userId,
@@ -53,7 +44,7 @@ export function MarkPaidButton({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const parsed = parseEurosInput(String(form.get("amountEuros") ?? ""));
+    const parsed = parseEuroCents(String(form.get("amountEuros") ?? ""));
     if (parsed === null) {
       toast.error("Importe no válido");
       return;
@@ -105,25 +96,9 @@ export function MarkPaidButton({
           <Field label="Periodo">
             <Input readOnly value={periodLabel} className="bg-muted/40" />
           </Field>
-          <Field label="Importe cobrado (€)">
-            <Input
-              name="amountEuros"
-              inputMode="decimal"
-              required
-              defaultValue={eurosInputDefault(amountCents)}
-              className="tabular-nums"
-              autoComplete="off"
-            />
-          </Field>
-          <Field label="Método de pago">
-            <select name="method" required className={controlClass} defaultValue="cash">
-              {PAYMENT_METHODS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <MoneyField label="Importe cobrado (€)" name="amountEuros" required defaultCents={amountCents} disabled={pending} />
+          <FormSelect label="Método de pago" name="method" required defaultValue="cash" disabled={pending}
+            options={PAYMENT_METHODS.map((item) => ({ value: item.value, label: item.label }))} />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
               Cancelar

@@ -9,7 +9,7 @@ import { useState, type FormEvent } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
-import { Field, controlClass } from "@/components/staff/field";
+import { Field } from "@/components/staff/field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +21,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { FormSelect } from "@/components/staff/form-select";
+import { ImageUploadField } from "@/components/staff/image-upload-field";
 import { Input } from "@/components/ui/input";
 import { ModulePrimaryAction } from "@/components/member/module-page";
 import { ConfirmDialog } from "@/components/staff/confirm-dialog";
@@ -122,17 +124,12 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
               <p className="text-sm text-muted-foreground">{kindName(editing.kind)} · no se cambia</p>
             </Field>
           ) : (
-            <Field label="Grilla">
-              <select name="kind" required className={controlClass} defaultValue="directed">
-                <option value="directed">Dirigida</option>
-                <option value="open">Open</option>
-              </select>
-            </Field>
+            <FormSelect
+              label="Grilla" name="kind" required disabled={pending} defaultValue="directed"
+              options={[{ value: "directed", label: "Dirigida" }, { value: "open", label: "Open" }]}
+            />
           )}
-          <Field label="Imagen">
-            <Input name="image" type="file" accept="image/jpeg,image/png,image/webp" required={!editing} />
-            {editing ? <p className="text-xs text-muted-foreground">Dejá vacío para mantener la imagen actual.</p> : null}
-          </Field>
+          <ImageUploadField key={editing?.id ?? "new"} currentImageUrl={editing?.imageUrl} required={!editing} disabled={pending} />
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
               Cancelar

@@ -9,7 +9,8 @@ import { api } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Field, controlClass } from "@/components/staff/field";
+import { Field } from "@/components/staff/field";
+import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 
 export function StaffForm() {
@@ -69,12 +70,8 @@ export function StaffForm() {
           <Field label="Contraseña">
             <Input name="password" type="password" required minLength={8} />
           </Field>
-          <Field label="Rol">
-            <select name="role" className={controlClass} defaultValue="coach">
-              <option value="coach">Coach</option>
-              <option value="admin">Admin</option>
-            </select>
-          </Field>
+          <FormSelect label="Rol" name="role" defaultValue="coach" disabled={pending}
+            options={[{ value: "coach", label: "Coach" }, { value: "admin", label: "Admin" }]} />
           <Field label="DNI">
             <Input name="dni" required autoComplete="off" />
           </Field>

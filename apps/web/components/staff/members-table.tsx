@@ -2,13 +2,14 @@
 
 import { EmptyState } from "@/components/feedback/empty-state";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { Spinner } from "@/components/ui/spinner";
 import { consumptionModelLabel } from "@78feet/domain";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MemberListSearch } from "@/components/staff/member-list-search";
+import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
 import { memberFullName } from "@/lib/box/format";
 import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
 import { cn } from "cn";
@@ -90,7 +91,8 @@ function CellText({
   );
 }
 
-export function MembersTable({ members }: { members: MemberListRow[] }) {
+export function MembersTable({ members, action }: { members: MemberListRow[]; action?: ReactNode }) {
+  const searchRef = useRef<HTMLInputElement>(null);
   const { router, pending } = useActionFeedback();
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -117,11 +119,18 @@ export function MembersTable({ members }: { members: MemberListRow[] }) {
     router.push(`/staff/socios/${id}`);
   }
 
+  function clearQuery() {
+    setQuery("");
+    searchRef.current?.focus({ preventScroll: true });
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <MemberListSearch value={query} onChange={setQuery} />
+      <ListSearchToolbar action={action}>
+        <MemberListSearch ref={searchRef} value={query} onChange={setQuery} />
+      </ListSearchToolbar>
       {filtered.length === 0 ? (
-        <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra los socios de la página actual. Podés limpiar el texto o consultar otra página."><button type="button" className="min-h-11 text-primary" onClick={() => setQuery("")}>Limpiar búsqueda</button></EmptyState>
+        <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra los socios de la página actual. Podés limpiar el texto o consultar otra página."><button type="button" className="min-h-11 text-primary" onClick={clearQuery}>Limpiar búsqueda</button></EmptyState>
       ) : null}
       {filtered.length > 0 ? (
     <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">

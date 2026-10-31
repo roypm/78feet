@@ -1,13 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "../db";
 import { BoxError } from "./errors";
-
-const MAX_BYTES = 5 * 1024 * 1024;
-const TYPES: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
+import { CLASS_IMAGE_EXTENSIONS, CLASS_IMAGE_MAX_BYTES } from "./image-upload";
 
 export const PLACEHOLDER_IMAGE_KEY = "placeholder.png";
 const DATABASE_IMAGE_PREFIX = "db_";
@@ -20,11 +14,11 @@ export function classTypeImageUrl(imageKey: string): string {
 }
 
 export async function saveClassTypeImage(file: File): Promise<string> {
-  const ext = TYPES[file.type];
+  const ext = Object.hasOwn(CLASS_IMAGE_EXTENSIONS, file.type) ? CLASS_IMAGE_EXTENSIONS[file.type] : undefined;
   if (!ext) {
     throw new BoxError(400, "FORBIDDEN", "La imagen tiene que ser JPEG, PNG o WebP");
   }
-  if (file.size > MAX_BYTES) {
+  if (file.size > CLASS_IMAGE_MAX_BYTES) {
     throw new BoxError(400, "FORBIDDEN", "La imagen no puede superar 5 MB");
   }
   const key = `${DATABASE_IMAGE_PREFIX}${randomUUID()}`;

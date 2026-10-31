@@ -12,7 +12,7 @@ import { api } from "@/lib/box/api";
 import { formatPrice } from "@/lib/box/format";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Field, controlClass } from "@/components/staff/field";
+import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 import { cn } from "cn";
 
@@ -236,25 +236,16 @@ export function BonoGestionDialog({
       </GestionActualBox>
       <form onSubmit={(event) => void addPack(event)} className="flex flex-col gap-4 border-t border-border pt-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Añadir pack">
-            <select
-              name="packTariffId"
-              required={bonoPacks.length > 0}
-              className={controlClass}
-              defaultValue={bonoPacks[0]?.id ?? ""}
-              disabled={bonoPacks.length === 0}
-            >
-              {bonoPacks.length === 0 ? (
-                <option value="">Sin packs en el catálogo</option>
-              ) : (
-                bonoPacks.map((pack) => (
-                  <option key={pack.id} value={pack.id}>
-                    {pack.name} · {pack.packClasses} clase{pack.packClasses === 1 ? "" : "s"} · {formatPrice(pack.priceCents)}
-                  </option>
-                ))
-              )}
-            </select>
-          </Field>
+          <FormSelect
+            label="Añadir pack" name="packTariffId" required={bonoPacks.length > 0}
+            defaultValue={bonoPacks[0]?.id ?? ""} disabled={pending || bonoPacks.length === 0}
+            options={bonoPacks.length === 0
+              ? [{ value: "", label: "Sin packs en el catálogo" }]
+              : bonoPacks.map((pack) => ({
+                  value: pack.id,
+                  label: `${pack.name} · ${pack.packClasses} clase${pack.packClasses === 1 ? "" : "s"} · ${formatPrice(pack.priceCents)}`,
+                }))}
+          />
           {bonoPacks.length === 0 ? (
             <EmptyState
               compact

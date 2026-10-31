@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth/current";
 import { listStaff } from "@/lib/box/staff-users";
 import { StaffForm } from "@/components/staff/staff-form";
 import { TeamTable } from "@/components/staff/team-table";
-import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page() {
   return (
@@ -34,10 +34,7 @@ async function Team() {
         description="Cuentas de coach y admin con acceso al panel de staff."
       />
       <ModuleBody width="full" inset="content">
-        <ModulePrimaryAction>
-          <StaffForm />
-        </ModulePrimaryAction>
-        <TeamTable staff={staff} currentUserId={currentUser.id} />
+        <TeamTable staff={staff} currentUserId={currentUser.id} action={<StaffForm />} />
       </ModuleBody>
     </ModulePage>
   );

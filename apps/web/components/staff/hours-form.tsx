@@ -1,4 +1,6 @@
 "use client";
+import { TimePicker } from "@/components/staff/time-picker";
+import { DatePicker } from "@/components/staff/date-picker";
 
 import { PendingButton } from "@/components/feedback/pending-button";
 
@@ -10,8 +12,6 @@ import { addDays, type BoxHoursConfig } from "@78feet/domain";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/staff/field";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -114,36 +114,30 @@ export function HoursForm({ initialConfig, today }: { initialConfig: BoxHoursCon
                             key={`${day.weekday}-${index}`}
                             className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
                           >
-                            <Field label={`Tramo ${index + 1}: abre`}>
-                              <Input
-                                type="time"
-                                required
-                                aria-label={`${DAYS[day.weekday - 1]}, tramo ${index + 1}, apertura`}
-                                value={interval.openTime}
-                                onChange={(event) =>
-                                  updateDay(day.weekday, (items) =>
-                                    items.map((item, itemIndex) =>
-                                      itemIndex === index ? { ...item, openTime: event.target.value } : item,
-                                    ),
-                                  )
-                                }
-                              />
-                            </Field>
-                            <Field label="Cierra">
-                              <Input
-                                type="time"
-                                required
-                                aria-label={`${DAYS[day.weekday - 1]}, tramo ${index + 1}, cierre`}
-                                value={interval.closeTime}
-                                onChange={(event) =>
-                                  updateDay(day.weekday, (items) =>
-                                    items.map((item, itemIndex) =>
-                                      itemIndex === index ? { ...item, closeTime: event.target.value } : item,
-                                    ),
-                                  )
-                                }
-                              />
-                            </Field>
+                            <TimePicker label={`Tramo ${index + 1}: abre`} disabled={pending}
+                              required
+                              aria-label={`${DAYS[day.weekday - 1]}, tramo ${index + 1}, apertura`}
+                              value={interval.openTime}
+                              onValueChange={(value) =>
+                                updateDay(day.weekday, (items) =>
+                                  items.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, openTime: value } : item,
+                                  ),
+                                )
+                              }
+                            />
+                            <TimePicker label="Cierra" disabled={pending}
+                              required
+                              aria-label={`${DAYS[day.weekday - 1]}, tramo ${index + 1}, cierre`}
+                              value={interval.closeTime}
+                              onValueChange={(value) =>
+                                updateDay(day.weekday, (items) =>
+                                  items.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, closeTime: value } : item,
+                                  ),
+                                )
+                              }
+                            />
                             <Button
                               type="button"
                               variant="outline"
@@ -193,22 +187,19 @@ export function HoursForm({ initialConfig, today }: { initialConfig: BoxHoursCon
                 {config.exceptions.map((exception, index) => (
                   <div key={`${exception.date}-${index}`} className="rounded-lg border border-border bg-surface p-4">
                     <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-                      <Field label="Fecha">
-                        <Input
-                          type="date"
-                          required
-                          min={today}
-                          value={exception.date}
-                          onChange={(event) => {
-                            const date = event.target.value;
-                            if (config.exceptions.some((item, itemIndex) => itemIndex !== index && item.date === date)) {
-                              toast.error("Ya hay una excepción para esa fecha");
-                              return;
-                            }
-                            updateException(index, (item) => ({ ...item, date }));
-                          }}
-                        />
-                      </Field>
+                      <DatePicker label="Fecha" disabled={pending}
+                        required
+                        min={today}
+                        value={exception.date}
+                        onValueChange={(value) => {
+                          const date = value;
+                          if (config.exceptions.some((item, itemIndex) => itemIndex !== index && item.date === date)) {
+                            toast.error("Ya hay una excepción para esa fecha");
+                            return;
+                          }
+                          updateException(index, (item) => ({ ...item, date }));
+                        }}
+                      />
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -244,38 +235,32 @@ export function HoursForm({ initialConfig, today }: { initialConfig: BoxHoursCon
                             key={`${exception.date}-${intervalIndex}`}
                             className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
                           >
-                            <Field label={`Tramo ${intervalIndex + 1}: abre`}>
-                              <Input
-                                type="time"
-                                required
-                                aria-label={`${exception.date}, tramo ${intervalIndex + 1}, apertura`}
-                                value={interval.openTime}
-                                onChange={(event) =>
-                                  updateException(index, (item) => ({
-                                    ...item,
-                                    intervals: item.intervals.map((current, currentIndex) =>
-                                      currentIndex === intervalIndex ? { ...current, openTime: event.target.value } : current,
-                                    ),
-                                  }))
-                                }
-                              />
-                            </Field>
-                            <Field label="Cierra">
-                              <Input
-                                type="time"
-                                required
-                                aria-label={`${exception.date}, tramo ${intervalIndex + 1}, cierre`}
-                                value={interval.closeTime}
-                                onChange={(event) =>
-                                  updateException(index, (item) => ({
-                                    ...item,
-                                    intervals: item.intervals.map((current, currentIndex) =>
-                                      currentIndex === intervalIndex ? { ...current, closeTime: event.target.value } : current,
-                                    ),
-                                  }))
-                                }
-                              />
-                            </Field>
+                            <TimePicker label={`Tramo ${intervalIndex + 1}: abre`} disabled={pending}
+                              required
+                              aria-label={`${exception.date}, tramo ${intervalIndex + 1}, apertura`}
+                              value={interval.openTime}
+                              onValueChange={(value) =>
+                                updateException(index, (item) => ({
+                                  ...item,
+                                  intervals: item.intervals.map((current, currentIndex) =>
+                                    currentIndex === intervalIndex ? { ...current, openTime: value } : current,
+                                  ),
+                                }))
+                              }
+                            />
+                            <TimePicker label="Cierra" disabled={pending}
+                              required
+                              aria-label={`${exception.date}, tramo ${intervalIndex + 1}, cierre`}
+                              value={interval.closeTime}
+                              onValueChange={(value) =>
+                                updateException(index, (item) => ({
+                                  ...item,
+                                  intervals: item.intervals.map((current, currentIndex) =>
+                                    currentIndex === intervalIndex ? { ...current, closeTime: value } : current,
+                                  ),
+                                }))
+                              }
+                            />
                             <Button
                               type="button"
                               variant="outline"

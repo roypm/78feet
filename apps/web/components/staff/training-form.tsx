@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Field, controlClass } from "@/components/staff/field";
+import { Field } from "@/components/staff/field";
+import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 import { TrainingRead } from "@/components/box/training-read";
 
@@ -228,20 +229,9 @@ export function TrainingForm({
               <Field label="Nombre del entrenamiento">
                 <Input value={name} onChange={(event) => setName(event.target.value)} required />
               </Field>
-              <Field label="Tipo de clase dirigida">
-                <select
-                  value={classTypeId}
-                  onChange={(event) => setClassTypeId(event.target.value)}
-                  required
-                  className={controlClass}
-                >
-                  {types.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <FormSelect label="Tipo de clase dirigida" value={classTypeId} onValueChange={setClassTypeId}
+                required disabled={pending}
+                options={types.map((type) => ({ value: type.id, label: type.name }))} />
               <p className="text-sm text-muted-foreground">
                 Ordena la sesión por fases. En cada bloque, escribe las indicaciones que necesita el grupo: series y
                 repeticiones, carga o intensidad, descansos y tiempo límite cuando corresponda.

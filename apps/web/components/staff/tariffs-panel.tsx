@@ -21,10 +21,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { MoneyField, QuantityField } from "@/components/staff/numeric-field";
+import { parseEuroCents } from "@/lib/ui/numbers";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Field, controlClass } from "@/components/staff/field";
+import { Field } from "@/components/staff/field";
+import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { ModulePrimaryAction } from "@/components/member/module-page";
@@ -50,14 +53,13 @@ function TariffDialogForm({
   );
 
   const editing = tariff !== null;
-  const eurosDefault = tariff ? (tariff.priceCents / 100).toFixed(2) : "70";
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const euros = Number(form.get("price"));
-    if (!Number.isFinite(euros) || euros < 0) {
+    const priceCents = parseEuroCents(String(form.get("price") ?? ""));
+    if (priceCents === null) {
       toast.error("Precio no válido");
       return;
     }
@@ -69,7 +71,7 @@ function TariffDialogForm({
       name: String(form.get("name")),
       consumptionModel: effectiveConsumption,
       billingPeriod: effectiveBilling,
-      priceCents: Math.round(euros * 100),
+      priceCents,
       weeklyDirected:
         usesPeriodicQuota(effectiveConsumption) ? Number(form.get("weeklyDirected")) : 0,
       weeklyOpen: usesPeriodicQuota(effectiveConsumption) ? Number(form.get("weeklyOpen")) : 0,
@@ -124,93 +126,56 @@ function TariffDialogForm({
           <Field label="Nombre">
             <Input name="name" required defaultValue={tariff?.name ?? ""} />
           </Field>
-          <Field label="Consumo">
-            {editing ? (
+          {editing ? (
+            <Field label="Consumo">
               <p className="text-sm text-muted-foreground">{consumptionModelLabel(tariff.consumptionModel)}</p>
-            ) : (
-              <select
-                name="consumptionModel"
-                className={controlClass}
-                value={consumptionModel}
-                onChange={(event) => {
-                  const next = event.target.value as TariffConsumption;
-                  setConsumptionModel(next);
-                  if (next === "pack") setBillingPeriod("one_time");
-                  else if (billingPeriod === "one_time") setBillingPeriod("monthly");
-                }}
-              >
-                <option value="weekly_quota">Cupo semanal</option>
-                <option value="monthly_quota">Cupo mensual</option>
-                <option value="pack">Bono</option>
-              </select>
-            )}
-          </Field>
+            </Field>
+          ) : (
+            <FormSelect
+              label="Consumo"
+              name="consumptionModel"
+              disabled={pending}
+              value={consumptionModel}
+              onValueChange={(value) => {
+                const next = value as TariffConsumption;
+                setConsumptionModel(next);
+                if (next === "pack") setBillingPeriod("one_time");
+                else if (billingPeriod === "one_time") setBillingPeriod("monthly");
+              }}
+              options={[
+                { value: "weekly_quota", label: "Cupo semanal" },
+                { value: "monthly_quota", label: "Cupo mensual" },
+                { value: "pack", label: "Bono" },
+              ]}
+            />
+          )}
           {usesPeriodicQuota(effectiveConsumption) ? (
             <>
-              <Field label="Dirigidas / semana">
-                <Input
-                  name="weeklyDirected"
-                  type="number"
-                  min={0}
-                  required
-                  defaultValue={tariff?.weeklyDirected ?? 3}
-                  className="tabular-nums"
-                />
-              </Field>
-              <Field label="Opens / semana">
-                <Input
-                  name="weeklyOpen"
-                  type="number"
-                  min={0}
-                  required
-                  defaultValue={tariff?.weeklyOpen ?? 1}
-                  className="tabular-nums"
-                />
-              </Field>
+              <QuantityField label="Dirigidas / semana" name="weeklyDirected" min={0} required defaultValue={tariff?.weeklyDirected ?? 3} disabled={pending} />
+              <QuantityField label="Opens / semana" name="weeklyOpen" min={0} required defaultValue={tariff?.weeklyOpen ?? 1} disabled={pending} />
             </>
           ) : (
-            <Field label="Clases del bono">
-              <Input
-                name="packClasses"
-                type="number"
-                min={1}
-                required
-                defaultValue={tariff?.packClasses ?? 8}
-                className="tabular-nums"
-              />
-            </Field>
+            <QuantityField label="Clases del bono" name="packClasses" min={1} required defaultValue={tariff?.packClasses ?? 8} disabled={pending} />
           )}
-          <Field label="Facturación">
-            {editing ? (
+          {editing ? (
+            <Field label="Facturación">
               <p className="text-sm text-muted-foreground">{billingPeriodKindLabel(tariff.billingPeriod)}</p>
-            ) : effectiveConsumption === "pack" ? (
+            </Field>
+          ) : effectiveConsumption === "pack" ? (
+            <Field label="Facturación">
               <p className="text-sm text-muted-foreground">Pago único</p>
-            ) : (
-              <select
-                name="billingPeriod"
-                className={controlClass}
-                value={billingPeriod}
-                onChange={(event) => setBillingPeriod(event.target.value as TariffBilling)}
-              >
-                {SUBSCRIPTION_BILLING.map((value) => (
-                  <option key={value} value={value}>
-                    {billingPeriodKindLabel(value)}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          <Field label="Precio (€)">
-            <Input
-              name="price"
-              type="number"
-              min={0}
-              step="0.01"
-              required
-              defaultValue={eurosDefault}
-              className="tabular-nums"
+            </Field>
+          ) : (
+            <FormSelect
+              label="Facturación"
+              name="billingPeriod"
+              disabled={pending}
+              value={billingPeriod}
+              onValueChange={(value) => setBillingPeriod(value as TariffBilling)}
+              options={SUBSCRIPTION_BILLING.map((value) => ({ value, label: billingPeriodKindLabel(value) }))}
             />
-          </Field>
+          )}
+          <MoneyField label="Precio (€)" name="price" required defaultCents={tariff?.priceCents ?? 7000} disabled={pending} />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => onOpenChange(false)}>
               Cancelar

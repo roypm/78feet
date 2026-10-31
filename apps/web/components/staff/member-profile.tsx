@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Field, controlClass } from "@/components/staff/field";
+import { Field } from "@/components/staff/field";
+import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { ConsumoGestionDialog, BonoGestionDialog } from "@/components/staff/member-quota-gestion";
@@ -360,15 +361,8 @@ export function MemberProfile({
       ) : (
         <form onSubmit={(event) => void changeTariff(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Tarifa">
-            <select name="tariffId" required defaultValue={member.membership?.tariffId ?? ""} className={controlClass}>
-              {assignable.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <FormSelect label="Tarifa" name="tariffId" required defaultValue={member.membership?.tariffId ?? ""} disabled={pending}
+            options={assignable.map((item) => ({ value: item.id, label: item.name }))} />
           <DialogFooter>
             <Button
               type="button"

@@ -154,6 +154,18 @@ select {
   font-size: 16px;
 }
 
+input[data-search-input] {
+  appearance: none;
+  -webkit-appearance: none;
+}
+input[data-search-input]::-webkit-search-cancel-button,
+input[data-search-input]::-webkit-search-decoration,
+input[data-search-input]::-webkit-search-results-button,
+input[data-search-input]::-webkit-search-results-decoration {
+  display: none;
+  -webkit-appearance: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -183,10 +195,32 @@ select {
 }
 .navigation-hint[data-pending] { opacity: 1; transition: opacity 100ms ease-out 150ms; }
 
+.time-column {
+  scrollbar-width: thin;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
+}
+.time-column:focus-within {
+  scrollbar-color: color-mix(in srgb, var(--foreground) 35%, transparent) transparent;
+}
+.time-column::-webkit-scrollbar { width: 4px; }
+.time-column::-webkit-scrollbar-track { background: transparent; }
+.time-column::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--foreground) 18%, transparent);
+  border-radius: var(--radius-lg);
+}
+.time-column::-webkit-scrollbar-button { display: none; }
+
 @media (hover: hover) and (pointer: fine) {
+  .time-column:hover { scrollbar-color: color-mix(in srgb, var(--foreground) 35%, transparent) transparent; }
+  .time-column:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--foreground) 35%, transparent); }
   a.text-primary:hover { text-decoration: underline; text-underline-offset: 4px; }
   a.bg-card.ring-1:hover { background-color: var(--muted); }
   [data-slot="empty-description"] a:hover { color: var(--foreground); }
+}
+
+@media (forced-colors: active) {
+  .time-column, .time-column:focus-within, .time-column:hover { scrollbar-color: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -194,5 +228,5 @@ select {
   [data-slot="skeleton"], [data-slot="spinner"], .toaster svg { animation: none !important; }
   button, a, [role="button"] { transition: none !important; }
   button:active, a:active { scale: 1 !important; }
-  [data-slot="dialog-content"], [data-slot="dialog-overlay"], [data-slot="sheet-content"], [data-slot="sheet-overlay"] { animation: none !important; }
+  [data-slot="dialog-content"], [data-slot="dialog-overlay"], [data-slot="sheet-content"], [data-slot="sheet-overlay"], [data-slot="select-content"], [data-slot="popover-content"] { animation: none !important; }
 }

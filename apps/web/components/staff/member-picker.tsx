@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
-import { Input } from "@/components/ui/input";
-import { Field, controlClass } from "@/components/staff/field";
+import { SearchInput } from "@/components/ui/search-input";
+import { Field } from "@/components/staff/field";
 import { normalizeMemberSearch } from "@/lib/staff/member-search";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -19,6 +19,8 @@ export function MemberPicker({
   onChange: (id: string) => void;
   disabled?: boolean;
 }) {
+  const searchId = useId();
+  const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const needle = normalizeMemberSearch(query);
   const filtered = useMemo(() => {
@@ -26,22 +28,25 @@ export function MemberPicker({
     return members.filter((member) => normalizeMemberSearch(member.name).includes(needle));
   }, [members, needle]);
 
+  function clearQuery() {
+    setQuery("");
+    searchRef.current?.focus({ preventScroll: true });
+  }
+
   return (
-    <Field label="Socio">
-      <Input
-        type="search"
+    <Field label="Socio" htmlFor={searchId} disabled={disabled}>
+      <SearchInput
+        ref={searchRef} id={searchId}
         placeholder="Buscar por nombre…"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onValueChange={setQuery}
         disabled={disabled}
-        className={cn(controlClass, "mb-2")}
-        autoComplete="off"
-        enterKeyHint="search"
+        className="mb-2"
         aria-label="Buscar socio por nombre"
       />
       {filtered.length === 0 ? (
         <EmptyState compact title={members.length === 0 ? "No hay socios disponibles" : "Ningún socio coincide con la búsqueda"} description={members.length === 0 ? "No quedan socios para añadir a esta clase." : "Probá con otro nombre o limpiá la búsqueda."}>
-          {query && <Button type="button" variant="outline" className="min-h-11" disabled={disabled} onClick={() => setQuery("")}>Limpiar búsqueda</Button>}
+          {query && <Button type="button" variant="outline" className="min-h-11" disabled={disabled} onClick={clearQuery}>Limpiar búsqueda</Button>}
         </EmptyState>
       ) : <div
         className="max-h-52 overflow-y-auto rounded-lg border border-input bg-background"

@@ -8,7 +8,7 @@ import { listStaffTrainingsPage, listTrainingFilterTypes } from "@/lib/box/train
 import { Button } from "@/components/ui/button";
 import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
 import { TrainingLibraryTable } from "@/components/staff/training-library-table";
-import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page({
   searchParams,
@@ -62,12 +62,11 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
         }
       />
       <ModuleBody width="full" inset="content">
-        <ModulePrimaryAction>
+        <TrainingLibraryTable trainings={trainings} hasTypeFilter={Boolean(classTypeId)} action={
           <Button nativeButton={false} variant="outline" className="min-h-11" render={<Link href="/staff/biblioteca/nuevo" />}>
             Nuevo entrenamiento
           </Button>
-        </ModulePrimaryAction>
-        <TrainingLibraryTable trainings={trainings} hasTypeFilter={Boolean(classTypeId)} />
+        } />
         <ListPagination pageInfo={result.pageInfo} path="/staff/biblioteca" filters={{ tipo: query.tipo }} />
       </ModuleBody>
     </ModulePage>

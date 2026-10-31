@@ -1,12 +1,13 @@
 "use client";
+import { TimePicker } from "@/components/staff/time-picker";
 import { useEffect } from "react";
 
 import { PendingButton } from "@/components/feedback/pending-button";
 
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Field, controlClass } from "@/components/staff/field";
+import { FormSelect } from "@/components/staff/form-select";
+import { QuantityField } from "@/components/staff/numeric-field";
 import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { useInstanceEdit } from "./use-instance-edit";
 import type { EditableInstance, ClassType, Training, Coach } from "./instance-form-types";
@@ -38,49 +39,21 @@ export function InstanceForm({
     <>
       <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Inicio">
-            <Input name="startTime" type="time" required defaultValue={start} />
-          </Field>
-          <Field label="Fin">
-            <Input name="endTime" type="time" required defaultValue={end} />
-          </Field>
-          <Field label="Tipo">
-            <select name="classTypeId" required defaultValue={instance.classTypeId} className={controlClass}>
-              {classTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Coach">
-            <select name="coachId" defaultValue={instance.coachId ?? ""} className={controlClass}>
-              <option value="">Sin coach</option>
-              {coaches.map((coach) => (
-                <option key={coach.id} value={coach.id}>
-                  {coach.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Aforo">
-            <Input name="capacity" type="number" min={1} required defaultValue={instance.capacity} />
-          </Field>
-          <Field label="Entrenamiento">
-            <select name="trainingId" defaultValue={instance.trainingId ?? ""} className={controlClass}>
-              <option value="">Ninguno</option>
-              {trainings.map((training) => (
-                <option key={training.id} value={training.id}>
-                  {training.name}
-                </option>
-              ))}
-            </select>
+          <TimePicker label="Inicio" disabled={pending} name="startTime" required defaultValue={start} />
+          <TimePicker label="Fin" disabled={pending} name="endTime" required defaultValue={end} />
+          <FormSelect label="Tipo" name="classTypeId" required defaultValue={instance.classTypeId} disabled={pending}
+            options={classTypes.map((type) => ({ value: type.id, label: type.name }))} />
+          <FormSelect label="Coach" name="coachId" defaultValue={instance.coachId ?? ""} disabled={pending}
+            options={[{ value: "", label: "Sin coach" }, ...coaches.map((coach) => ({ value: coach.id, label: coach.name }))]} />
+          <QuantityField label="Aforo" name="capacity" min={1} required defaultValue={instance.capacity} disabled={pending} />
+          <FormSelect label="Entrenamiento" name="trainingId" defaultValue={instance.trainingId ?? ""} disabled={pending}
+            options={[{ value: "", label: "Ninguno" }, ...trainings.map((training) => ({ value: training.id, label: training.name }))]}>
             {trainings.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 No hay entrenamientos disponibles para este tipo. La clase puede quedar sin plan.
               </p>
             )}
-          </Field>
+          </FormSelect>
           <DialogFooter>
             {onCancelEdit ? (
               <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={onCancelEdit}>
@@ -105,7 +78,7 @@ export function InstanceForm({
         busyLabel="Guardando…"
         busy={pending}
         onConfirm={confirmCapacityChange}
-      />
+     />
     </>
   );
 }
