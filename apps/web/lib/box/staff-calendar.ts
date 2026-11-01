@@ -1,4 +1,4 @@
-import { addDays, rosterName } from "@78feet/domain";
+import { addDays, rosterName, weekdayMonday1 } from "@78feet/domain";
 import { prisma } from "../db";
 import { BoxError } from "./errors";
 import { ensureInstances } from "./materialize";
@@ -6,6 +6,7 @@ import { classTypeImageUrl } from "./images";
 import { personName } from "./map";
 import { isoDateFromDb, isoDateToDb } from "./time";
 import { isCalendarException } from "./exceptions";
+import { profileImageUrl } from "./profile-images";
 import { horizonRange, localDateString } from "@78feet/domain";
 
 function spots(capacity: number, bookedCount: number): number {
@@ -20,10 +21,10 @@ export async function listDay(date: string, now = new Date()) {
     where: { date: isoDateToDb(date) },
     include: {
       classType: true,
-      coach: { select: { firstName: true, lastName: true } },
+      coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
       bookings: {
         where: { status: "active" },
-        include: { member: { select: { id: true, firstName: true, lastName: true, phone: true } } },
+        include: { member: { select: { id: true, firstName: true, lastName: true, phone: true, profileImage: { select: { updatedAt: true } } } } },
         orderBy: [{ member: { firstName: "asc" } }, { member: { lastName: "asc" } }],
       },
     },
@@ -43,6 +44,7 @@ export async function listDay(date: string, now = new Date()) {
     bookedCount: row.bookings.length,
     freeSpots: spots(row.capacity, row.bookings.length),
     coachName: personName(row.coach),
+    coachProfileImageUrl: row.coach ? profileImageUrl(row.coach.id, row.coach.profileImage?.updatedAt) : null,
     trainingId: row.trainingId,
     roster: row.bookings.map((booking) => ({
       bookingId: booking.id,
@@ -50,6 +52,7 @@ export async function listDay(date: string, now = new Date()) {
       name: `${booking.member.firstName} ${booking.member.lastName}`.trim(),
       shortName: rosterName(booking.member.firstName, booking.member.lastName),
       phone: booking.member.phone,
+      profileImageUrl: profileImageUrl(booking.member.id, booking.member.profileImage?.updatedAt),
     })),
   }));
 }
@@ -90,24 +93,29 @@ export async function listWeek(from: string, now = new Date()) {
   }));
 }
 
-export async function getStaffInstance(id: string) {
+export async function getStaffInstance(id: string, now = new Date()) {
   const row = await prisma.classInstance.findUnique({
     where: { id },
     include: {
       classType: true,
-      coach: { select: { id: true, firstName: true, lastName: true } },
+      template: { select: { weekday: true, active: true } },
+      coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
       training: { include: { classType: true } },
+      _count: { select: { bookings: true } },
       bookings: {
         where: { status: "active" },
-        include: { member: { select: { id: true, firstName: true, lastName: true, phone: true } } },
+        include: { member: { select: { id: true, firstName: true, lastName: true, phone: true, profileImage: { select: { updatedAt: true } } } } },
         orderBy: [{ member: { firstName: "asc" } }, { member: { lastName: "asc" } }],
       },
     },
   });
   if (!row) throw new BoxError(404, "FORBIDDEN", "La clase no existe");
+  const date = isoDateFromDb(row.date);
+  const isExtra = row.templateId === null;
+  const isModified = row.templateId !== null && row.editedAt !== null;
   return {
     id: row.id,
-    date: isoDateFromDb(row.date),
+    date,
     startAt: row.startAt.toISOString(),
     endAt: row.endAt.toISOString(),
     name: row.classType.name,
@@ -120,15 +128,27 @@ export async function getStaffInstance(id: string) {
     freeSpots: spots(row.capacity, row.bookings.length),
     coachId: row.coachId,
     coachName: personName(row.coach),
+    coachProfileImageUrl: row.coach ? profileImageUrl(row.coach.id, row.coach.profileImage?.updatedAt) : null,
     trainingId: row.trainingId,
     trainingName: row.training?.name ?? null,
     editedAt: row.editedAt?.toISOString() ?? null,
+    isExtra,
+    isModified,
+    canRemoveExtra: isExtra && row.startAt > now,
+    canRecover: row.status === "cancelled" && row.startAt > now,
+    canRestoreFromTemplate:
+      isModified &&
+      Boolean(row.template?.active) &&
+      row.startAt > now &&
+      weekdayMonday1(date) === row.template?.weekday,
+    bookingHistoryCount: row._count.bookings,
     cancelReason: row.cancelReason,
     roster: row.bookings.map((booking) => ({
       bookingId: booking.id,
       userId: booking.member.id,
       name: `${booking.member.firstName} ${booking.member.lastName}`.trim(),
       phone: booking.member.phone,
+      profileImageUrl: profileImageUrl(booking.member.id, booking.member.profileImage?.updatedAt),
     })),
   };
 }

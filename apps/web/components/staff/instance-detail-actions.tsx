@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/staff/form-dialog";
 import { InstanceForm } from "./instance-form";
-import { InstanceCancelButton, InstanceRecoverButton } from "./instance-status-actions";
+import {
+  ExtraClassRemoveButton,
+  InstanceCancelButton,
+  InstanceRecoverButton,
+  InstanceRestoreTemplateButton,
+} from "./instance-status-actions";
 import type { EditableInstance, ClassType, Training, Coach } from "./instance-form-types";
 
 export function InstanceDetailActions({
@@ -12,20 +17,40 @@ export function InstanceDetailActions({
   classTypes,
   trainings,
   coaches,
+  returnHref,
 }: {
   instance: EditableInstance;
   classTypes: ClassType[];
   trainings: Training[];
   coaches: Coach[];
+  returnHref: string;
 }) {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
       <InstanceEditDialog instance={instance} classTypes={classTypes} trainings={trainings} coaches={coaches} />
-      {instance.status === "scheduled" ? (
-        <InstanceCancelButton instanceId={instance.id} bookedCount={instance.bookedCount} />
-      ) : (
+      {instance.isExtra && instance.canRecover ? (
         <InstanceRecoverButton instanceId={instance.id} />
-      )}
+      ) : null}
+      {instance.isExtra && instance.canRemoveExtra ? (
+        <ExtraClassRemoveButton
+          instanceId={instance.id}
+          bookingHistoryCount={instance.bookingHistoryCount}
+          bookedCount={instance.bookedCount}
+          returnHref={returnHref}
+        />
+      ) : null}
+      {instance.isExtra && !instance.canRemoveExtra && instance.status === "scheduled" ? (
+        <InstanceCancelButton instanceId={instance.id} bookedCount={instance.bookedCount} />
+      ) : null}
+      {!instance.isExtra && instance.status === "scheduled" ? (
+        <InstanceCancelButton instanceId={instance.id} bookedCount={instance.bookedCount} />
+      ) : null}
+      {!instance.isExtra && instance.canRecover ? (
+        <InstanceRecoverButton instanceId={instance.id} />
+      ) : null}
+      {instance.canRestoreFromTemplate ? (
+        <InstanceRestoreTemplateButton instanceId={instance.id} bookedCount={instance.bookedCount} />
+      ) : null}
     </div>
   );
 }

@@ -10,6 +10,19 @@ export function patchInstance(instanceId: string, body: InstanceEdit, confirmCap
   });
 }
 
+export function removeExtraInstance(instanceId: string) {
+  return api<{ deleted: boolean; cancelledBookingCount: number }>(`/api/v1/admin/instances/${instanceId}`, {
+    method: "DELETE",
+  });
+}
+
+export function restoreInstanceFromTemplate(instanceId: string) {
+  return api<{ id: string; cancelledBookingCount: number }>(
+    `/api/v1/admin/instances/${instanceId}/restore-template`,
+    { method: "POST" },
+  );
+}
+
 export function createExtraInstance(body: CreateInstance) {
   return api<{ id: string }>("/api/v1/admin/instances", { method: "POST", body: JSON.stringify(body) });
 }

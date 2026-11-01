@@ -5,15 +5,17 @@ import {
   cancelInstanceBookings,
   instanceConflicts,
   shouldCancelAllForCapacity,
+  weekdayMonday1,
   type CreateInstance,
   type PatchInstance,
 } from "@78feet/domain";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import type { Db } from "./db";
 import { BoxError } from "./errors";
 import { requireClassType } from "./class-types";
 import { toDomainBooking, toDomainInstance } from "./map";
-import { isoDateFromDb, isoDateToDb, normalizeClock } from "./time";
+import { clockFromDb, isoDateFromDb, isoDateToDb, normalizeClock } from "./time";
 import { getBoxHours, isDateOpenDuring } from "./hours";
 
 function clocksFromInstance(startAt: Date, endAt: Date): { startTime: string; endTime: string } {
@@ -94,6 +96,123 @@ export async function createExtraInstance(input: CreateInstance, now = new Date(
   return { id: row.id };
 }
 
+export async function removeExtraInstance(id: string, actorId: string, now = new Date()) {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.classInstance.findUnique({
+        where: { id },
+        include: { bookings: { select: { id: true, status: true } } },
+      });
+      if (!existing) throw new BoxError(404, "FORBIDDEN", "La clase no existe");
+      if (existing.templateId !== null) {
+        throw new BoxError(409, "FORBIDDEN", "Solo se pueden quitar clases extra desde esta acción");
+      }
+      if (existing.startAt <= now) {
+        throw new BoxError(409, "FORBIDDEN", "Solo se pueden quitar clases que todavía no empezaron");
+      }
+
+      if (existing.bookings.length === 0) {
+        await tx.classInstance.delete({ where: { id } });
+        return { deleted: true, cancelledBookingCount: 0 };
+      }
+
+      const cancelledBookingCount = await cancelActives(tx, id, actorId, now);
+      await tx.classInstance.update({
+        where: { id },
+        data: { status: "cancelled", cancelReason: "Clase extra retirada", editedAt: now },
+      });
+      return { deleted: false, cancelledBookingCount };
+    });
+  } catch (error) {
+    // A booking can be created between the history check and deletion. The FK
+    // protects it; in that race, keep the class as a cancelled history row.
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2003") throw error;
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.classInstance.findUnique({ where: { id } });
+      if (!existing) throw new BoxError(404, "FORBIDDEN", "La clase no existe");
+      if (existing.templateId !== null) {
+        throw new BoxError(409, "FORBIDDEN", "Solo se pueden quitar clases extra desde esta acción");
+      }
+      if (existing.startAt <= now) {
+        throw new BoxError(409, "FORBIDDEN", "Solo se pueden quitar clases que todavía no empezaron");
+      }
+      const cancelledBookingCount = await cancelActives(tx, id, actorId, now);
+      await tx.classInstance.update({
+        where: { id },
+        data: { status: "cancelled", cancelReason: "Clase extra retirada", editedAt: now },
+      });
+      return { deleted: false, cancelledBookingCount };
+    });
+  }
+}
+
+export async function restoreInstanceFromTemplate(id: string, actorId: string, now = new Date()) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.classInstance.findUnique({
+      where: { id },
+      include: {
+        template: { include: { classType: true } },
+        training: { select: { classTypeId: true } },
+        bookings: { where: { status: "active" } },
+      },
+    });
+    if (!existing) throw new BoxError(404, "FORBIDDEN", "La clase no existe");
+    if (existing.templateId === null || existing.editedAt === null) {
+      throw new BoxError(409, "FORBIDDEN", "Esta clase no tiene cambios puntuales que restaurar");
+    }
+    if (!existing.template?.active) {
+      throw new BoxError(409, "FORBIDDEN", "La plantilla ya no está activa y no se puede restaurar");
+    }
+    if (existing.startAt <= now) {
+      throw new BoxError(409, "FORBIDDEN", "Solo se pueden restaurar clases que todavía no empezaron");
+    }
+
+    const date = isoDateFromDb(existing.date);
+    if (weekdayMonday1(date) !== existing.template.weekday) {
+      throw new BoxError(409, "FORBIDDEN", "La plantilla ahora corresponde a otro día de la semana");
+    }
+    const startTime = normalizeClock(clockFromDb(existing.template.startTime));
+    const endTime = normalizeClock(clockFromDb(existing.template.endTime));
+    assertValidTimeRange(startTime, endTime);
+    const startAt = atBoxTime(date, startTime);
+    const endAt = atBoxTime(date, endTime);
+    const classTypeId = existing.template.classTypeId;
+    const kind = existing.template.classType.kind;
+    const capacity = existing.template.defaultCapacity;
+    const typeChanged = classTypeId !== existing.classTypeId;
+    const capacityDrops = shouldCancelAllForCapacity(capacity, existing.bookings.length);
+    const trainingId =
+      existing.training && existing.training.classTypeId !== classTypeId ? null : existing.trainingId;
+
+    const hours = await getBoxHours();
+    if (!isDateOpenDuring(hours, date, startTime, endTime)) {
+      throw new BoxError(409, "SCHEDULE_CLOSED", "El horario actual de apertura no permite restaurar esta clase");
+    }
+
+    await assertNoInstanceOverlap(tx, { id, date, startAt, endAt, kind });
+    let cancelledBookingCount = 0;
+    if (typeChanged || capacityDrops) {
+      cancelledBookingCount = await cancelActives(tx, id, actorId, now);
+    }
+    await tx.classInstance.update({
+      where: { id },
+      data: {
+        startAt,
+        endAt,
+        classTypeId,
+        kind,
+        coachId: existing.template.coachId,
+        capacity,
+        status: "scheduled",
+        trainingId,
+        cancelReason: null,
+        editedAt: null,
+      },
+    });
+    return { id, cancelledBookingCount };
+  });
+}
+
 export async function patchInstance(id: string, patch: PatchInstance, actorId: string, now = new Date()) {
   const existing = await prisma.classInstance.findUnique({
     where: { id },
@@ -128,6 +247,9 @@ export async function patchInstance(id: string, patch: PatchInstance, actorId: s
   }
 
   const activeCount = existing.bookings.length;
+  if (existing.status === "cancelled" && status === "scheduled" && existing.startAt <= now) {
+    throw new BoxError(409, "FORBIDDEN", "No se puede recuperar una clase que ya empezó");
+  }
   const typeChanged = classTypeId !== existing.classTypeId;
   const capacityDrops = shouldCancelAllForCapacity(capacity, activeCount);
   if (capacityDrops && patch.confirmCapacity !== true && !typeChanged && status !== "cancelled") {

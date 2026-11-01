@@ -18,6 +18,7 @@ import { InstanceDetailActions } from "@/components/staff/instance-detail-action
 import { ClassRosterPanel } from "@/components/staff/class-roster-panel";
 import { Badge } from "@/components/ui/badge";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 export default function Page({
   params,
@@ -91,6 +92,7 @@ async function ClassDetail({
             classTypes={classTypes}
             trainings={compatible}
             coaches={coaches}
+            returnHref={back.href}
           />
         }
         toolbar={
@@ -107,9 +109,12 @@ async function ClassDetail({
                     <ResourceImage src={instance.imageUrl} alt="" className="size-16 shrink-0 rounded-md object-cover" />
           <div className="min-w-0 flex-1">
             {instance.coachName ? (
-              <p className="text-sm">
-                Coach · <span className="font-medium">{instance.coachName}</span>
-              </p>
+              <div className="flex min-w-0 items-center gap-2">
+                <ProfileAvatar name={instance.coachName} imageUrl={instance.coachProfileImageUrl} size="sm" />
+                <p className="min-w-0 truncate text-sm">
+                  Coach · <span className="font-medium">{instance.coachName}</span>
+                </p>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">Sin coach asignado</p>
             )}

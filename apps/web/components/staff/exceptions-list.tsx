@@ -7,6 +7,7 @@ import type { ExceptionInstance } from "@/lib/box/exceptions";
 import { exceptionKindLabel } from "@/lib/box/exceptions";
 import { formatDay, formatTime } from "@/lib/box/format";
 import { Badge } from "@/components/ui/badge";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 function kindGridLabel(kind: ExceptionInstance["kind"]): string {
   return kind === "open" ? "Open" : "Dirigida";
@@ -25,7 +26,6 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
         const meta = [
           formatDay(item.date),
           timeRange,
-          item.coachName,
           cancelled ? null : `${item.bookedCount}/${item.capacity}`,
         ]
           .filter((part): part is string => Boolean(part))
@@ -43,7 +43,7 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
             <Link
               href={`/staff/clases/${item.id}?desde=excepciones`}
               prefetch={true}
-              aria-label={`${item.name}, ${meta}`}
+              aria-label={`${item.name}, ${meta}${item.coachName ? `, coach ${item.coachName}` : ""}`}
               className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/40"
             />
             <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
@@ -65,6 +65,12 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
             <span className="pointer-events-none relative min-w-0 flex-1">
               <span className="block truncate font-medium">{item.name}</span>
               <span className="block truncate text-sm text-muted-foreground tabular-nums">{meta}</span>
+              {item.coachName ? (
+                <span className="mt-1 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                  <ProfileAvatar name={item.coachName} imageUrl={item.coachProfileImageUrl} size="sm" />
+                  <span className="min-w-0 truncate">{item.coachName}</span>
+                </span>
+              ) : null}
               <span className="block text-sm text-muted-foreground">{kindGridLabel(item.kind)}</span>
             </span>
             <div className="relative z-10 flex max-w-[40%] shrink-0 flex-wrap justify-end gap-1">

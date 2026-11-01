@@ -13,4 +13,10 @@ export type EditableInstance = {
   status: "scheduled" | "cancelled";
   trainingId: string | null;
   bookedCount: number;
+  bookingHistoryCount: number;
+  isExtra: boolean;
+  isModified: boolean;
+  canRemoveExtra: boolean;
+  canRecover: boolean;
+  canRestoreFromTemplate: boolean;
 };

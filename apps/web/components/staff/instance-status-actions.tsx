@@ -5,7 +5,11 @@ import { PendingButton } from "@/components/feedback/pending-button";
 import { useState } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
-import { patchInstance } from "@/lib/box/instance-mutations";
+import {
+  patchInstance,
+  removeExtraInstance,
+  restoreInstanceFromTemplate,
+} from "@/lib/box/instance-mutations";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -96,8 +100,8 @@ export function InstanceRecoverButton({ instanceId }: { instanceId: string }) {
         <DialogHeader>
           <DialogTitle>¿Recuperar esta clase?</DialogTitle>
           <DialogDescription>
-            Vuelve a estar disponible para reservas. Las reservas que se cancelaron al dar de baja la clase no se
-            restauran solas.
+            Vuelve a estar disponible para reservas. Las reservas canceladas al cancelar la clase no se reactivan;
+            los socios tendrán que apuntarse de nuevo.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -106,6 +110,142 @@ export function InstanceRecoverButton({ instanceId }: { instanceId: string }) {
           </DialogClose>
           <PendingButton type="button" className="min-h-11" disabled={pending} onClick={() => void recoverClass()} pending={pending} pendingLabel={"Recuperando…"}>
             {"Recuperar clase"}
+          </PendingButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ExtraClassRemoveButton({
+  instanceId,
+  bookingHistoryCount,
+  bookedCount,
+  returnHref,
+}: {
+  instanceId: string;
+  bookingHistoryCount: number;
+  bookedCount: number;
+  returnHref: string;
+}) {
+  const { router, pending, begin, setPending } = useActionFeedback();
+  const [open, setOpen] = useState(false);
+  const description =
+    bookingHistoryCount === 0
+      ? "Se eliminará de la programación. Como esta clase extra nunca tuvo reservas, no hace falta conservar su ficha."
+      : bookedCount > 0
+        ? `Se cancelarán ${bookedCount} reservas activas y se devolverá el cupo o saldo. La ficha quedará como cancelada para conservar el historial.`
+        : "Se quitará de la programación y la ficha quedará como cancelada para conservar el historial de reservas.";
+
+  async function removeClass() {
+    if (!begin()) return;
+    try {
+      const result = await removeExtraInstance(instanceId);
+      if (result.deleted) {
+        toast.success("Clase extra eliminada");
+      } else if (result.cancelledBookingCount > 0) {
+        toast.success(`Clase extra retirada. ${result.cancelledBookingCount} reservas canceladas y cupo devuelto.`);
+      } else {
+        toast.success("Clase extra retirada. Se conservó el historial de reservas.");
+      }
+      setOpen(false);
+      router.push(returnHref);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo quitar la clase extra");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!pending) setOpen(next); }}>
+      <DialogTrigger render={<Button type="button" variant="destructive" className="min-h-11 shrink-0" disabled={pending} />}>
+        Quitar clase extra
+      </DialogTrigger>
+      <DialogContent aria-busy={pending} showCloseButton={!pending}>
+        <DialogHeader>
+          <DialogTitle>¿Quitar esta clase extra?</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
+            Volver
+          </DialogClose>
+          <PendingButton
+            type="button"
+            variant="destructive"
+            className="min-h-11"
+            disabled={pending}
+            onClick={() => void removeClass()}
+            pending={pending}
+            pendingLabel="Quitando…"
+          >
+            Quitar clase extra
+          </PendingButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function InstanceRestoreTemplateButton({
+  instanceId,
+  bookedCount,
+}: {
+  instanceId: string;
+  bookedCount: number;
+}) {
+  const { router, pending, begin, setPending } = useActionFeedback();
+  const [open, setOpen] = useState(false);
+  const impact =
+    bookedCount > 0
+      ? `Hay ${bookedCount} reservas activas. Si cambia el tipo o el aforo no permite mantenerlas, se cancelarán todas y se devolverá el cupo o saldo; si solo cambia la hora, se conservarán.`
+      : "Si la plantilla cambia el tipo o el aforo no permite mantener las reservas, se cancelarán y se devolverá el cupo o saldo.";
+
+  async function restoreClass() {
+    if (!begin()) return;
+    try {
+      const result = await restoreInstanceFromTemplate(instanceId);
+      if (result.cancelledBookingCount > 0) {
+        toast.success(`Clase restaurada. ${result.cancelledBookingCount} reservas canceladas y cupo devuelto.`);
+      } else {
+        toast.success("Clase restaurada desde la plantilla");
+      }
+      setOpen(false);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo restaurar la clase");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!pending) setOpen(next); }}>
+      <DialogTrigger render={<Button type="button" variant="outline" className="min-h-11 shrink-0" disabled={pending} />}>
+        Restaurar plantilla
+      </DialogTrigger>
+      <DialogContent aria-busy={pending} showCloseButton={!pending}>
+        <DialogHeader>
+          <DialogTitle>¿Restaurar desde la plantilla?</DialogTitle>
+          <DialogDescription>
+            Se aplicarán el horario, tipo, coach y aforo actuales de la plantilla. {impact} Las reservas que ya estaban
+            canceladas no se reactivan.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
+            Volver
+          </DialogClose>
+          <PendingButton
+            type="button"
+            className="min-h-11"
+            disabled={pending}
+            onClick={() => void restoreClass()}
+            pending={pending}
+            pendingLabel="Restaurando…"
+          >
+            Restaurar plantilla
           </PendingButton>
         </DialogFooter>
       </DialogContent>

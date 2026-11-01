@@ -3,6 +3,7 @@ import { prisma } from "../db";
 import { classTypeImageUrl } from "./images";
 import { personName } from "./map";
 import { isoDateFromDb, isoDateToDb } from "./time";
+import { profileImageUrl } from "./profile-images";
 
 export type ExceptionKind = "extra" | "modified" | "cancelled";
 
@@ -18,6 +19,7 @@ export type ExceptionInstance = {
   capacity: number;
   bookedCount: number;
   coachName: string | null;
+  coachProfileImageUrl: string | null;
   kinds: ExceptionKind[];
 };
 
@@ -55,7 +57,7 @@ export async function listExceptions(from: string, now = new Date()) {
     },
     include: {
       classType: true,
-      coach: { select: { firstName: true, lastName: true } },
+      coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
       bookings: { where: { status: "active" }, select: { id: true } },
     },
     orderBy: [{ date: "asc" }, { startAt: "asc" }],
@@ -73,6 +75,7 @@ export async function listExceptions(from: string, now = new Date()) {
     capacity: row.capacity,
     bookedCount: row.bookings.length,
     coachName: personName(row.coach),
+    coachProfileImageUrl: row.coach ? profileImageUrl(row.coach.id, row.coach.profileImage?.updatedAt) : null,
     kinds: exceptionKinds({
       templateId: row.templateId,
       editedAt: row.editedAt,

@@ -1,6 +1,6 @@
 import { patchInstanceSchema } from "@78feet/domain";
 import { getStaffInstance } from "@/lib/box/staff-calendar";
-import { patchInstance } from "@/lib/box/instances";
+import { patchInstance, removeExtraInstance } from "@/lib/box/instances";
 import { BoxError } from "@/lib/box/errors";
 import { parseSchema } from "@/lib/box/parse";
 import { readBody, staffHandler } from "@/lib/box/guard";
@@ -17,4 +17,8 @@ export const GET = staffHandler(["coach", "admin"], async (_user, _request, para
 
 export const PATCH = staffHandler(["coach", "admin"], async (user, request, params) =>
   patchInstance(requireId(params), parseSchema(patchInstanceSchema, await readBody(request)), user.id),
+);
+
+export const DELETE = staffHandler(["coach", "admin"], async (user, _request, params) =>
+  removeExtraInstance(requireId(params), user.id),
 );
