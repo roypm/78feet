@@ -4,14 +4,18 @@ import {
   localDateString,
   packBalance,
   periodStartForDate,
+  quotaAdjustmentTotal,
+  quotaPeriodEndDate,
+  quotaPeriodForConsumption,
+  quotaPeriodStartDate,
+  quotaUsed,
   subscriptionPeriodLabel,
-  weekStartDate,
-  weeklyQuotaAdjustmentTotal,
-  weeklyUsed,
 } from "@78feet/domain";
 import { prisma } from "../db";
 import { isoDateFromDb, isoDateToDb } from "./time";
-import { listWeeklyQuotaAdjustments } from "./weekly-quota-adjustments";
+import { formatMonth, formatWeekRange } from "./format";
+import { listQuotaAdjustments } from "./quota-adjustments";
+import { profileImageUrl } from "./profile-images";
 
 export type MemberSummary = {
   tariff: {
@@ -19,10 +23,14 @@ export type MemberSummary = {
     consumptionModel: import("@78feet/domain").TariffConsumption;
     billingPeriod: import("@78feet/domain").TariffBilling;
     priceCents: number;
-    weeklyDirected: number;
-    weeklyOpen: number;
+    quotaDirected: number;
+    quotaOpen: number;
   } | null;
   quota: {
+    period: import("@78feet/domain").QuotaPeriod | null;
+    periodStart: string | null;
+    periodEnd: string | null;
+    periodLabel: string | null;
     directedUsed: number;
     directedLimit: number;
     directedAdjustment: number;
@@ -46,6 +54,7 @@ export type OwnProfile = {
   dni: string | null;
   phone: string | null;
   email: string | null;
+  profileImageUrl: string | null;
 };
 
 export async function getMemberSummary(userId: string, now = new Date()): Promise<MemberSummary> {
@@ -80,28 +89,42 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
     cancelledBy: booking.cancelledBy,
   }));
   const tariff = membership?.tariff ?? null;
-  const weekStart = weekStartDate(today);
-  const adjustments = await listWeeklyQuotaAdjustments(prisma, userId, isoDateToDb(weekStart));
-  const directedAdjustment = weeklyQuotaAdjustmentTotal(adjustments, "directed");
-  const openAdjustment = weeklyQuotaAdjustmentTotal(adjustments, "open");
+  const period = tariff ? quotaPeriodForConsumption(tariff.consumptionModel) : null;
+  const quotaStart = period ? quotaPeriodStartDate(today, period) : null;
+  const periodEnd = period ? quotaPeriodEndDate(today, period) : null;
+  const adjustments = period && quotaStart
+    ? await listQuotaAdjustments(prisma, userId, period, isoDateToDb(quotaStart))
+    : [];
+  const directedAdjustment = quotaAdjustmentTotal(adjustments, "directed");
+  const openAdjustment = quotaAdjustmentTotal(adjustments, "open");
   const quota = {
-    directedUsed: weeklyUsed({
+    period,
+    periodStart: quotaStart,
+    periodEnd,
+    periodLabel: period === "month" && quotaStart
+      ? formatMonth(quotaStart.slice(0, 7))
+      : period === "week" && quotaStart && periodEnd
+        ? formatWeekRange(quotaStart, periodEnd)
+        : null,
+    directedUsed: period ? quotaUsed({
       bookings: domainBookings,
       instancesById,
       userId,
-      weekDate: today,
+      periodDate: today,
+      period,
       kind: "directed",
-    }),
-    directedLimit: tariff?.weeklyDirected ?? 0,
+    }) : 0,
+    directedLimit: tariff?.quotaDirected ?? 0,
     directedAdjustment,
-    openUsed: weeklyUsed({
+    openUsed: period ? quotaUsed({
       bookings: domainBookings,
       instancesById,
       userId,
-      weekDate: today,
+      periodDate: today,
+      period,
       kind: "open",
-    }),
-    openLimit: tariff?.weeklyOpen ?? 0,
+    }) : 0,
+    openLimit: tariff?.quotaOpen ?? 0,
     openAdjustment,
     packBalance: packBalance({ grants, bookings: domainBookings, userId }),
   };
@@ -112,8 +135,8 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
         consumptionModel: tariff.consumptionModel,
         billingPeriod: tariff.billingPeriod,
         priceCents: tariff.priceCents,
-        weeklyDirected: tariff.weeklyDirected,
-        weeklyOpen: tariff.weeklyOpen,
+        quotaDirected: tariff.quotaDirected,
+        quotaOpen: tariff.quotaOpen,
       }
     : null;
 
@@ -146,7 +169,20 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
 export { billingPeriodKindLabel };
 
 export async function getOwnProfile(userId: string): Promise<OwnProfile | null> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      firstName: true,
+      lastName: true,
+      loginId: true,
+      dni: true,
+      phone: true,
+      email: true,
+      profileImage: { select: { updatedAt: true } },
+    },
+  });
   if (!user || user.role !== "member") return null;
   return {
     firstName: user.firstName,
@@ -155,5 +191,6 @@ export async function getOwnProfile(userId: string): Promise<OwnProfile | null> 
     dni: user.dni,
     phone: user.phone,
     email: user.email,
+    profileImageUrl: profileImageUrl(user.id, user.profileImage?.updatedAt),
   };
 }

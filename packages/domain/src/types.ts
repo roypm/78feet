@@ -3,19 +3,20 @@ export type UserStatus = "active" | "inactive";
 /** @deprecated use TariffConsumption */
 export type TariffKind = "monthly" | "pack";
 export type TariffConsumption = "weekly_quota" | "monthly_quota" | "pack";
+export type QuotaPeriod = "week" | "month";
 export type TariffBilling = "monthly" | "quarterly" | "semiannual" | "annual" | "none" | "one_time";
 export type PaymentBilling = "monthly" | "quarterly" | "semiannual" | "annual" | "one_time";
 export type ClassKind = "directed" | "open";
 export type InstanceStatus = "scheduled" | "cancelled";
-export type BookingPool = "weekly_directed" | "weekly_open" | "pack";
+export type BookingPool = "quota_directed" | "quota_open" | "pack";
 export type BookingStatus = "active" | "cancelled";
 export type EndedReason = "change" | "cancelled";
 
 export type TariffSnapshot = {
   id: string;
   consumptionModel: TariffConsumption;
-  weeklyDirected: number;
-  weeklyOpen: number;
+  quotaDirected: number;
+  quotaOpen: number;
 };
 
 export type ClassTemplate = {

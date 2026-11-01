@@ -25,15 +25,15 @@ describe("tariffWriteSchema", () => {
       consumptionModel: "weekly_quota",
       billingPeriod: "monthly",
       priceCents: 7000,
-      weeklyDirected: 3,
-      weeklyOpen: 2,
+      quotaDirected: 3,
+      quotaOpen: 2,
     });
     expect(parsed).toMatchObject({
       consumptionModel: "weekly_quota",
       billingPeriod: "monthly",
       packClasses: null,
-      weeklyDirected: 3,
-      weeklyOpen: 2,
+      quotaDirected: 3,
+      quotaOpen: 2,
       active: true,
     });
   });
@@ -63,7 +63,7 @@ describe("tariffWriteSchema", () => {
         billingPeriod: "one_time",
         priceCents: 5000,
         packClasses: 10,
-        weeklyDirected: 1,
+        quotaDirected: 1,
       }).success,
     ).toBe(false);
   });

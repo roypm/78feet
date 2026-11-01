@@ -143,6 +143,25 @@ export function weekEndDate(date: string): string {
   return addDays(weekStartDate(date), 6);
 }
 
+export function monthStartDate(date: string): string {
+  const { year, month } = parseIsoDate(date);
+  return formatIsoDate(year, month, 1);
+}
+
+export function monthEndDate(date: string): string {
+  const { year, month } = parseIsoDate(date);
+  const day = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return formatIsoDate(year, month, day);
+}
+
+export function quotaPeriodStartDate(date: string, period: "week" | "month"): string {
+  return period === "week" ? weekStartDate(date) : monthStartDate(date);
+}
+
+export function quotaPeriodEndDate(date: string, period: "week" | "month"): string {
+  return period === "week" ? weekEndDate(date) : monthEndDate(date);
+}
+
 export function weekStart(date: string): Date {
   return atBoxTime(weekStartDate(date), "00:00:00");
 }
@@ -154,6 +173,10 @@ export function weekEnd(date: string): Date {
 
 export function dateInWeek(date: string, weekDate: string): boolean {
   return date >= weekStartDate(weekDate) && date <= weekEndDate(weekDate);
+}
+
+export function dateInMonth(date: string, monthDate: string): boolean {
+  return date >= monthStartDate(monthDate) && date <= monthEndDate(monthDate);
 }
 
 /** Next Monday after `today`. If `today` is Monday, returns the following week. */

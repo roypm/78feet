@@ -122,8 +122,8 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
       consumptionModel: "weekly_quota",
       billingPeriod: "monthly",
       priceCents: 7000,
-      weeklyDirected: 3,
-      weeklyOpen: 1,
+      quotaDirected: 3,
+      quotaOpen: 1,
     });
     expect(denied.status).toBe(403);
 
@@ -132,8 +132,8 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
       consumptionModel: "weekly_quota",
       billingPeriod: "monthly",
       priceCents: 7000,
-      weeklyDirected: 3,
-      weeklyOpen: 1,
+      quotaDirected: 3,
+      quotaOpen: 1,
     });
     expect(created.status).toBe(201);
     const tariff = created.json as { id: string; consumptionModel: string };
@@ -169,8 +169,8 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
       consumptionModel: "weekly_quota",
       billingPeriod: "monthly",
       priceCents: 6000,
-      weeklyDirected: 2,
-      weeklyOpen: 1,
+      quotaDirected: 2,
+      quotaOpen: 1,
     });
     const pack = await call(createTariff, "POST", "/api/v1/admin/tariffs", adminToken, {
       name: `Bono ${suffix}`,
@@ -259,7 +259,7 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
       data: {
         instanceId: instance.id,
         userId: memberId,
-        pool: "weekly_directed",
+        pool: "quota_directed",
         status: "active",
         createdBy: admin.id,
       },
@@ -418,7 +418,7 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
       data: instances.flatMap((instance) => members.map((member) => ({
         instanceId: instance.id,
         userId: member.id,
-        pool: "weekly_directed" as const,
+        pool: "quota_directed" as const,
         status: "active" as const,
         createdBy: adminId,
       }))),

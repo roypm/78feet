@@ -57,8 +57,8 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
         consumptionModel: "weekly_quota",
         billingPeriod: "monthly",
         priceCents: 7000,
-        weeklyDirected: 2,
-        weeklyOpen: 1,
+        quotaDirected: 2,
+        quotaOpen: 1,
       },
     });
     tariffId = tariff.id;
@@ -173,7 +173,7 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
       freeSpots: 11,
       bookedByMe: true,
       canBook: false,
-      roster: [rosterName("Nora", "Norte")],
+      roster: [{ userId: memberId, name: rosterName("Nora", "Norte"), profileImageUrl: null }],
     });
     expect(JSON.stringify(detail.json)).not.toContain("nora-");
 

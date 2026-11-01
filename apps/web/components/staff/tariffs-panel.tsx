@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import {
   billingPeriodKindLabel,
   consumptionModelLabel,
+  quotaPeriodForConsumption,
   usesPeriodicQuota,
   type TariffBilling,
   type TariffConsumption,
@@ -45,11 +46,11 @@ function TariffDialogForm({
   onOpenChange: (open: boolean) => void;
 }) {
   const { router, pending, begin, setPending } = useActionFeedback();
-  const [consumptionModel, setConsumptionModel] = useState<TariffConsumption>(
-    tariff?.consumptionModel ?? "weekly_quota",
+  const [consumptionModel, setConsumptionModel] = useState<TariffConsumption | "">(
+    tariff?.consumptionModel ?? "",
   );
-  const [billingPeriod, setBillingPeriod] = useState<TariffBilling>(
-    tariff?.billingPeriod ?? "monthly",
+  const [billingPeriod, setBillingPeriod] = useState<TariffBilling | "">(
+    tariff?.billingPeriod ?? "",
   );
 
   const editing = tariff !== null;
@@ -66,15 +67,23 @@ function TariffDialogForm({
 
     const effectiveConsumption = editing ? tariff.consumptionModel : consumptionModel;
     const effectiveBilling = editing ? tariff.billingPeriod : billingPeriod;
+    if (!effectiveConsumption) {
+      toast.error("Elegí un tipo de consumo");
+      return;
+    }
+    if (effectiveConsumption !== "pack" && !effectiveBilling) {
+      toast.error("Elegí un periodo de facturación");
+      return;
+    }
 
     const body = {
       name: String(form.get("name")),
       consumptionModel: effectiveConsumption,
       billingPeriod: effectiveBilling,
       priceCents,
-      weeklyDirected:
-        usesPeriodicQuota(effectiveConsumption) ? Number(form.get("weeklyDirected")) : 0,
-      weeklyOpen: usesPeriodicQuota(effectiveConsumption) ? Number(form.get("weeklyOpen")) : 0,
+      quotaDirected:
+        usesPeriodicQuota(effectiveConsumption) ? Number(form.get("quotaDirected")) : 0,
+      quotaOpen: usesPeriodicQuota(effectiveConsumption) ? Number(form.get("quotaOpen")) : 0,
       packClasses: effectiveConsumption === "pack" ? Number(form.get("packClasses")) : null,
     };
 
@@ -93,8 +102,8 @@ function TariffDialogForm({
         });
         toast.success("Tarifa creada");
         formElement.reset();
-        setConsumptionModel("weekly_quota");
-        setBillingPeriod("monthly");
+        setConsumptionModel("");
+        setBillingPeriod("");
       }
       onOpenChange(false);
       router.refresh();
@@ -106,6 +115,7 @@ function TariffDialogForm({
   }
 
   const effectiveConsumption = editing ? tariff.consumptionModel : consumptionModel;
+  const hasPeriodicConsumption = effectiveConsumption !== "" && usesPeriodicQuota(effectiveConsumption);
 
   return (
     <FormDialog
@@ -137,26 +147,27 @@ function TariffDialogForm({
               disabled={pending}
               value={consumptionModel}
               onValueChange={(value) => {
-                const next = value as TariffConsumption;
+                const next = value as TariffConsumption | "";
                 setConsumptionModel(next);
                 if (next === "pack") setBillingPeriod("one_time");
-                else if (billingPeriod === "one_time") setBillingPeriod("monthly");
+                else setBillingPeriod("");
               }}
               options={[
+                { value: "", label: "Elegí un tipo de consumo…" },
                 { value: "weekly_quota", label: "Cupo semanal" },
                 { value: "monthly_quota", label: "Cupo mensual" },
                 { value: "pack", label: "Bono" },
               ]}
             />
           )}
-          {usesPeriodicQuota(effectiveConsumption) ? (
+          {hasPeriodicConsumption ? (
             <>
-              <QuantityField label="Dirigidas / semana" name="weeklyDirected" min={0} required defaultValue={tariff?.weeklyDirected ?? 3} disabled={pending} />
-              <QuantityField label="Opens / semana" name="weeklyOpen" min={0} required defaultValue={tariff?.weeklyOpen ?? 1} disabled={pending} />
+              <QuantityField label={`Dirigidas / ${quotaPeriodForConsumption(effectiveConsumption as TariffConsumption) === "month" ? "mes" : "semana"}`} name="quotaDirected" min={0} required defaultValue={tariff?.quotaDirected} disabled={pending} />
+              <QuantityField label={`Opens / ${quotaPeriodForConsumption(effectiveConsumption as TariffConsumption) === "month" ? "mes" : "semana"}`} name="quotaOpen" min={0} required defaultValue={tariff?.quotaOpen} disabled={pending} />
             </>
-          ) : (
-            <QuantityField label="Clases del bono" name="packClasses" min={1} required defaultValue={tariff?.packClasses ?? 8} disabled={pending} />
-          )}
+          ) : effectiveConsumption === "pack" ? (
+            <QuantityField label="Clases del bono" name="packClasses" min={1} required defaultValue={tariff?.packClasses ?? undefined} disabled={pending} />
+          ) : null}
           {editing ? (
             <Field label="Facturación">
               <p className="text-sm text-muted-foreground">{billingPeriodKindLabel(tariff.billingPeriod)}</p>
@@ -171,11 +182,14 @@ function TariffDialogForm({
               name="billingPeriod"
               disabled={pending}
               value={billingPeriod}
-              onValueChange={(value) => setBillingPeriod(value as TariffBilling)}
-              options={SUBSCRIPTION_BILLING.map((value) => ({ value, label: billingPeriodKindLabel(value) }))}
+              onValueChange={(value) => setBillingPeriod(value as TariffBilling | "")}
+              options={[
+                { value: "", label: "Elegí un periodo de facturación…" },
+                ...SUBSCRIPTION_BILLING.map((value) => ({ value, label: billingPeriodKindLabel(value) })),
+              ]}
             />
           )}
-          <MoneyField label="Precio (€)" name="price" required defaultCents={tariff?.priceCents ?? 7000} disabled={pending} />
+          <MoneyField label="Precio (€)" name="price" required defaultCents={tariff?.priceCents ?? undefined} disabled={pending} />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => onOpenChange(false)}>
               Cancelar
@@ -288,14 +302,14 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
                     className="whitespace-nowrap px-3 py-2.5 align-middle text-sm tabular-nums text-muted-foreground"
                     title={
                       usesPeriodicQuota(tariff.consumptionModel)
-                        ? `${tariff.weeklyDirected} dirigidas · ${tariff.weeklyOpen} opens / semana`
+                        ? `${tariff.quotaDirected} dirigidas · ${tariff.quotaOpen} opens / ${quotaPeriodForConsumption(tariff.consumptionModel) === "month" ? "mes" : "semana"}`
                         : `${tariff.packClasses ?? 0} clases en el pack`
                     }
                   >
                     {usesPeriodicQuota(tariff.consumptionModel) ? (
                       <>
-                        <span className="text-foreground">{tariff.weeklyDirected}</span> dir. ·{" "}
-                        <span className="text-foreground">{tariff.weeklyOpen}</span> open
+                        <span className="text-foreground">{tariff.quotaDirected}</span> dir. ·{" "}
+                        <span className="text-foreground">{tariff.quotaOpen}</span> open
                       </>
                     ) : (
                       <>

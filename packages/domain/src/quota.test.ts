@@ -31,7 +31,7 @@ describe("weekly quota against the class week", () => {
       makeBooking({
         instanceId: nextWeek.id,
         userId,
-        pool: "weekly_directed",
+        pool: "quota_directed",
       }),
     ];
     const instancesById = instanceMap([thisWeek, nextWeek]);
@@ -64,8 +64,8 @@ describe("weekly quota against the class week", () => {
       title: "Open",
     });
     const bookings = [
-      makeBooking({ instanceId: directed.id, userId, pool: "weekly_directed" }),
-      makeBooking({ instanceId: open.id, userId, pool: "weekly_open" }),
+      makeBooking({ instanceId: directed.id, userId, pool: "quota_directed" }),
+      makeBooking({ instanceId: open.id, userId, pool: "quota_open" }),
     ];
     const instancesById = instanceMap([directed, open]);
 
@@ -85,7 +85,7 @@ describe("pack overflow and returned quota", () => {
       makeBooking({
         instanceId: instance.id,
         userId,
-        pool: "weekly_directed",
+        pool: "quota_directed",
         status: "cancelled",
         quotaReturned: true,
       }),
@@ -108,7 +108,7 @@ describe("pack overflow and returned quota", () => {
       makeBooking({
         instanceId: instance.id,
         userId,
-        pool: "weekly_directed",
+        pool: "quota_directed",
         status: "cancelled",
         quotaReturned: false,
       }),
@@ -130,8 +130,8 @@ describe("pack overflow and returned quota", () => {
     const second = makeInstance({ date: "2026-10-27", kind: "directed", title: "WOD" });
     const third = makeInstance({ date: "2026-10-28", kind: "directed", title: "WOD" });
     const bookings = [
-      makeBooking({ instanceId: first.id, userId, pool: "weekly_directed" }),
-      makeBooking({ instanceId: second.id, userId, pool: "weekly_directed" }),
+      makeBooking({ instanceId: first.id, userId, pool: "quota_directed" }),
+      makeBooking({ instanceId: second.id, userId, pool: "quota_directed" }),
       makeBooking({ instanceId: third.id, userId, pool: "pack" }),
     ];
     const instancesById = instanceMap([first, second, third]);
@@ -154,10 +154,10 @@ describe("pack overflow and returned quota", () => {
       assignPool({
         consumptionModel: "weekly_quota",
         classKind: "directed",
-        weeklyDirectedLimit: 2,
-        weeklyOpenLimit: 2,
-        weeklyUsedDirected: usedDirected,
-        weeklyUsedOpen: 0,
+        quotaDirected: 2,
+        quotaOpen: 2,
+        usedDirected: usedDirected,
+        usedOpen: 0,
         packBalance: balance,
       }),
     ).toBe("pack");
@@ -168,10 +168,10 @@ describe("pack overflow and returned quota", () => {
       assignPool({
         consumptionModel: "weekly_quota",
         classKind: "open",
-        weeklyDirectedLimit: 2,
-        weeklyOpenLimit: 1,
-        weeklyUsedDirected: 0,
-        weeklyUsedOpen: 1,
+        quotaDirected: 2,
+        quotaOpen: 1,
+        usedDirected: 0,
+        usedOpen: 1,
         packBalance: 0,
       }),
     ).toThrow(DomainError);
@@ -179,10 +179,10 @@ describe("pack overflow and returned quota", () => {
       assignPool({
         consumptionModel: "weekly_quota",
         classKind: "open",
-        weeklyDirectedLimit: 2,
-        weeklyOpenLimit: 1,
-        weeklyUsedDirected: 0,
-        weeklyUsedOpen: 1,
+        quotaDirected: 2,
+        quotaOpen: 1,
+        usedDirected: 0,
+        usedOpen: 1,
         packBalance: 0,
       });
     } catch (error) {
@@ -196,10 +196,10 @@ describe("pack overflow and returned quota", () => {
       assignPool({
         consumptionModel: "pack",
         classKind: "directed",
-        weeklyDirectedLimit: 0,
-        weeklyOpenLimit: 0,
-        weeklyUsedDirected: 0,
-        weeklyUsedOpen: 0,
+        quotaDirected: 0,
+        quotaOpen: 0,
+        usedDirected: 0,
+        usedOpen: 0,
         packBalance: 1,
       }),
     ).toBe("pack");

@@ -7,6 +7,8 @@ export const isoDateSchema = z
 
 export const roleSchema = z.enum(["member", "coach", "admin"]);
 export const userStatusSchema = z.enum(["active", "inactive"]);
+export const userThemeSchema = z.enum(["system", "light", "dark"]);
+export const ownPreferencesSchema = z.object({ theme: userThemeSchema }).strict();
 export const tariffConsumptionSchema = z.enum(["weekly_quota", "monthly_quota", "pack"]);
 export const tariffBillingSchema = z.enum([
   "monthly",
@@ -21,7 +23,7 @@ export const paymentBillingSchema = z.enum(["monthly", "quarterly", "semiannual"
 export const tariffKindSchema = z.enum(["monthly", "pack"]);
 export const classKindSchema = z.enum(["directed", "open"]);
 export const instanceStatusSchema = z.enum(["scheduled", "cancelled"]);
-export const bookingPoolSchema = z.enum(["weekly_directed", "weekly_open", "pack"]);
+export const bookingPoolSchema = z.enum(["quota_directed", "quota_open", "pack"]);
 export const bookingStatusSchema = z.enum(["active", "cancelled"]);
 export const errorCodeSchema = z.enum(ERROR_CODES);
 
@@ -48,6 +50,7 @@ export const sessionUserSchema = z.object({
 export const loginResponseSchema = z.object({
   token: z.string(),
   user: sessionUserSchema,
+  theme: userThemeSchema,
 });
 
 export const meResponseSchema = z.object({
@@ -90,14 +93,14 @@ export const tariffWriteSchema = z
     consumptionModel: tariffConsumptionSchema,
     billingPeriod: tariffBillingSchema,
     priceCents: z.number().int().min(0, "El precio no puede ser negativo"),
-    weeklyDirected: z.number().int().min(0).optional(),
-    weeklyOpen: z.number().int().min(0).optional(),
+    quotaDirected: z.number().int().min(0).optional(),
+    quotaOpen: z.number().int().min(0).optional(),
     packClasses: z.number().int().positive().nullable().optional(),
     active: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
-    const weeklyDirected = value.weeklyDirected ?? 0;
-    const weeklyOpen = value.weeklyOpen ?? 0;
+    const quotaDirected = value.quotaDirected ?? 0;
+    const quotaOpen = value.quotaOpen ?? 0;
     const packClasses = value.packClasses ?? null;
     if (usesPeriodicQuota(value.consumptionModel) && packClasses !== null) {
       ctx.addIssue({
@@ -113,11 +116,11 @@ export const tariffWriteSchema = z
         path: ["packClasses"],
       });
     }
-    if (value.consumptionModel === "pack" && (weeklyDirected !== 0 || weeklyOpen !== 0)) {
+    if (value.consumptionModel === "pack" && (quotaDirected !== 0 || quotaOpen !== 0)) {
       ctx.addIssue({
         code: "custom",
-        message: "Un bono no tiene cupo semanal",
-        path: ["weeklyDirected"],
+        message: "Un bono no tiene cupo periódico",
+        path: ["quotaDirected"],
       });
     }
     if (value.consumptionModel === "pack" && value.billingPeriod !== "one_time") {
@@ -140,8 +143,8 @@ export const tariffWriteSchema = z
     consumptionModel: value.consumptionModel,
     billingPeriod: value.billingPeriod,
     priceCents: value.priceCents,
-    weeklyDirected: usesPeriodicQuota(value.consumptionModel) ? (value.weeklyDirected ?? 0) : 0,
-    weeklyOpen: usesPeriodicQuota(value.consumptionModel) ? (value.weeklyOpen ?? 0) : 0,
+    quotaDirected: usesPeriodicQuota(value.consumptionModel) ? (value.quotaDirected ?? 0) : 0,
+    quotaOpen: usesPeriodicQuota(value.consumptionModel) ? (value.quotaOpen ?? 0) : 0,
     packClasses: value.consumptionModel === "pack" ? (value.packClasses ?? null) : null,
     active: value.active ?? true,
   }));
@@ -152,8 +155,8 @@ export const patchTariffSchema = z
     consumptionModel: tariffConsumptionSchema.optional(),
     billingPeriod: tariffBillingSchema.optional(),
     priceCents: z.number().int().min(0, "El precio no puede ser negativo").optional(),
-    weeklyDirected: z.number().int().min(0).optional(),
-    weeklyOpen: z.number().int().min(0).optional(),
+    quotaDirected: z.number().int().min(0).optional(),
+    quotaOpen: z.number().int().min(0).optional(),
     packClasses: z.number().int().positive().nullable().optional(),
     active: z.boolean().optional(),
   })
@@ -191,7 +194,7 @@ export const grantCreditsSchema = z.object({
   note: z.string().trim().min(1).nullable().optional(),
 });
 
-export const weeklyQuotaAdjustmentSchema = z.object({
+export const quotaAdjustmentSchema = z.object({
   kind: classKindSchema,
   delta: z
     .number()
@@ -420,7 +423,7 @@ export type CreateMember = z.infer<typeof createMemberSchema>;
 export type PatchMember = z.infer<typeof patchMemberSchema>;
 export type ChangeTariff = z.infer<typeof changeTariffSchema>;
 export type GrantCredits = z.infer<typeof grantCreditsSchema>;
-export type WeeklyQuotaAdjustment = z.infer<typeof weeklyQuotaAdjustmentSchema>;
+export type QuotaAdjustment = z.infer<typeof quotaAdjustmentSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type TemplateWrite = z.infer<typeof templateWriteSchema>;
 export type PatchTemplate = z.infer<typeof patchTemplateSchema>;

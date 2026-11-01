@@ -19,6 +19,12 @@ enum UserStatus {
   inactive
 }
 
+enum UserTheme {
+  system
+  light
+  dark
+}
+
 enum TariffConsumption {
   weekly_quota
   monthly_quota
@@ -53,9 +59,14 @@ enum InstanceStatus {
 }
 
 enum BookingPool {
-  weekly_directed
-  weekly_open
+  quota_directed
+  quota_open
   pack
+}
+
+enum QuotaPeriod {
+  week
+  month
 }
 
 enum BookingStatus {
@@ -79,24 +90,26 @@ model User {
   dni          String?
   phone        String?
   email        String?
+  theme        UserTheme  @default(system)
   failedLogins Int        @default(0) @map("failed_logins")
   lockedUntil  DateTime?  @map("locked_until") @db.Timestamptz
   tokenVersion Int        @default(0) @map("token_version")
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  memberships          Membership[]
-  creditGrantsReceived CreditGrant[]   @relation("CreditGrantRecipient")
-  creditGrantsCreated  CreditGrant[]   @relation("CreditGrantAuthor")
-  paymentsReceived     Payment[]       @relation("PaymentMember")
-  paymentsRecorded     Payment[]       @relation("PaymentAuthor")
-  coachedTemplates     ClassTemplate[]
-  coachedInstances     ClassInstance[]
-  bookingsAsMember     Booking[]       @relation("BookingMember")
-  bookingsCreated      Booking[]       @relation("BookingAuthor")
-  bookingsCancelled    Booking[]       @relation("BookingCanceller")
-  weeklyQuotaAdjustmentsReceived WeeklyQuotaAdjustment[] @relation("WeeklyQuotaAdjustmentMember")
-  weeklyQuotaAdjustmentsCreated  WeeklyQuotaAdjustment[] @relation("WeeklyQuotaAdjustmentAuthor")
+  memberships              Membership[]
+  creditGrantsReceived     CreditGrant[]     @relation("CreditGrantRecipient")
+  creditGrantsCreated      CreditGrant[]     @relation("CreditGrantAuthor")
+  paymentsReceived         Payment[]         @relation("PaymentMember")
+  paymentsRecorded         Payment[]         @relation("PaymentAuthor")
+  coachedTemplates         ClassTemplate[]
+  coachedInstances         ClassInstance[]
+  bookingsAsMember         Booking[]         @relation("BookingMember")
+  bookingsCreated          Booking[]         @relation("BookingAuthor")
+  bookingsCancelled        Booking[]         @relation("BookingCanceller")
+  quotaAdjustmentsReceived QuotaAdjustment[] @relation("QuotaAdjustmentMember")
+  quotaAdjustmentsCreated  QuotaAdjustment[] @relation("QuotaAdjustmentAuthor")
+  profileImage             UserProfileImage?
 
   @@map("user")
 }
@@ -107,8 +120,8 @@ model Tariff {
   consumptionModel TariffConsumption @map("consumption_model")
   billingPeriod    TariffBilling     @map("billing_period")
   priceCents       Int               @map("price_cents")
-  weeklyDirected   Int               @default(0) @map("weekly_directed")
-  weeklyOpen       Int               @default(0) @map("weekly_open")
+  quotaDirected    Int               @default(0) @map("quota_directed")
+  quotaOpen        Int               @default(0) @map("quota_open")
   packClasses      Int?              @map("pack_classes")
   active           Boolean           @default(true)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
@@ -148,20 +161,21 @@ model CreditGrant {
   @@map("credit_grant")
 }
 
-model WeeklyQuotaAdjustment {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  weekStart DateTime  @map("week_start") @db.Date
-  kind      ClassKind
-  delta     Int
-  note      String?
-  createdBy String    @map("created_by") @db.Uuid
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  user      User      @relation("WeeklyQuotaAdjustmentMember", fields: [userId], references: [id])
-  author    User      @relation("WeeklyQuotaAdjustmentAuthor", fields: [createdBy], references: [id])
+model QuotaAdjustment {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  period      QuotaPeriod
+  periodStart DateTime    @map("period_start") @db.Date
+  kind        ClassKind
+  delta       Int
+  note        String?
+  createdBy   String      @map("created_by") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  user        User        @relation("QuotaAdjustmentMember", fields: [userId], references: [id])
+  author      User        @relation("QuotaAdjustmentAuthor", fields: [createdBy], references: [id])
 
-  @@index([userId, weekStart])
-  @@map("weekly_quota_adjustment")
+  @@index([userId, period, periodStart])
+  @@map("quota_adjustment")
 }
 
 model Payment {
@@ -201,6 +215,16 @@ model ClassTypeImage {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("class_type_image")
+}
+
+model UserProfileImage {
+  userId    String   @id @map("user_id") @db.Uuid
+  mimeType  String   @map("mime_type")
+  data      Bytes
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profile_image")
 }
 
 model ClassTemplate {
@@ -282,9 +306,9 @@ model TrainingBlock {
 }
 
 model BoxSettings {
-  id           String @id
-  weeklyHours  Json   @map("weekly_hours") @db.JsonB
-  exceptions   Json   @default("[]") @map("exceptions") @db.JsonB
+  id          String @id
+  weeklyHours Json   @map("weekly_hours") @db.JsonB
+  exceptions  Json   @default("[]") @map("exceptions") @db.JsonB
 
   @@map("box_settings")
 }

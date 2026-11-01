@@ -3,15 +3,16 @@ import type { Prisma } from "@prisma/client";
 import {
   localDateString,
   packBalance,
+  quotaAdjustmentTotal,
+  quotaPeriodForConsumption,
+  quotaPeriodStartDate,
+  quotaUsed,
   usesPeriodicQuota,
-  weekStartDate,
-  weeklyQuotaAdjustmentTotal,
-  weeklyUsed,
   type CreateMember,
   type GrantCredits,
   type PatchMember,
   type TariffConsumption,
-  type WeeklyQuotaAdjustment,
+  type QuotaAdjustment,
 } from "@78feet/domain";
 import { hashPassword } from "../auth/password";
 import { prisma } from "../db";
@@ -20,7 +21,8 @@ import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
 import { isoDateFromDb, isoDateToDb } from "./time";
 import { getMemberSummary } from "./summary";
-import { createWeeklyQuotaAdjustment, listWeeklyQuotaAdjustments } from "./weekly-quota-adjustments";
+import { createQuotaAdjustment, listQuotaAdjustments } from "./quota-adjustments";
+import { profileImageUrl } from "./profile-images";
 
 type MemberUser = {
   id: string;
@@ -31,6 +33,7 @@ type MemberUser = {
   phone: string | null;
   email: string | null;
   status: "active" | "inactive";
+  profileImage?: { updatedAt: Date } | null;
 };
 
 type MembershipView = {
@@ -54,6 +57,7 @@ function userView(user: MemberUser) {
     phone: user.phone,
     email: user.email,
     status: user.status,
+    profileImageUrl: profileImageUrl(user.id, user.profileImage?.updatedAt),
   };
 }
 
@@ -143,6 +147,7 @@ export async function listMembers(status: "active" | "inactive" | "all", window?
       phone: true,
       email: true,
       status: true,
+      profileImage: { select: { updatedAt: true } },
       memberships: {
         where: { endedAt: null },
         include: membershipInclude,
@@ -190,6 +195,7 @@ export async function createMember(input: CreateMember, startedAt = new Date()) 
         },
       },
       include: {
+        profileImage: { select: { updatedAt: true } },
         memberships: { where: { endedAt: null }, include: membershipInclude },
       },
     });
@@ -209,6 +215,7 @@ export async function getMember(id: string) {
   const user = await prisma.user.findUnique({
     where: { id },
     include: {
+      profileImage: { select: { updatedAt: true } },
       memberships: {
         include: membershipInclude,
         orderBy: { startedAt: "desc" },
@@ -292,6 +299,7 @@ export async function updateMember(id: string, patch: PatchMember) {
         loginId: dni,
       },
       include: {
+        profileImage: { select: { updatedAt: true } },
         memberships: { where: { endedAt: null }, include: membershipInclude },
       },
     });
@@ -416,9 +424,9 @@ export async function reactivateMember(id: string) {
   return { id, status: "active" as const };
 }
 
-export async function adjustMemberWeeklyQuota(
+export async function adjustMemberQuota(
   id: string,
-  input: WeeklyQuotaAdjustment,
+  input: QuotaAdjustment,
   actorId: string,
   now = new Date(),
 ) {
@@ -428,12 +436,14 @@ export async function adjustMemberWeeklyQuota(
     include: { tariff: true },
   });
   if (!membership?.tariff || !usesPeriodicQuota(membership.tariff.consumptionModel)) {
-    throw new BoxError(403, "FORBIDDEN", "Solo aplica con tarifa mensual");
+    throw new BoxError(403, "FORBIDDEN", "Solo aplica con tarifas de cupo periódico");
   }
   const today = localDateString(now);
-  const weekStart = weekStartDate(today);
-  const weekStartDb = isoDateToDb(weekStart);
-  const existing = await listWeeklyQuotaAdjustments(prisma, id, weekStartDb);
+  const period = quotaPeriodForConsumption(membership.tariff.consumptionModel);
+  if (!period) throw new BoxError(403, "FORBIDDEN", "La tarifa no tiene cupo periódico");
+  const periodStart = quotaPeriodStartDate(today, period);
+  const periodStartDb = isoDateToDb(periodStart);
+  const existing = await listQuotaAdjustments(prisma, id, period, periodStartDb);
   const bookings = await prisma.booking.findMany({
     where: { userId: id, OR: [{ status: "active" }, { quotaReturned: false }] },
     include: { instance: { select: { id: true, date: true } } },
@@ -452,22 +462,24 @@ export async function adjustMemberWeeklyQuota(
     cancelledAt: booking.cancelledAt,
     cancelledBy: booking.cancelledBy,
   }));
-  const used = weeklyUsed({
+  const used = quotaUsed({
     bookings: domainBookings,
     instancesById,
     userId: id,
-    weekDate: today,
+    periodDate: today,
+    period,
     kind: input.kind,
   });
-  const limit = input.kind === "directed" ? membership.tariff.weeklyDirected : membership.tariff.weeklyOpen;
-  const adjustment = weeklyQuotaAdjustmentTotal(existing, input.kind) + input.delta;
+  const limit = input.kind === "directed" ? membership.tariff.quotaDirected : membership.tariff.quotaOpen;
+  const adjustment = quotaAdjustmentTotal(existing, input.kind) + input.delta;
   const available = limit - used + adjustment;
   if (available < 0) {
-    throw new BoxError(403, "FORBIDDEN", "Quedaría cupo negativo esta semana");
+    throw new BoxError(403, "FORBIDDEN", "El ajuste dejaría el cupo del periodo por debajo de las reservas ya consumidas");
   }
-  const row = await createWeeklyQuotaAdjustment(prisma, {
+  const row = await createQuotaAdjustment(prisma, {
     userId: id,
-    weekStart: weekStartDb,
+    period,
+    periodStart: periodStartDb,
     kind: input.kind,
     delta: input.delta,
     note: input.note ?? null,

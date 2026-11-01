@@ -15,7 +15,7 @@ export default function Page() {
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo semanal y saldo de bono." />
+          <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo disponible y saldo de bono." />
           <ModuleBody>
             <LoadingState variant="profile" label="Cargando tu tarifa…" />
           </ModuleBody>
@@ -34,7 +34,7 @@ async function Tariff() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo semanal y saldo de bono." />
+      <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo disponible y saldo de bono." />
       <ModuleBody>
       {!tariff ? (
         <EmptyState title="Sin membresía activa" description="Hablá con el staff del box para que te asigne una tarifa. Tu cuenta no permite cambiarla directamente." />
@@ -55,11 +55,15 @@ async function Tariff() {
             </div>
             {usesPeriodicQuota(tariff.consumptionModel) ? (
               <>
-                <p className="tabular-nums">
-                  Dirigidas {summary.quota.directedUsed}/{summary.quota.directedLimit}
+                <p className="text-sm text-muted-foreground">
+                  {summary.quota.period === "month" ? "Este mes" : "Esta semana"}
+                  {summary.quota.periodLabel ? ` · ${summary.quota.periodLabel}` : ""}
                 </p>
                 <p className="tabular-nums">
-                  Opens {summary.quota.openUsed}/{summary.quota.openLimit}
+                  Dirigidas {summary.quota.directedUsed}/{summary.quota.directedLimit + summary.quota.directedAdjustment}
+                </p>
+                <p className="tabular-nums">
+                  Opens {summary.quota.openUsed}/{summary.quota.openLimit + summary.quota.openAdjustment}
                 </p>
               </>
             ) : null}

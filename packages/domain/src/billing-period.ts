@@ -1,4 +1,4 @@
-import type { TariffBilling, TariffConsumption } from "./types";
+import type { QuotaPeriod, TariffBilling, TariffConsumption } from "./types";
 
 export type SubscriptionBilling = Exclude<TariffBilling, "none" | "one_time">;
 
@@ -51,6 +51,12 @@ export function billingPeriodKindLabel(billing: TariffBilling): string {
 
 export function usesPeriodicQuota(consumption: TariffConsumption): boolean {
   return consumption === "weekly_quota" || consumption === "monthly_quota";
+}
+
+export function quotaPeriodForConsumption(consumption: TariffConsumption): QuotaPeriod | null {
+  if (consumption === "weekly_quota") return "week";
+  if (consumption === "monthly_quota") return "month";
+  return null;
 }
 
 export function consumptionModelLabel(consumption: TariffConsumption): string {

@@ -68,7 +68,7 @@ function KindAdjustRow({
     if (pending || !onBegin(kind, delta)) return;
     onPending(true);
     try {
-      await api(`/api/v1/admin/members/${memberId}/weekly-quota`, {
+      await api(`/api/v1/admin/members/${memberId}/quota-adjustments`, {
         method: "POST",
         body: JSON.stringify({ kind, delta }),
       });
@@ -105,7 +105,8 @@ export function ConsumoGestionDialog({
   directedTotal,
   openAvailable,
   openTotal,
-  weekLabel,
+  periodText,
+  periodLabel,
 }: {
   memberId: string;
   disabled: boolean;
@@ -113,7 +114,8 @@ export function ConsumoGestionDialog({
   directedTotal: number;
   openAvailable: number;
   openTotal: number;
-  weekLabel: string;
+  periodText: string;
+  periodLabel: string;
 }) {
   const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
@@ -136,7 +138,7 @@ export function ConsumoGestionDialog({
       busy={pending}
       trigger={gestionTrigger(disabled)}
       title="Gestión de consumo"
-      description="Ajuste manual del cupo semanal (esta semana). Para apuntar a una clase usá Semana o Hoy."
+      description={`Ajuste manual del cupo para el periodo actual. Para apuntar a una clase usá Semana o Hoy.`}
     >
       <div className="flex flex-col gap-4">
         <GestionActualBox>
@@ -150,7 +152,7 @@ export function ConsumoGestionDialog({
               <dd className="tabular-nums font-medium">{consumoLine(openAvailable, openTotal)}</dd>
             </div>
           </dl>
-          <p className="mt-2 text-xs tabular-nums text-muted-foreground">Esta semana · {weekLabel}</p>
+          <p className="mt-2 text-xs tabular-nums text-muted-foreground">{periodText} · {periodLabel}</p>
         </GestionActualBox>
         <KindAdjustRow
           label="Dirigidas"
@@ -238,13 +240,13 @@ export function BonoGestionDialog({
         <fieldset disabled={pending} aria-busy={pending} className="contents">
           <FormSelect
             label="Añadir pack" name="packTariffId" required={bonoPacks.length > 0}
-            defaultValue={bonoPacks[0]?.id ?? ""} disabled={pending || bonoPacks.length === 0}
+            defaultValue="" disabled={pending || bonoPacks.length === 0}
             options={bonoPacks.length === 0
               ? [{ value: "", label: "Sin packs en el catálogo" }]
-              : bonoPacks.map((pack) => ({
+              : [{ value: "", label: "Elegí un pack…" }, ...bonoPacks.map((pack) => ({
                   value: pack.id,
                   label: `${pack.name} · ${pack.packClasses} clase${pack.packClasses === 1 ? "" : "s"} · ${formatPrice(pack.priceCents)}`,
-                }))}
+                }))]}
           />
           {bonoPacks.length === 0 ? (
             <EmptyState

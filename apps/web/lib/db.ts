@@ -8,12 +8,9 @@ type PrismaGlobal = {
 const globalForPrisma = globalThis as unknown as PrismaGlobal;
 
 function prismaSchemaKey(): string {
-  const fieldNames = (modelName: string) =>
-    Prisma.dmmf.datamodel.models
-      .find((model) => model.name === modelName)
-      ?.fields.map((field) => field.name)
-      .join(",") ?? "";
-  return `Tariff:${fieldNames("Tariff")};Payment:${fieldNames("Payment")}`;
+  return Prisma.dmmf.datamodel.models
+    .map((model) => `${model.name}:${model.fields.map((field) => field.name).join(",")}`)
+    .join(";");
 }
 
 /** Tras `prisma generate` o migraciones, el dev server puede seguir con un client viejo en globalThis. */

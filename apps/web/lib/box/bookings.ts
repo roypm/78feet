@@ -4,8 +4,9 @@ import {
   evaluateMemberCancellation,
   evaluateStaffCancellation,
   memberCanCancel,
-  weekStartDate,
-  weeklyQuotaAdjustmentTotal,
+  quotaPeriodForConsumption,
+  quotaPeriodStartDate,
+  quotaAdjustmentTotal,
   type Booking,
   type BookingPool,
   type ClassInstance,
@@ -15,7 +16,8 @@ import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
 import { toDomainBooking, toDomainInstance } from "./map";
 import { isoDateFromDb, isoDateToDb } from "./time";
-import { listWeeklyQuotaAdjustments } from "./weekly-quota-adjustments";
+import { listQuotaAdjustments } from "./quota-adjustments";
+import { profileImageUrl } from "./profile-images";
 
 type InstanceRow = {
   id: string;
@@ -132,8 +134,18 @@ export async function reserveForMember(params: {
         where: { userId: user.id },
         select: { userId: true, quantity: true },
       });
-      const weekStart = weekStartDate(isoDateFromDb(instance.date));
-      const adjustments = await listWeeklyQuotaAdjustments(tx, user.id, isoDateToDb(weekStart));
+      const classDate = isoDateFromDb(instance.date);
+      const quotaPeriod = membership
+        ? quotaPeriodForConsumption(membership.tariff.consumptionModel)
+        : null;
+      const adjustments = quotaPeriod
+        ? await listQuotaAdjustments(
+            tx,
+            user.id,
+            quotaPeriod,
+            isoDateToDb(quotaPeriodStartDate(classDate, quotaPeriod)),
+          )
+        : [];
       const onInstance = await tx.booking.findMany({
         where: { instanceId: instance.id, status: "active" },
       });
@@ -165,16 +177,16 @@ export async function reserveForMember(params: {
           ? {
               id: membership.tariff.id,
               consumptionModel: membership.tariff.consumptionModel,
-              weeklyDirected: membership.tariff.weeklyDirected,
-              weeklyOpen: membership.tariff.weeklyOpen,
+              quotaDirected: membership.tariff.quotaDirected,
+              quotaOpen: membership.tariff.quotaOpen,
             }
           : null,
         userId: user.id,
         bookings: [...bookings.values()],
         instancesById,
         grants,
-        weeklyDirectedAdjustment: weeklyQuotaAdjustmentTotal(adjustments, "directed"),
-        weeklyOpenAdjustment: weeklyQuotaAdjustmentTotal(adjustments, "open"),
+        directedAdjustment: quotaAdjustmentTotal(adjustments, "directed"),
+        openAdjustment: quotaAdjustmentTotal(adjustments, "open"),
       });
 
       const created = await tx.booking.create({
@@ -275,6 +287,7 @@ export async function listUpcomingBookings(userId: string, now = new Date()): Pr
 
 export type HistoryBookingView = MemberBookingView & {
   coachName: string | null;
+  coachProfileImageUrl: string | null;
 };
 
 function personName(person: { firstName: string; lastName: string } | null): string | null {
@@ -293,7 +306,7 @@ export async function listBookingHistory(userId: string, now = new Date()): Prom
       instance: {
         include: {
           classType: { select: { name: true } },
-          coach: { select: { firstName: true, lastName: true } },
+          coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
         },
       },
     },
@@ -304,5 +317,8 @@ export async function listBookingHistory(userId: string, now = new Date()): Prom
     canCancel: row.status === "active" && memberCanCancel(now, row.instance.startAt),
     boxCancelled: row.instance.status === "cancelled",
     coachName: personName(row.instance.coach),
+    coachProfileImageUrl: row.instance.coach
+      ? profileImageUrl(row.instance.coach.id, row.instance.coach.profileImage?.updatedAt)
+      : null,
   }));
 }

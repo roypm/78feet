@@ -31,8 +31,8 @@ const userId = "member-1";
 const monthly: TariffSnapshot = {
   id: "tariff-monthly",
   consumptionModel: "weekly_quota",
-  weeklyDirected: 2,
-  weeklyOpen: 2,
+  quotaDirected: 2,
+  quotaOpen: 2,
 };
 const membership: MembershipSnapshot = {
   userId,
@@ -45,7 +45,7 @@ beforeEach(() => {
 });
 
 describe("evaluateBooking", () => {
-  it("assigns weekly_directed while the weekly limit has room", () => {
+  it("assigns quota_directed while the weekly limit has room", () => {
     const instance = makeInstance({ date: "2026-10-27", kind: "directed", title: "WOD" });
     const result = evaluateBooking({
       now: atBoxTime("2026-10-26", "09:00"),
@@ -57,7 +57,7 @@ describe("evaluateBooking", () => {
       instancesById: instanceMap([instance]),
       grants: [],
     });
-    expect(result.pool).toBe("weekly_directed");
+    expect(result.pool).toBe("quota_directed");
   });
 
   it("rejects a class that already started", () => {
@@ -106,7 +106,7 @@ describe("evaluateBooking", () => {
       startAt: atBoxTime("2026-10-27", "18:30"),
       endAt: atBoxTime("2026-10-27", "19:30"),
     });
-    const bookings = [makeBooking({ instanceId: first.id, userId, pool: "weekly_directed" })];
+    const bookings = [makeBooking({ instanceId: first.id, userId, pool: "quota_directed" })];
     expectCode(
       () =>
         evaluateBooking({
@@ -139,7 +139,7 @@ describe("evaluateBooking", () => {
       startAt: atBoxTime("2026-10-27", "19:00"),
       endAt: atBoxTime("2026-10-27", "20:00"),
     });
-    const bookings = [makeBooking({ instanceId: first.id, userId, pool: "weekly_directed" })];
+    const bookings = [makeBooking({ instanceId: first.id, userId, pool: "quota_directed" })];
     const result = evaluateBooking({
       now: atBoxTime("2026-10-26", "09:00"),
       instance: second,
@@ -150,7 +150,7 @@ describe("evaluateBooking", () => {
       instancesById: instanceMap([first, second]),
       grants: [],
     });
-    expect(result.pool).toBe("weekly_open");
+    expect(result.pool).toBe("quota_open");
   });
 
   it("rejects a full class", () => {
@@ -160,7 +160,7 @@ describe("evaluateBooking", () => {
       title: "WOD",
       capacity: 1,
     });
-    const bookings = [makeBooking({ instanceId: instance.id, userId: "other", pool: "weekly_directed" })];
+    const bookings = [makeBooking({ instanceId: instance.id, userId: "other", pool: "quota_directed" })];
     expectCode(
       () =>
         evaluateBooking({
@@ -205,12 +205,12 @@ describe("cancellation", () => {
   it("returns every booking when the box cancels the class", () => {
     const instance = makeInstance({ date: "2026-10-27", kind: "directed", title: "WOD" });
     const bookings = [
-      makeBooking({ instanceId: instance.id, userId: "a", pool: "weekly_directed" }),
+      makeBooking({ instanceId: instance.id, userId: "a", pool: "quota_directed" }),
       makeBooking({ instanceId: instance.id, userId: "b", pool: "pack" }),
       makeBooking({
         instanceId: instance.id,
         userId: "c",
-        pool: "weekly_directed",
+        pool: "quota_directed",
         status: "cancelled",
         quotaReturned: false,
       }),

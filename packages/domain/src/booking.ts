@@ -1,5 +1,6 @@
 import { DomainError } from "./errors";
-import { assignPool, packBalance, weeklyUsed } from "./quota";
+import { assignPool, packBalance, quotaUsed } from "./quota";
+import { quotaPeriodForConsumption } from "./billing-period";
 import { instanceHasStarted, intervalsOverlap, memberCanCancel } from "./time";
 import type {
   Booking,
@@ -45,8 +46,8 @@ export function evaluateBooking(params: {
   bookings: readonly Booking[];
   instancesById: ReadonlyMap<string, Pick<ClassInstance, "date" | "startAt" | "endAt">>;
   grants: readonly Pick<CreditGrant, "userId" | "quantity">[];
-  weeklyDirectedAdjustment?: number;
-  weeklyOpenAdjustment?: number;
+  directedAdjustment?: number;
+  openAdjustment?: number;
 }): { pool: BookingPool } {
   if (params.instance.status !== "scheduled") {
     throw new DomainError("FORBIDDEN");
@@ -71,25 +72,28 @@ export function evaluateBooking(params: {
     throw new DomainError("FULL");
   }
 
+  const period = quotaPeriodForConsumption(params.tariff.consumptionModel) ?? "week";
   const pool = assignPool({
     consumptionModel: params.tariff.consumptionModel,
     classKind: params.instance.kind,
-    weeklyDirectedLimit: params.tariff.weeklyDirected,
-    weeklyOpenLimit: params.tariff.weeklyOpen,
-    weeklyDirectedAdjustment: params.weeklyDirectedAdjustment,
-    weeklyOpenAdjustment: params.weeklyOpenAdjustment,
-    weeklyUsedDirected: weeklyUsed({
+    quotaDirected: params.tariff.quotaDirected,
+    quotaOpen: params.tariff.quotaOpen,
+    directedAdjustment: params.directedAdjustment,
+    openAdjustment: params.openAdjustment,
+    usedDirected: quotaUsed({
       bookings: params.bookings,
       instancesById: params.instancesById,
       userId: params.userId,
-      weekDate: params.instance.date,
+      periodDate: params.instance.date,
+      period,
       kind: "directed",
     }),
-    weeklyUsedOpen: weeklyUsed({
+    usedOpen: quotaUsed({
       bookings: params.bookings,
       instancesById: params.instancesById,
       userId: params.userId,
-      weekDate: params.instance.date,
+      periodDate: params.instance.date,
+      period,
       kind: "open",
     }),
     packBalance: packBalance({

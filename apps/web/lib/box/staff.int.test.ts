@@ -60,8 +60,8 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
         consumptionModel: "weekly_quota",
         billingPeriod: "monthly",
         priceCents: 7000,
-        weeklyDirected: 2,
-        weeklyOpen: 0,
+        quotaDirected: 2,
+        quotaOpen: 0,
       },
     });
     tariffId = tariff.id;

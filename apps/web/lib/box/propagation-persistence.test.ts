@@ -30,7 +30,7 @@ function booking(id: string, instanceId: string, overrides: Partial<Booking> = {
     id,
     instanceId,
     userId: `member-${id}`,
-    pool: "weekly_directed",
+    pool: "quota_directed",
     status: "active",
     quotaReturned: null,
     createdBy: actorId,
@@ -102,9 +102,9 @@ describe("persistencia de cambios de plantilla", () => {
   it("agrupa mudanzas por clase de destino y conserva el pool de cada reserva", async () => {
     const beforeInstances = [instance("source-a"), instance("source-b"), instance("target-a"), instance("target-b")];
     const beforeBookings = [
-      booking("a-1", "source-a", { pool: "weekly_directed" }),
+      booking("a-1", "source-a", { pool: "quota_directed" }),
       booking("a-2", "source-a", { pool: "pack" }),
-      booking("b-1", "source-b", { pool: "weekly_open" }),
+      booking("b-1", "source-b", { pool: "quota_open" }),
       booking("b-2", "source-b", { pool: "pack" }),
     ];
     const result: PropagationResult = {
@@ -130,9 +130,9 @@ describe("persistencia de cambios de plantilla", () => {
       "target-b",
     ]);
     expect(persistedBookings.map((row) => row.pool)).toEqual([
-      "weekly_directed",
+      "quota_directed",
       "pack",
-      "weekly_open",
+      "quota_open",
       "pack",
     ]);
   });

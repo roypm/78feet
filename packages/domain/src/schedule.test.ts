@@ -224,7 +224,7 @@ describe("template change from next Monday", () => {
           id: `booking-${instanceIndex}-${bookingIndex}`,
           instanceId: instance.id,
           userId: `member-${instanceIndex}-${bookingIndex}`,
-          pool: bookingIndex % 2 === 0 ? "weekly_directed" : "pack",
+          pool: bookingIndex % 2 === 0 ? "quota_directed" : "pack",
         }),
       ),
     );
@@ -277,8 +277,8 @@ describe("template change from next Monday", () => {
       endAt: atBoxTime("2026-11-02", "19:00"),
     });
     const bookings = [
-      makeBooking({ instanceId: thisWeek.id, userId: "a", pool: "weekly_directed" }),
-      makeBooking({ instanceId: nextWeek.id, userId: "b", pool: "weekly_directed" }),
+      makeBooking({ instanceId: thisWeek.id, userId: "a", pool: "quota_directed" }),
+      makeBooking({ instanceId: nextWeek.id, userId: "b", pool: "quota_directed" }),
     ];
 
     const result = propagateTemplateChange({
@@ -327,7 +327,7 @@ describe("template change from next Monday", () => {
       capacity: 12,
       coachId: "coach-1",
     });
-    const bookings = [makeBooking({ instanceId: nextWeek.id, userId: "a", pool: "weekly_directed" })];
+    const bookings = [makeBooking({ instanceId: nextWeek.id, userId: "a", pool: "quota_directed" })];
     const result = propagateTemplateChange({
       today: "2026-10-29",
       templateId: template.id,
@@ -365,8 +365,8 @@ describe("template change from next Monday", () => {
       capacity: 12,
     });
     const bookings = [
-      makeBooking({ instanceId: nextWeek.id, userId: "a", pool: "weekly_directed" }),
-      makeBooking({ instanceId: nextWeek.id, userId: "b", pool: "weekly_directed" }),
+      makeBooking({ instanceId: nextWeek.id, userId: "a", pool: "quota_directed" }),
+      makeBooking({ instanceId: nextWeek.id, userId: "b", pool: "quota_directed" }),
     ];
     const result = propagateTemplateChange({
       today: "2026-10-29",
@@ -418,7 +418,7 @@ describe("template change from next Monday", () => {
       "inst-new",
     );
     const bookings = [
-      makeBooking({ instanceId: oldInstance.id, userId: "a", pool: "weekly_directed" }),
+      makeBooking({ instanceId: oldInstance.id, userId: "a", pool: "quota_directed" }),
       makeBooking({ instanceId: oldInstance.id, userId: "b", pool: "pack" }),
     ];
     const result = propagateTemplateChange({
@@ -431,7 +431,7 @@ describe("template change from next Monday", () => {
     expect(result.instances.find((instance) => instance.id === oldInstance.id)?.status).toBe("cancelled");
     expect(result.bookings.map((booking) => booking.instanceId)).toEqual(["inst-new", "inst-new"]);
     expect(result.bookings.every((booking) => booking.status === "active")).toBe(true);
-    expect(result.bookings.map((booking) => booking.pool)).toEqual(["weekly_directed", "pack"]);
+    expect(result.bookings.map((booking) => booking.pool)).toEqual(["quota_directed", "pack"]);
     expect(result.summary.movedBookingCount).toBe(2);
     expect(result.summary.cancelledBookingCount).toBe(0);
   });
@@ -486,7 +486,7 @@ describe("template change from next Monday", () => {
       startAt: atBoxTime("2026-11-02", "18:00"),
       endAt: atBoxTime("2026-11-02", "19:00"),
     });
-    const bookings = [makeBooking({ instanceId: nextWeek.id, userId: "a", pool: "weekly_directed" })];
+    const bookings = [makeBooking({ instanceId: nextWeek.id, userId: "a", pool: "quota_directed" })];
     const result = propagateTemplateChange({
       today: "2026-10-29",
       templateId: template.id,

@@ -9,8 +9,8 @@ import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import type { MemberSummary } from "@/lib/box/summary";
-import { billingPeriodKindLabel, localDateString, usesPeriodicQuota, weekEndDate, weekStartDate } from "@78feet/domain";
-import { formatPrice, formatWeekRange, memberFullName } from "@/lib/box/format";
+import { billingPeriodKindLabel, quotaPeriodForConsumption, usesPeriodicQuota } from "@78feet/domain";
+import { formatPrice, memberFullName } from "@/lib/box/format";
 import { MarkPaidButton } from "@/components/staff/mark-paid-button";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { FormDialog } from "@/components/staff/form-dialog";
 import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { ConsumoGestionDialog, BonoGestionDialog } from "@/components/staff/member-quota-gestion";
 import { cn } from "cn";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 type Tariff = {
   id: string;
@@ -40,6 +41,7 @@ export type MemberProfileData = {
   dni: string | null;
   phone: string | null;
   email: string | null;
+  profileImageUrl: string | null;
   loginId: string;
   status: "active" | "inactive";
   membership: {
@@ -126,7 +128,10 @@ export function MemberProfile({
     quota.directedLimit - quota.directedUsed + (quota.directedAdjustment ?? 0),
   );
   const openAvailable = Math.max(0, quota.openLimit - quota.openUsed + (quota.openAdjustment ?? 0));
-  const weekLabel = formatWeekRange(weekStartDate(localDateString(new Date())), weekEndDate(localDateString(new Date())));
+  const directedTotal = Math.max(0, quota.directedLimit + (quota.directedAdjustment ?? 0));
+  const openTotal = Math.max(0, quota.openLimit + (quota.openAdjustment ?? 0));
+  const periodText = quota.period === "month" ? "Este mes" : "Esta semana";
+  const periodLabel = quota.periodLabel ?? "";
   const showBonoSection =
     (tariff && usesPeriodicQuota(tariff.consumptionModel)) ||
     tariff?.consumptionModel === "pack" ||
@@ -361,8 +366,8 @@ export function MemberProfile({
       ) : (
         <form onSubmit={(event) => void changeTariff(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <FormSelect label="Tarifa" name="tariffId" required defaultValue={member.membership?.tariffId ?? ""} disabled={pending}
-            options={assignable.map((item) => ({ value: item.id, label: item.name }))} />
+          <FormSelect label="Tarifa" name="tariffId" required defaultValue="" disabled={pending}
+            options={[{ value: "", label: "Elegí una tarifa…" }, ...assignable.map((item) => ({ value: item.id, label: item.name }))]} />
           <DialogFooter>
             <Button
               type="button"
@@ -406,6 +411,10 @@ export function MemberProfile({
               </>
             }
           >
+            <div className="mb-3 flex items-center gap-3">
+              <ProfileAvatar name={memberFullName(member.firstName, member.lastName)} imageUrl={member.profileImageUrl} />
+              <span className="font-medium">{memberFullName(member.firstName, member.lastName)}</span>
+            </div>
             <dl className="flex flex-col gap-3">
               <FieldRow label="Nombre" value={memberFullName(member.firstName, member.lastName)} />
               <FieldRow label="DNI" value={member.dni ?? "—"} />
@@ -424,19 +433,20 @@ export function MemberProfile({
                     memberId={member.id}
                     disabled={false}
                     directedAvailable={directedAvailable}
-                    directedTotal={quota.directedLimit}
+                    directedTotal={directedTotal}
                     openAvailable={openAvailable}
-                    openTotal={quota.openLimit}
-                    weekLabel={weekLabel}
+                    openTotal={openTotal}
+                    periodText={periodText}
+                    periodLabel={periodLabel}
                   />
                 ) : null
               }
             >
               <dl className="flex flex-col gap-3">
-                <ConsumoRow label="Dirigidas" available={directedAvailable} total={quota.directedLimit} />
-                <ConsumoRow label="Opens" available={openAvailable} total={quota.openLimit} />
+                <ConsumoRow label="Dirigidas" available={directedAvailable} total={directedTotal} />
+                <ConsumoRow label="Opens" available={openAvailable} total={openTotal} />
               </dl>
-              <p className="text-xs tabular-nums text-muted-foreground">Esta semana · {weekLabel}</p>
+              <p className="text-xs tabular-nums text-muted-foreground">{periodText} · {periodLabel}</p>
             </ProfileSection>
           ) : null}
         </div>
@@ -453,19 +463,18 @@ export function MemberProfile({
                 </div>
                 {tariff.consumptionModel === "pack" ? (
                   <div className="flex flex-col gap-2">
-                    <p className="text-sm text-muted-foreground">Las reservas consumen el saldo de bono; no hay cupo semanal.</p>
+                    <p className="text-sm text-muted-foreground">Las reservas consumen el saldo de bono; no hay cupo periódico.</p>
                     <FieldRow label="Facturación" value={billingPeriodKindLabel(tariff.billingPeriod)} />
                   </div>
                 ) : (
                   <>
                     <dl className="flex flex-col gap-2">
                       <FieldRow
-                        label="Incluye cada semana"
+                        label={`Incluye cada ${quotaPeriodForConsumption(tariff.consumptionModel) === "month" ? "mes" : "semana"}`}
                         value={
                           <span className="tabular-nums">
-                            {tariff.weeklyDirected} dirigida{tariff.weeklyDirected === 1 ? "" : "s"} · {tariff.weeklyOpen}{" "}
-                            open
-                            {tariff.weeklyOpen === 1 ? "" : "s"}
+                            {tariff.quotaDirected} dirigida{tariff.quotaDirected === 1 ? "" : "s"} · {tariff.quotaOpen}{" "}
+                            open{tariff.quotaOpen === 1 ? "" : "s"}
                           </span>
                         }
                       />
@@ -519,7 +528,7 @@ export function MemberProfile({
                 </div>
               </dl>
               <p className="text-sm text-muted-foreground">
-                Se usa cuando el cupo semanal está agotado o con tarifa bono. No caduca.
+                Se usa cuando se agota el cupo del periodo o con tarifa bono. No caduca.
               </p>
             </ProfileSection>
           ) : null}

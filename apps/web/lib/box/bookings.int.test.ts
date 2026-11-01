@@ -67,8 +67,8 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
         consumptionModel: "weekly_quota",
         billingPeriod: "monthly",
         priceCents: 7000,
-        weeklyDirected: 1,
-        weeklyOpen: 1,
+        quotaDirected: 1,
+        quotaOpen: 1,
       },
     });
     tariffId = tariff.id;
@@ -186,7 +186,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     expect(booked.json).toMatchObject({
       userId: memberId,
       createdBy: memberId,
-      pool: "weekly_directed",
+      pool: "quota_directed",
       status: "active",
       quotaReturned: null,
     });
@@ -251,7 +251,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
       instanceId: morning.id,
     });
     expect(used.status).toBe(201);
-    expect(used.json).toMatchObject({ pool: "weekly_directed" });
+    expect(used.json).toMatchObject({ pool: "quota_directed" });
     const exhausted = await call(bookAsMember, "POST", "/api/v1/bookings", memberToken, {
       instanceId: evening.id,
     });
@@ -418,7 +418,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
           data: {
             instanceId: instance.id,
             userId: memberId,
-            pool: "weekly_directed",
+            pool: "quota_directed",
             status: "active",
             createdBy: memberId,
           },
@@ -467,7 +467,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
       data: {
         instanceId: september.id,
         userId: memberId,
-        pool: "weekly_directed",
+        pool: "quota_directed",
         status: "active",
         createdBy: memberId,
       },
@@ -476,7 +476,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
       data: {
         instanceId: august.id,
         userId: memberId,
-        pool: "weekly_directed",
+        pool: "quota_directed",
         status: "cancelled",
         quotaReturned: true,
         cancelledAt: new Date("2026-08-01T10:00:00.000Z"),
