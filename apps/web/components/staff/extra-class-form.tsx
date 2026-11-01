@@ -62,14 +62,14 @@ export function ExtraClassForm({
       >
         <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <DatePicker label="Día" disabled={pending} name="date" required defaultValue={defaultDate} />
-          <TimePicker label="Inicio" disabled={pending} name="startTime" required defaultValue="18:00" />
-          <TimePicker label="Fin" disabled={pending} name="endTime" required defaultValue="19:00" />
+          <DatePicker label="Día" disabled={pending} name="date" required min={defaultDate} defaultValue={defaultDate} />
+          <TimePicker label="Inicio" disabled={pending} name="startTime" required />
+          <TimePicker label="Fin" disabled={pending} name="endTime" required />
           <FormSelect label="Tipo" name="classTypeId" required disabled={pending}
-            options={classTypes.map((type) => ({ value: type.id, label: type.name }))} />
+            defaultValue="" options={[{ value: "", label: "Elegí un tipo de clase…" }, ...classTypes.map((type) => ({ value: type.id, label: type.name }))]} />
           <FormSelect label="Coach" name="coachId" defaultValue="" disabled={pending}
             options={[{ value: "", label: "Sin coach" }, ...coaches.map((coach) => ({ value: coach.id, label: coach.name }))]} />
-          <QuantityField label="Aforo" name="capacity" min={1} required defaultValue={12} disabled={pending} />
+          <QuantityField label="Aforo" name="capacity" min={1} required disabled={pending} />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
               Cancelar

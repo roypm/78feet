@@ -165,7 +165,7 @@ export function HoursForm({ initialConfig, today }: { initialConfig: BoxHoursCon
                   Excepciones por fecha
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Cambian el horario habitual solo ese día. Sin tramos, el box queda cerrado.
+                  Al añadir una fecha, se copian los tramos habituales de ese día; podés ajustarlos o quitarlos para cerrar.
                 </p>
               </div>
               <Button type="button" variant="outline" className="min-h-10" onClick={addException}>

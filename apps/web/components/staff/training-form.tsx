@@ -105,7 +105,7 @@ export function TrainingForm({
   const [previewing, setPreviewing] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [name, setName] = useState(training?.name ?? "");
-  const [classTypeId, setClassTypeId] = useState(training?.classTypeId ?? types[0]?.id ?? "");
+  const [classTypeId, setClassTypeId] = useState(training?.classTypeId ?? "");
   const [phases, setPhases] = useState<Phase[]>(training?.phases ?? []);
   const hasChanges = training
     ? name.trim() !== training.name ||
@@ -231,7 +231,7 @@ export function TrainingForm({
               </Field>
               <FormSelect label="Tipo de clase dirigida" value={classTypeId} onValueChange={setClassTypeId}
                 required disabled={pending}
-                options={types.map((type) => ({ value: type.id, label: type.name }))} />
+                options={[{ value: "", label: "Elegí un tipo de clase…" }, ...types.map((type) => ({ value: type.id, label: type.name }))]} />
               <p className="text-sm text-muted-foreground">
                 Ordena la sesión por fases. En cada bloque, escribe las indicaciones que necesita el grupo: series y
                 repeticiones, carga o intensidad, descansos y tiempo límite cuando corresponda.

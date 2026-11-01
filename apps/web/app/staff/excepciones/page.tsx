@@ -2,7 +2,7 @@
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import { localDateString } from "@78feet/domain";
+import { addDays, localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listExceptions } from "@/lib/box/exceptions";
 import { listClassTypes } from "@/lib/box/class-types";
@@ -49,7 +49,7 @@ async function Exceptions() {
         ) : (
           <>
             <ModulePrimaryAction>
-              <ExtraClassForm defaultDate={today} classTypes={classTypes} coaches={coaches} />
+              <ExtraClassForm defaultDate={addDays(today, 1)} classTypes={classTypes} coaches={coaches} />
             </ModulePrimaryAction>
             <ExceptionsList items={items} />
           </>

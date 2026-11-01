@@ -96,9 +96,9 @@ export function MarkPaidButton({
           <Field label="Periodo">
             <Input readOnly value={periodLabel} className="bg-muted/40" />
           </Field>
-          <MoneyField label="Importe cobrado (€)" name="amountEuros" required defaultCents={amountCents} disabled={pending} />
-          <FormSelect label="Método de pago" name="method" required defaultValue="cash" disabled={pending}
-            options={PAYMENT_METHODS.map((item) => ({ value: item.value, label: item.label }))} />
+          <MoneyField label="Importe cobrado (€)" name="amountEuros" required disabled={pending} />
+          <FormSelect label="Método de pago" name="method" required defaultValue="" disabled={pending}
+            options={[{ value: "", label: "Elegí un método…" }, ...PAYMENT_METHODS.map((item) => ({ value: item.value, label: item.label }))]} />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
               Cancelar

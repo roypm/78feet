@@ -55,8 +55,8 @@ export function TemplateEditor({
         <div className="grid gap-3 sm:grid-cols-2">
           <FormSelect label="Día" name="weekday" required defaultValue={String(draft.weekday)}
             options={DAYS.map((day, index) => ({ value: String(index + 1), label: day }))} />
-          <FormSelect label="Tipo" name="classTypeId" required defaultValue={draft.classTypeId || types[0]?.id}
-            options={types.map((type) => ({ value: type.id, label: type.name }))} />
+          <FormSelect label="Tipo" name="classTypeId" required defaultValue={draft.classTypeId}
+            options={[{ value: "", label: "Elegí un tipo de clase…" }, ...types.map((type) => ({ value: type.id, label: type.name }))]} />
           <TimePicker label="Inicio" name="startTime" required defaultValue={draft.startTime} />
           <TimePicker label="Fin" name="endTime" required defaultValue={draft.endTime} />
           <FormSelect label="Coach" name="coachId" defaultValue={draft.coachId ?? ""}

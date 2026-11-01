@@ -125,8 +125,8 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
             </Field>
           ) : (
             <FormSelect
-              label="Grilla" name="kind" required disabled={pending} defaultValue="directed"
-              options={[{ value: "directed", label: "Dirigida" }, { value: "open", label: "Open" }]}
+              label="Grilla" name="kind" required disabled={pending} defaultValue=""
+              options={[{ value: "", label: "Elegí una grilla…" }, { value: "directed", label: "Dirigida" }, { value: "open", label: "Open" }]}
             />
           )}
           <ImageUploadField key={editing?.id ?? "new"} currentImageUrl={editing?.imageUrl} required={!editing} disabled={pending} />

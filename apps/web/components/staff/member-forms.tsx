@@ -130,8 +130,8 @@ export function CreateMemberForm({
           <Field label="Email">
             <Input name="email" type="email" autoComplete="email" />
           </Field>
-          <FormSelect label="Tarifa" name="tariffId" required defaultValue={assignable[0]?.id} disabled={busy}
-            options={assignable.map((tariff) => ({ value: tariff.id, label: tariff.name }))} />
+          <FormSelect label="Tarifa" name="tariffId" required defaultValue="" disabled={busy}
+            options={[{ value: "", label: "Elegí una tarifa…" }, ...assignable.map((tariff) => ({ value: tariff.id, label: tariff.name }))]} />
           {inDialog ? (
             <DialogFooter>
               <Button type="button" variant="outline" className="min-h-11" disabled={busy} onClick={onCancel}>

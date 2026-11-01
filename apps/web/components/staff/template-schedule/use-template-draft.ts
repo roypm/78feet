@@ -40,7 +40,6 @@ export function useTemplateDraft({ templates, types, openingHours }: {
 
   const isDirty = !templatesEqual(baseline, working);
   function startCreate(weekday: number, kind: TemplateKind, requestedStart?: number) {
-    const typesForKind = types.filter((item) => item.kind === kind);
     let start = Math.min(22 * 60 + 45, Math.max(0, Math.round((requestedStart ?? 18 * 60) / 15) * 15));
     const intervals = openingHours.weekly.find((day) => day.weekday === weekday)?.intervals ?? [];
     const fits = (minute: number) =>
@@ -64,7 +63,7 @@ export function useTemplateDraft({ templates, types, openingHours }: {
       weekday,
       startTime: minutesToClock(start),
       endTime: minutesToClock(end),
-      classTypeId: typesForKind[0]?.id ?? "",
+      classTypeId: "",
       coachId: null,
       defaultCapacity: 12,
     });

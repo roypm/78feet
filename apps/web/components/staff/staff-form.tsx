@@ -70,8 +70,8 @@ export function StaffForm() {
           <Field label="Contraseña">
             <Input name="password" type="password" required minLength={8} />
           </Field>
-          <FormSelect label="Rol" name="role" defaultValue="coach" disabled={pending}
-            options={[{ value: "coach", label: "Coach" }, { value: "admin", label: "Admin" }]} />
+          <FormSelect label="Rol" name="role" required defaultValue="" disabled={pending}
+            options={[{ value: "", label: "Elegí un rol…" }, { value: "coach", label: "Coach" }, { value: "admin", label: "Admin" }]} />
           <Field label="DNI">
             <Input name="dni" required autoComplete="off" />
           </Field>
