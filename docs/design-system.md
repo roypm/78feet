@@ -10,7 +10,7 @@ La identidad visual salió del grilling de diseño (28/10/2026). Este documento 
 
 - **Web implementada:** Tailwind CSS 4, tokens CSS y componentes locales basados en shadcn/ui y Base UI. Iconos Lucide.
 - **App Expo pendiente:** NativeWind y `lucide-react-native` consumirán estos mismos valores cuando se implemente la app móvil.
-- Claro y oscuro se siguen automáticamente con `prefers-color-scheme`. No hay selector manual de tema.
+- La preferencia de tema se guarda en el perfil de cada cuenta: **Sistema por defecto**, con opciones Sistema, Claro y Oscuro. Sistema sigue la preferencia del dispositivo; Claro y Oscuro son anulaciones explícitas. CSS aplica Sistema desde la carga inicial y responde a cambios del sistema. Se cambia desde el pie del menú lateral o desde Apariencia en Mi perfil. Si falla el guardado se conserva el tema anterior.
 - Los valores de marca se declaran en `apps/web/app/globals.css`; las clases consumen los alias semánticos de Tailwind/shadcn (`bg-background`, `bg-card`, `text-foreground`, `border-border`, `bg-primary`).
 
 ## 2. Color
@@ -60,7 +60,7 @@ Escala de Tailwind con base de 4 px: `1` = 4, `2` = 8, `3` = 12, `4` = 16, `6` =
 - Las cabeceras de módulo usan una banda de superficie propia; título, filtros y acción se ajustan en varias líneas si falta ancho.
 - Los listados largos ocupan el ancho disponible. Las fichas de lectura limitan su ancho para facilitar la lectura; tablas y calendario pueden usar todo el espacio.
 - Separación típica de listas: `gap-3`; entre secciones: `gap-6`. El cuerpo de módulos densos usa `pt-2` y `gap-3` para aprovechar la altura.
-- El shell ocupa el alto visible (`100svh`) y el contenido de cada módulo gestiona su propio scroll. En web táctil se respetan safe areas y los inputs mantienen 16 px para evitar zoom automático en iOS.
+- El shell ocupa el alto visible (`100dvh`) y el contenido de cada módulo gestiona su propio scroll. En web táctil se respetan safe areas y los inputs mantienen 16 px para evitar zoom automático en iOS.
 
 ## 5. Radios e interacción
 
@@ -79,6 +79,7 @@ Escala de Tailwind con base de 4 px: `1` = 4, `2` = 8, `3` = 12, `4` = 16, `6` =
 ## 7. Componentes y patrones web
 
 - Primitives locales: `Button`, `Card`, `Badge`, `Input`, `InputGroup`, `Select`, `Switch`, `Calendar`, `Popover`, `Table`, `Dialog`, `Sheet`, `Tooltip` y `Textarea`.
+- `ProfileAvatar` muestra una imagen en círculo con `object-cover`; sin imagen o si falla, muestra iniciales. Se usa en la navegación, perfiles, listas de equipo y socios, y rosters de clases. Las fotos se sirven desde una ruta autenticada con caché privada corta y se editan en el perfil propio. El editor acepta JPEG/PNG/WebP de hasta 5 MB y permite elegir, previsualizar, guardar, reemplazar, descartar o quitar.
 - Botones: `default`, `outline`, `secondary`, `ghost`, `destructive` y `link`; tamaño compacto por defecto. Las acciones táctiles relevantes pueden subir a `min-h-11`.
 - Los listados del staff usan tablas. En pantallas estrechas se ocultan columnas secundarias y se integra ese dato en la celda principal o se permite scroll horizontal; el estado y las acciones conservan una columna estable.
 - Formularios de módulo usan `Field` y `FormDialog` para etiqueta, descripción, contenido y acciones consistentes.
@@ -92,12 +93,12 @@ Escala de Tailwind con base de 4 px: `1` = 4, `2` = 8, `3` = 12, `4` = 16, `6` =
 - Los buscadores usan `SearchInput`, compuesto con `InputGroup`: lupa decorativa, campo semántico de búsqueda y un único botón propio de borrar, ocultando los adornos nativos del navegador. Tiene 44 px de alto y el botón de borrar conserva un área de 44 × 44 px. El valor sigue controlado por cada consumidor; se conservan etiquetas accesibles, placeholders y filtrado inmediato. Borrar devuelve el foco al campo sin enviar formularios ni cambiar la selección de un socio; Escape limpia si hay texto y, vacío, permite cerrar el diálogo. Durante composición de texto no se intercepta Escape. Tanto el campo como el borrado respetan el estado deshabilitado; en solo lectura el borrado no está disponible. El filtrado es local, sin nuevas peticiones al servidor: Socios, Impagos y Biblioteca staff buscan en la página actual; Equipo, en las cuentas cargadas.
 - En Socios (activos y bajas), Impagos, Biblioteca staff y Equipo, el buscador queda alineado al inicio de la tabla, con ancho completo en móvil y máximo de 28 rem en escritorio. `ListSearchToolbar` reúne búsqueda y alta en Socios activos, Biblioteca staff y Equipo: búsqueda a la izquierda y alta justo a su lado, separadas por 12 px; se apilan cuando no caben. Las tablas mantienen todo el ancho disponible. En listas vacías el alta sigue accesible; si faltan tarifas activas en Socios, el aviso conserva su bloque propio. Esta restricción de ancho es de los listados: el buscador de «Añadir socio» ocupa el ancho de su campo dentro del diálogo.
 - Confirmaciones de impacto usan el `ConfirmDialog` propio, con explicación concreta, botón de cancelar y acción confirmada. No usar `window.confirm`, `alert` ni `prompt` del navegador.
-- Feedback asíncrono usa un único `Toaster` Sonner en el layout raíz, ligado al tema del sistema, con iconos para éxito, error, aviso, información y carga.
+- Feedback asíncrono usa un único `Toaster` Sonner en el layout raíz, ligado al tema del perfil, con iconos para éxito, error, aviso, información y carga.
 - La app Expo queda fuera de este inventario hasta que se construya; no se afirma que los primitives web ya estén portados.
 
 ## 8. Fuera de alcance visual de v1
 
-Fuente custom, ilustraciones, motion decorativo, analítica visual y tematización manual. Los estados vacíos, errores y textos de cada módulo se definen al diseñar su flujo; deben seguir los componentes y tokens anteriores.
+Fuente custom, ilustraciones, motion decorativo y analítica visual. Los estados vacíos, errores y textos de cada módulo se definen al diseñar su flujo; deben seguir los componentes y tokens anteriores.
 
 ### Navegación de listas
 
@@ -112,3 +113,11 @@ Las listas paginadas comparten `ListPagination`: rango y total a la izquierda; A
 - El hover usa `pointer-hover:` (`hover: hover` y `pointer: fine`); siempre hay foco visible y respuesta táctil. Las filas informativas no aparentan navegación. `prefers-reduced-motion` desactiva el pulso de skeletons, el giro de spinners y las animaciones de overlays sin ocultar las etiquetas de estado.
 - `ResourceImage` reserva la geometría mediante las clases del módulo y usa la imagen local de respaldo si falla la original. Los errores de carga tienen una pantalla de recuperación; no se presentan como listas vacías.
 - Tailwind se procesa con `@tailwindcss/postcss` tanto en desarrollo como en el build con webpack.
+
+### Menú lateral
+
+- Marca 78feet con tratamiento propio y enlace al inicio del rol. A su lado, botón visible para contraer o expandir; sigue accesible en modo de iconos. El perfil queda separado de la marca y de la navegación, con avatar, nombre y rol.
+- Staff: Actividad (Hoy, Semana, Excepciones, Biblioteca), Gestión (Socios, Impagos y Equipo), Configuración del box (Plantilla, Tipos de clase, Horario del box y Tarifas). Solo se muestran enlaces autorizados y las secciones vacías se omiten.
+- Socios: Entrenamiento (Calendario, Mis reservas, Biblioteca) y Mi cuenta (Historial, Mi tarifa). Mi perfil permanece junto al avatar.
+- Pie fijo con cambio de tema y Cerrar sesión en una línea. El contenido central del menú tiene scroll si falta altura; cabecera y pie permanecen accesibles. En móvil se abre como panel y se cierra al navegar o usar Escape.
+- El menú recuerda su estado expandido por navegador. El enlace activo expone `aria-current`; los controles tienen etiquetas en español, foco visible y ayudas al plegarse. Los detalles de clase del staff conservan la sección de origen (Hoy, Semana o Excepciones); una entrada directa usa Semana.

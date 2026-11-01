@@ -24,6 +24,8 @@ Cómo se construye (arquitectura, modelo de datos, API) está en [`trd.md`](./tr
 | Acción | Socio | Coach | Admin |
 |---|---|---|---|
 | Ver calendario, plazas y roster | sí | sí | sí |
+| Ver, subir, reemplazar y quitar la propia foto de perfil | sí | sí | sí |
+| Cambiar el tema propio (sistema, claro u oscuro) | sí | sí | sí |
 | Ver la biblioteca de entrenamientos | sí | sí | sí |
 | Ver el historial de sus reservas | sí | — | — |
 | Crear, editar y borrar entrenamientos | — | sí | sí |
@@ -34,7 +36,7 @@ Cómo se construye (arquitectura, modelo de datos, API) está en [`trd.md`](./tr
 | Cancelar reserva de un socio (y elegir si devuelve cupo) | — | sí | sí |
 | Alta y edición de socios | — | sí | sí |
 | Asignar tarifa y saldo de bono | — | sí | sí |
-| Ajustar cupo semanal individual para la semana en curso | — | sí | sí |
+| Ajustar cupo individual del periodo en curso | — | sí | sí |
 | Registrar pago del periodo de facturación | — | sí | sí |
 | Resetear contraseña de un socio | — | sí | sí |
 | Cancelar / modificar una clase puntual (excepción) | — | sí | sí |
@@ -42,7 +44,8 @@ Cómo se construye (arquitectura, modelo de datos, API) está en [`trd.md`](./tr
 | Plantilla semanal y aforos por defecto | — | — | sí |
 | Catálogo de tipos de clase (nombre, imagen, grilla) | — | — | sí |
 | Definir horario semanal y excepciones de apertura | — | — | sí |
-| Crear, activar/desactivar cuentas de staff, consultar perfiles y editar datos de contacto | — | — | sí |
+| Consultar el perfil propio de staff | — | sí | sí |
+| Crear, activar/desactivar cuentas de staff, consultar perfiles ajenos y editar sus datos de contacto | — | — | sí |
 | Dar de baja o reactivar a un socio | — | — | sí |
 
 Reglas:
@@ -50,6 +53,8 @@ Reglas:
 - **Los roles no se acumulan.** Un coach que además entrena tiene **dos cuentas**: una `coach` (staff, no reserva) y una `socio`.
 - **No hay auto-registro.** Toda cuenta la crea el staff.
 - La cuenta `coach` no puede reservar; la cuenta `socio` no puede administrar.
+
+Cada cuenta nueva sigue el tema del sistema por defecto. Puede elegir Sistema, Claro u Oscuro desde el menú o Mi perfil. La preferencia se guarda en su perfil y se mantiene entre dispositivos; en Sistema, cada dispositivo aplica su propia preferencia del sistema operativo. El login también sigue el sistema hasta conocer la preferencia de la cuenta. Las preferencias existentes se conservan. El personal cambia únicamente su propia preferencia.
 
 ## 3. Acceso
 
@@ -68,12 +73,11 @@ Cada fila del catálogo combina **dos ejes** independientes:
 | Consumo | Facturación | Precio | Cupo | Comportamiento |
 |---|---|---|---|---|
 | **Cupo semanal** | mensual, trimestral, semestral o anual | € / periodo | N dirigidas + M opens por semana | El cupo se renueva solo cada semana. No vence. |
-| **Cupo semanal** | sin cobro (`0 €`) | 0 € | ej. 3 dirigidas + 0 opens | Prueba: misma mecánica de reservas, sin estado de pago periódico. |
+| **Cupo mensual** | mensual, trimestral, semestral o anual | € / periodo | N dirigidas + M opens por mes natural | El cupo se renueva el día 1. No vence. |
+| **Cupo semanal o mensual** | sin cobro (`0 €`) | 0 € | ej. 3 dirigidas + 0 opens por periodo | Prueba: misma mecánica de reservas, sin estado de pago periódico. |
 | **Bono** | pago único | pago único | X clases | Saldo que se consume hasta agotarse. Sin caducidad. |
 
-El catálogo de tarifas lo administra **solo el admin**. Los cupos salen de la tarifa, con una excepción operativa: coach y admin pueden ajustar por separado el cupo semanal de dirigidas y opens de un socio para la semana en curso.
-
-El catálogo implementado ofrece «Cupo semanal», «Cupo mensual» y «Bono». **Diferencia pendiente:** el motor actualmente calcula ambos tipos de cupo periódico con límites semanales (`dirigidas/semana` y `opens/semana`); «Cupo mensual» todavía no tiene contador ni renovación mensual distintos. No debe interpretarse como un cupo mensual funcional hasta definir e implementar esa regla.
+El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (semana o mes natural) es independiente del ciclo de facturación. Coach y admin pueden ajustar por separado dirigidas y opens del periodo de consumo en curso.
 
 ### 4.2 Cupo semanal (tarifas mensuales)
 
@@ -83,26 +87,36 @@ El catálogo implementado ofrece «Cupo semanal», «Cupo mensual» y «Bono». 
 - El cupo **no se acumula**: lo que no se usa, se pierde.
 - Con el calendario abierto a 4 semanas, un socio puede comprometer su cupo de varias semanas a la vez. Es aceptado: quien reserva temprano gana.
 
-### 4.3 Saldo de bono (desborde del cupo)
+### 4.3 Cupo mensual
 
-- El cupo semanal **se consume primero**. Cuando se agota, la reserva sale del **saldo de bono**, tanto para dirigidas como para opens.
+- El periodo es el **mes natural**, del día 1 al último día del mes, en la zona `Europe/Madrid`.
+- Se cuenta contra el **mes de la clase**, no el mes en que se hace la reserva.
+- Dirigidas y opens son contadores separados; el cupo no usado no pasa al mes siguiente.
+- Reservar con antelación una clase de otro mes compromete el cupo de ese mes.
+- Un alta o cambio a una tarifa mensual a mitad de mes da el cupo mensual completo, sin prorrateo. Las reservas con pool de cupo que ya cuenten en ese mes se consideran consumidas frente al nuevo límite; las reservas futuras se cancelan al cambiar de tarifa según §4.5.
+- Coach y admin pueden ajustar por separado el cupo de dirigidas y opens del mes en curso. Los ajustes no se trasladan al mes siguiente.
+
+### 4.4 Saldo de bono (desborde del cupo)
+
+- El cupo del periodo (semanal o mensual) **se consume primero**. Cuando se agota, la reserva sale del **saldo de bono**, tanto para dirigidas como para opens.
 - El saldo es **único**: "te quedan 4 clases" sirve para cualquier tipo de sesión.
 - **Cualquier socio puede llevar saldo de bono**, no solo el que empezó con bono: es la misma mecánica para vender "5 clases extra" a un mensual.
 - El saldo **no caduca**.
 - El staff **recarga** el saldo cuando el socio paga.
-- En la ficha del socio, coach y admin pueden ajustar por separado el cupo semanal de dirigidas y opens para la semana en curso.
+- En la ficha del socio, coach y admin pueden ajustar por separado el cupo de dirigidas y opens del periodo en curso.
 - Al cambiar de tarifa, **el saldo se conserva** y sigue funcionando como desborde.
-- Un socio **solo bono** no tiene límite semanal: puede gastar el saldo cuando quiera.
+- Un socio **solo bono** no tiene límite periódico: puede gastar el saldo cuando quiera.
 - En su pantalla de tarifa, el socio ve tres números: `2 dirigidas + 2 opens + 4 bono`.
 
-### 4.4 Cambio de tarifa
+### 4.5 Cambio de tarifa
 
 - Se aplica **de inmediato**, en el mismo usuario. No se crea un socio nuevo.
 - **Cualquier cambio de tarifa cancela todas las reservas futuras del socio**, devolviendo el cupo o el saldo. Aplica también al subir de tarifa.
+- Si la nueva tarifa tiene cupo semanal o mensual, recibe el límite completo del periodo actual, sin prorrateo. En el mes de un cambio, las reservas con cupo ya consumidas en ese mes cuentan frente al nuevo límite.
 - El staff avisa al socio antes de hacer el cambio; el socio se vuelve a apuntar con la tarifa nueva.
 - Motivo: sin esta regla, un socio reserva con la tarifa alta y se pasa a la baja conservando las plazas.
 
-### 4.5 Estado de pago
+### 4.6 Estado de pago
 
 - El sistema **no cobra**. El pago se hace fuera (efectivo, Bizum, transferencia, TPV).
 - La membresía **no vence sola**: sigue activa hasta que alguien la cancele o la cambie a mano. No hay fecha de renovación ni corte automático por impago.
@@ -137,7 +151,9 @@ El catálogo implementado ofrece «Cupo semanal», «Cupo mensual» y «Bono». 
 - **No hay ventana por socio**: si la clase está en el calendario y no empezó, se puede reservar. No hay límite de "solo 7 días vista".
 - El socio elige la grilla **Dirigidas** u **Open**. El bloque es la imagen del tipo. Centrado abajo, encima de la imagen, va la ocupación `apuntados/aforo`. Si está apuntado o la clase está cancelada, esa palabra va con el cupo, sin el nombre y sin hacer el bloque más alto. La hora la marca el eje, no el bloque.
 - En el detalle se ven la imagen, el nombre del tipo y el coach (si hay). Si la clase tiene entrenamiento, el plan va debajo (§5.5).
-- El roster de una clase es visible para cualquier socio logueado, con el formato **"Marta G."** (nombre + inicial del apellido).
+- El roster de una clase es visible para cualquier socio logueado, con foto de perfil cuando existe y el formato **"Marta G."** (nombre + inicial del apellido). Sin foto se muestran las iniciales del nombre; la imagen fallida también vuelve a ese estado.
+- Socios, coaches y admins pueden subir, reemplazar o quitar su propia foto desde «Mi perfil». La foto es opcional. Se aceptan JPEG, PNG y WebP de hasta 5 MB; al mostrarse se recorta al centro en un avatar circular, sin modificar el original.
+- La foto de un coach asignado aparece junto a su nombre en el detalle de clase. El admin tiene foto de perfil como cualquier cuenta staff y su avatar aparece en Equipo; puede aparecer como coach si se lo asigna a una clase.
 
 ### 5.3 Excepciones (una semana concreta)
 
@@ -146,6 +162,9 @@ El catálogo implementado ofrece «Cupo semanal», «Cupo mensual» y «Bono». 
 - Cambiar la **hora** de una clase con gente: las reservas **viajan con la clase** (siempre dentro del mismo día).
 - Cambiar de **día**: no se puede mover. Se cancela la clase y se crea una nueva; la gente se vuelve a apuntar.
 - Cancelar una clase: se liberan todas sus reservas y se devuelve el cupo o el saldo automáticamente.
+- Una clase extra futura se puede quitar desde su detalle. Si nunca tuvo reservas, se elimina; si tiene historial, queda cancelada y la ficha se conserva. Las reservas activas se cancelan y se devuelve el cupo o saldo.
+- Una instancia futura modificada de una plantilla activa se puede **restaurar desde la plantilla** si todavía corresponde al día de la semana de esa plantilla. Se aplican sus valores actuales de hora, tipo, coach y aforo, y se quita la marca de excepción. Si cambia el tipo o el aforo no permite mantener las reservas, se cancelan todas y se devuelve el cupo o saldo; si cambia solo la hora, las reservas se mantienen. Las reservas ya canceladas no se reactivan.
+- Una clase cancelada se puede recuperar mientras todavía no haya empezado. Vuelve a aceptar reservas, pero las reservas que se cancelaron no se restauran automáticamente.
 - Bajar el aforo por debajo de las reservas: se cancelan **todas** las reservas de esa clase —no se elige a quién echar— y se devuelve el cupo o el saldo.
 - Desde la clase, el coach o el admin asocian o quitan un entrenamiento del mismo tipo (§5.5). Si el tipo de la clase cambia y el entrenamiento ya no coincide, se suelta. Las reservas siguen la regla de cambiar el tipo.
 
@@ -182,7 +201,7 @@ Un socio puede reservar una instancia si:
 1. la instancia está programada y **no empezó**;
 2. **quedan plazas**;
 3. no tiene **otra reserva solapada** en el tiempo (no puede estar en dos sesiones a la vez);
-4. tiene **cupo semanal o saldo de bono** disponible para esa semana.
+4. tiene **cupo del periodo de consumo o saldo de bono** disponible para el mes o semana de la clase.
 
 - **No hay lista de espera**: si está llena, no hay más opción.
 - El staff puede **crear reservas a nombre de un socio** (teléfono, mostrador), con las mismas reglas de cupo, **desde el detalle de la clase** (Semana, Hoy o Excepciones). No hay pantalla aparte de «Reservas» en el panel.
@@ -216,8 +235,8 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 |---|---|
 | 1 | Una sola empresa, una sola sede en v1. |
 | 2 | Una tarifa activa por socio, más un saldo de bono opcional. |
-| 3 | El cupo semanal se cuenta contra la semana de la clase, lunes a domingo. |
-| 4 | El cupo semanal se consume antes que el saldo de bono. |
+| 3 | El cupo se cuenta por la fecha de la clase: semana natural para tarifa semanal y mes natural para tarifa mensual. |
+| 4 | Dirigidas y opens tienen contadores separados; el cupo del periodo se consume antes que el saldo de bono. |
 | 5 | El cupo no se acumula; el saldo de bono no caduca. |
 | 6 | No hay ventana de reserva: todo lo del calendario a 4 semanas es reservable. |
 | 7 | No pueden solaparse dos sesiones de la **misma** grilla (dos dirigidas o dos opens). Una dirigida y un open sí pueden coincidir en hora. |

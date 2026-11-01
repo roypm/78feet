@@ -50,9 +50,23 @@ La web usa las validaciones compartidas; la app Expo consumirá la misma API cua
 | `first_name`, `last_name` | text | |
 | `dni` | text, nullable | obligatorio en altas nuevas de socios y staff; puede repetirse entre sus cuentas |
 | `phone`, `email` | text, nullable | opcionales |
+| `theme` | enum `UserTheme`, default `system` | Preferencia de apariencia: `system`, `light` o `dark`. |
 | `failed_logins`, `locked_until` | int, timestamptz | límite de intentos |
 | `token_version` | int, default 0 | se incrementa al resetear contraseña o desactivar; invalida JWTs previos |
 | `created_at`, `updated_at` | timestamptz | |
+
+Preferencia de apariencia: `user.theme` usa el enum `UserTheme` (`system` / `light` / `dark`), no nulo con valor inicial `system`. Se devuelve en el acceso y se lee desde la sesión al renderizar el documento. El HTML inicial declara la preferencia; CSS aplica el tema del sistema sin esperar a hidratar y un provider compartido resuelve cambios del dispositivo y actualiza los tokens, el color del navegador y Sonner. Claro y Oscuro son anulaciones explícitas. La preferencia pertenece a la cuenta y se consulta de nuevo al abrir desde otro dispositivo; Sistema sigue el sistema operativo local.
+
+### `user_profile_image`
+
+Una foto opcional por cuenta. El binario se guarda en Postgres para no depender del disco efímero de Vercel.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `user_id` | uuid, PK/FK | Una foto por usuario; borrado en cascada con la cuenta. |
+| `mime_type` | text | JPEG, PNG o WebP; verificado junto con la firma binaria. |
+| `data` | bytea | Archivo original, máximo 5 MB. |
+| `updated_at` | timestamptz | Se usa como versión de la URL cacheable. |
 
 Un coach que entrena tiene **dos filas** con el mismo `dni` y distinto `login_id`; por eso el
 identificador de login es `login_id` y no el DNI.
@@ -66,15 +80,13 @@ identificador de login es `login_id` y no el DNI.
 | `consumption_model` | enum | `weekly_quota` \| `monthly_quota` \| `pack` |
 | `billing_period` | enum | `monthly` \| `quarterly` \| `semiannual` \| `annual` \| `none` \| `one_time` |
 | `price_cents` | int | |
-| `weekly_directed` | int | límites semanales de dirigidas para los modelos periódicos |
-| `weekly_open` | int | límites semanales de opens para los modelos periódicos |
+| `quota_directed` | int | límite de dirigidas por el periodo de consumo de la tarifa |
+| `quota_open` | int | límite de opens por el periodo de consumo de la tarifa |
 | `pack_classes` | int, nullable | tamaño por defecto del bono, solo `pack` |
 | `active` | bool | las inactivas no se asignan pero se conservan |
 | `created_at` | timestamptz | |
 
-La "tarifa de prueba" es una fila más con `price_cents = 0`.
-
-Aunque `monthly_quota` existe en el esquema y en el formulario de tarifas, hoy comparte los campos y el cálculo semanal de `weekly_quota`. No hay campos ni cálculo de saldo mensual; esa opción está pendiente de definición e implementación funcional.
+La "tarifa de prueba" es una fila más con `price_cents = 0`. `weekly_quota` consume por semana natural de lunes a domingo; `monthly_quota`, por mes natural. Ambos periodos usan la fecha local de la clase (`Europe/Madrid`) y son independientes de `billing_period`.
 
 ### `membership`
 
@@ -110,15 +122,16 @@ pack_balance = sum(credit_grant.quantity) - reservas que consumieron bono y cuen
 
 Sin contadores mutables no hay deriva, y cancelar una reserva devuelve el saldo solo.
 
-### `weekly_quota_adjustment`
+### `quota_adjustment`
 
-Ajustes puntuales por socio, semana y grilla, aplicados al cupo de la semana actual. Coach y admin pueden sumar o restar cupo; cada ajuste conserva autor, fecha y nota opcional.
+Ajustes puntuales por socio, periodo de consumo y grilla, aplicados a la semana o al mes actual según la tarifa. Coach y admin pueden sumar o restar cupo; cada ajuste conserva autor, fecha y nota opcional. Los registros semanales existentes se migran como `period = week`.
 
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid | |
 | `user_id` | uuid | FK `user` (socio) |
-| `week_start` | date | lunes de la semana local del box |
+| `period` | enum | `week` | `month` |
+| `period_start` | date | lunes de la semana o día 1 del mes local del box |
 | `kind` | enum | `directed` \| `open` |
 | `delta` | int | distinto de cero |
 | `note` | text, nullable | |
@@ -236,7 +249,7 @@ Invariante: un entrenamiento tiene al menos una fase y cada fase al menos un blo
 | `id` | uuid | |
 | `instance_id` | uuid | FK `class_instance` |
 | `user_id` | uuid | FK `user` (siempre rol `member`) |
-| `pool` | enum | `weekly_directed` \| `weekly_open` \| `pack` |
+| `pool` | enum | `quota_directed` \| `quota_open` \| `pack` |
 | `status` | enum | `active` \| `cancelled` |
 | `created_by` | uuid | el propio socio o un staff |
 | `created_at` | timestamptz | |
@@ -256,6 +269,12 @@ Invariantes:
 No hace falta una tabla: una excepción es una edición sobre la fila de `class_instance`
 (`status = 'cancelled'`, `start_at`/`end_at`/`class_type_id`/`coach_id`/`capacity` distintos) con `edited_at` marcado.
 `class_type_id` solo puede ser un tipo ya creado. Cambiarlo cancela las reservas activas con cupo devuelto.
+Una clase extra futura sin reservas puede borrarse; si tiene historial, quitarla la deja cancelada y conserva la fila.
+Restaurar una instancia modificada desde una plantilla activa reescribe los campos de horario desde la plantilla y
+pone `edited_at = null`. Si cambia el tipo o el aforo queda por debajo de las reservas activas, se cancelan todas y
+se devuelve su cupo o saldo; una modificación solo de hora conserva las reservas. Las reservas ya canceladas no se
+reactivan. No se restaura si la plantilla está inactiva, cambió al día de otra semana, el box está cerrado o hay solape.
+Una clase cancelada solo vuelve a `scheduled` antes de empezar; su historial de reservas canceladas permanece intacto.
 
 ## 4. Reglas de dominio
 
@@ -318,21 +337,21 @@ for each inst in affected:
 
 ### 4.2 Cálculo de cupo
 
-Semana natural de la instancia, en `Europe/Madrid`:
+El periodo se deriva del consumo de la tarifa vigente. Se usa la fecha de la instancia, en `Europe/Madrid`:
 
 ```
-weekStart(d) = lunes 00:00 de la semana de d
-weekEnd(d)   = domingo 23:59:59.999 de la semana de d
+weekPeriod(d)  = lunes a domingo de la semana de d
+monthPeriod(d) = día 1 al último día del mes de d
 ```
 
-Consumo de la semana `W` para un socio:
+Consumo del periodo `P` para un socio:
 
 ```
-used(W, kind) = count(bookings b
+used(P, kind) = count(bookings b
                       join class_instance i on i.id = b.instance_id
                       where b.user_id = :u
-                        and b.pool = (kind == 'directed' ? 'weekly_directed' : 'weekly_open')
-                        and i.date between weekStart(W) and weekEnd(W)
+                        and b.pool = (kind == 'directed' ? 'quota_directed' : 'quota_open')
+                        and i.date between start(P) and end(P)
                         and (b.status = 'active' or b.quota_returned = false))
 ```
 
@@ -356,9 +375,10 @@ reservar(u, instance):
   require plazas libres (ver 4.4), sino 409 FULL
 
   if membership.consumption_model in ('weekly_quota', 'monthly_quota'):
-      limit = kind == 'directed' ? tariff.weekly_directed : tariff.weekly_open
-      if used(week(instance), kind) < limit:
-          pool = kind == 'directed' ? 'weekly_directed' : 'weekly_open'
+      period = week(instance) if weekly_quota else month(instance)
+      limit = kind == 'directed' ? tariff.quota_directed : tariff.quota_open
+      if used(period, kind) < limit + adjustment(user, period, kind):
+          pool = kind == 'directed' ? 'quota_directed' : 'quota_open'
       else if pack_balance(u) > 0:
           pool = 'pack'
       else:
@@ -374,8 +394,8 @@ reservar(u, instance):
   y cuenta las reservas activas de esa instancia dentro de la transacción. Sin eso, dos socios
   pueden quedarse con la última plaza.
 - El índice único parcial `(instance_id, user_id) WHERE status = 'active'` evita el doble clic.
-- El cupo semanal no necesita bloqueo de fila: dos reservas simultáneas del mismo socio en la misma
-  semana pueden pasarse del límite por uno. Se acepta (riesgo real nulo) y se documenta.
+- El cupo periódico no necesita bloqueo de fila: dos reservas simultáneas del mismo socio en el mismo
+  periodo pueden pasarse del límite por uno. Se acepta (riesgo real nulo) y se documenta.
 
 ### 4.5 Cancelación
 
@@ -439,7 +459,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 | Método | Ruta | Quién |
 |---|---|---|
-| POST | `/api/v1/auth/login` | todos |
+| POST | `/api/v1/auth/login` | todos; devuelve token, usuario y su tema guardado |
 | POST | `/api/v1/auth/logout` | todos |
 | GET | `/api/v1/auth/me` | todos |
 
@@ -456,6 +476,8 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | GET | `/api/v1/me/bookings` | próximas reservas |
 | GET | `/api/v1/me/bookings/history` | reservas cuya clase ya empezó, de la más reciente a la más antigua |
 | GET | `/api/v1/me/summary` | tarifa, cupos usados/límite, saldo de bono, estado del mes |
+| GET/PATCH | `/api/v1/me/preferences` | consultar o guardar el tema propio (`{ theme: "system" \| "light" \| "dark" }`); todos los roles con sesión activa; rechaza campos extra |
+| POST/DELETE | `/api/v1/me/profile-image` | subir/reemplazar o quitar la foto propia (multipart `image`) | sesión activa |
 
 **Staff**
 
@@ -470,18 +492,20 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | POST | `/api/v1/admin/class-types` | crear tipo con imagen obligatoria | admin |
 | PATCH/DELETE | `/api/v1/admin/class-types/:id` | editar nombre/imagen o borrar si no está en uso | admin |
 | GET | `/api/v1/class-type-images/:key` | servir una imagen compartida | sesión activa |
+| GET | `/api/v1/profile-images/:userId` | servir una foto con sesión; socio: fotos presentes en rosters y coaches asignados; staff: cuentas que puede consultar | sesión activa |
 | DELETE | `/api/v1/admin/class-types/:id` | borrar solo si no tiene clases de hoy en adelante ni entrenamientos | admin |
 | GET/POST | `/api/v1/admin/trainings` | listado staff con tipo y nombres ordenados de fases; alta eligiendo cualquier tipo dirigido | coach, admin |
 | GET/PATCH/DELETE | `/api/v1/admin/trainings/:id` | ficha staff, edición o borrado. Borrar, o cambiar el tipo si suelta clases, exige `confirmDetach` cuando el número es mayor que cero y devuelve cuántas clases quedan sin plan | coach, admin |
 | POST | `/api/v1/admin/templates` | crear plantilla semanal | admin |
 | PATCH/DELETE | `/api/v1/admin/templates/:id` | editar o borrar plantilla; devuelve resumen de reservas canceladas y mudadas | admin |
 | POST | `/api/v1/admin/instances` | crear clase extra | coach, admin |
-| GET/PATCH | `/api/v1/admin/instances/:id` | leer o editar una instancia: cancelar, mover en el mismo día, cambiar tipo/aforo/coach, asociar o quitar `trainingId` del mismo tipo | coach, admin |
+| GET/PATCH/DELETE | `/api/v1/admin/instances/:id` | leer o editar una instancia: cancelar o recuperar antes del inicio, cambiar hora/tipo/aforo/coach y asociar o quitar `trainingId`; DELETE quita una clase extra futura, borrándola si nunca tuvo reservas o cancelándola para preservar historial | coach, admin |
+| POST | `/api/v1/admin/instances/:id/restore-template` | restaurar una instancia modificada a los valores actuales de su plantilla activa; valida día, apertura y solapes, y aplica las reglas de reservas de tipo/aforo | coach, admin |
 | GET/POST/PATCH | `/api/v1/admin/members` | alta, edición y listado de socios | coach, admin |
 | GET | `/api/v1/admin/members/:id` | ficha: membresía, pagos, créditos, reservas | coach, admin |
 | POST | `/api/v1/admin/members/:id/tariff` | cambiar tarifa | coach, admin |
 | POST | `/api/v1/admin/members/:id/credits` | cargar saldo de bono | coach, admin |
-| POST | `/api/v1/admin/members/:id/weekly-quota` | ajustar cupo de dirigidas u opens para la semana actual | coach, admin |
+| POST | `/api/v1/admin/members/:id/quota-adjustments` | ajustar dirigidas u opens del periodo de consumo en curso (semana o mes natural) | coach, admin |
 | POST | `/api/v1/admin/members/:id/reset-password` | resetear clave | coach, admin |
 | POST | `/api/v1/admin/members/:id/deactivate` | dar de baja | admin |
 | POST | `/api/v1/admin/members/:id/reactivate` | reactivar socio | admin |
@@ -522,13 +546,13 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 - Las horas concretas de instancias se guardan en `timestamptz` (UTC). Las horas de plantillas usan `time` local; el horario del box conserva horas locales `HH:mm` en JSON.
 - Los cálculos de semana, día y "2 horas antes" se hacen en `Europe/Madrid`.
-- `date` de la instancia y `week_start` son fechas locales del box.
+- `date` de la instancia y `period_start` son fechas locales del box; el ajuste indica si es `week` o `month`.
 - Formato de moneda: EUR, `es-ES`.
 
 ## 9. Tests
 
 - **Dominio** (`packages/domain`): obligatorio cubrir
-  - consumo de cupo semanal contra la semana de la clase,
+  - consumo semanal y mensual contra el periodo de la clase,
   - desborde a bono y saldo resultante,
   - cancelación con y sin devolución,
   - cancelación de instancia que devuelve todo,
@@ -555,8 +579,8 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 ## 11. Privacidad y RGPD
 
-- Datos guardados: nombre, apellidos, DNI, teléfono y email opcionales, reservas y pagos. Nada más.
-- El roster expone a otros socios **nombre + inicial del apellido**, nunca DNI ni contacto.
+- Datos guardados: nombre, apellidos, DNI, teléfono y email opcionales, reservas, pagos y foto de perfil opcional.
+- El roster expone a otros socios **foto (si existe) + nombre + inicial del apellido**, nunca DNI ni contacto. La ruta de imágenes requiere sesión y no publica archivos sin autorización; staff puede ver los perfiles que ya consulta en su trabajo.
 - Pendiente antes de producción: publicar la página de privacidad web con finalidad, base legal, conservación y derechos.
 - Sin analítica, sin cookies de terceros, sin trackers.
 - Baja = `status = inactive` (se conserva el historial). Borrado definitivo solo a pedido explícito
@@ -597,3 +621,5 @@ El detalle de clase compone `InstanceDetailActions`, que presenta edición y can
 ### Organización del calendario web
 
 `CalendarBoard` conserva la entrada común y delega en las vistas explícitas de socio y staff. Ambas componen `WeekNav` y `CalendarGrid`, con `ClassBlock` compartido para las clases y las bandas de cierre dentro de la cuadrícula. `useCalendarScale` concentra las suscripciones a media queries y localStorage para el tamaño de la vista de socio; el staff conserva su escala fija. `calendarHref` centraliza los enlaces que mantienen la semana y la grilla elegidas.
+
+La navegación web comparte `AppShell` para staff y socios. Las secciones se filtran por rol. El estado de plegado se guarda en la cookie `sidebar_state` y se lee en los layouts del servidor; los datos de sesión se deduplican dentro de cada render mediante React `cache`.
