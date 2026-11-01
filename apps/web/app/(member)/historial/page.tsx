@@ -9,6 +9,7 @@ import { formatDay, formatMonth, formatTime, kindLabel } from "@/lib/box/format"
 import { groupHistoryByMonth } from "@/lib/box/history";
 import { Badge } from "@/components/ui/badge";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 export default function Page() {
   return (
@@ -68,7 +69,10 @@ async function History() {
                               {formatTime(new Date(booking.instance.endAt))}
                             </p>
                             {booking.coachName ? (
-                              <p className="text-sm wrap-break-word text-muted-foreground">{booking.coachName}</p>
+                              <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                                <ProfileAvatar name={booking.coachName} imageUrl={booking.coachProfileImageUrl} size="sm" />
+                                <span className="min-w-0 wrap-break-word">{booking.coachName}</span>
+                              </div>
                             ) : null}
                           </div>
                           <Badge variant={booking.instance.kind === "directed" ? "default" : "secondary"}>

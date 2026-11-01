@@ -37,7 +37,7 @@ export function ModuleHeader({
       {eyebrow ? <div className="mb-1.5">{eyebrow}</div> : null}
       <div className="flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <SidebarTrigger className="-ml-2 shrink-0 md:hidden" />
+          <SidebarTrigger className="-ml-2 size-11 shrink-0 md:hidden" />
           <h1 className="min-w-0 shrink-0 text-xl font-semibold wrap-break-word">{title}</h1>
           {tabs ? (
             <div className={cn("flex min-w-0 flex-wrap items-center gap-2", TAB_ROW_MIN_H)}>{tabs}</div>

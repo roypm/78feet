@@ -16,6 +16,7 @@ import { FormDialog } from "@/components/staff/form-dialog";
 import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { MemberPicker } from "@/components/staff/member-picker";
 import { ModulePrimaryAction } from "@/components/member/module-page";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 export function ClassRosterPanel({
   instanceId,
@@ -32,7 +33,7 @@ export function ClassRosterPanel({
   canRemoveMember: boolean;
   instanceStatus: "scheduled" | "cancelled";
   members: { id: string; name: string }[];
-  roster: { bookingId: string; userId: string; name: string; phone: string | null }[];
+  roster: { bookingId: string; userId: string; name: string; phone: string | null; profileImageUrl: string | null }[];
 }) {
   const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
@@ -50,7 +51,12 @@ export function ClassRosterPanel({
 
   const selectedAvailableUserId = available.some((member) => member.id === selectedUserId)
     ? selectedUserId
-    : available[0]?.id ?? "";
+    : "";
+
+  function changeDialogOpen(next: boolean) {
+    setOpen(next);
+    if (next) setSelectedUserId("");
+  }
 
   async function book(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -104,7 +110,7 @@ export function ClassRosterPanel({
           <ModulePrimaryAction>
             <FormDialog
               open={open}
-              onOpenChange={setOpen}
+              onOpenChange={changeDialogOpen}
               busy={pending}
               trigger={
                 <Button
@@ -178,8 +184,9 @@ export function ClassRosterPanel({
               {roster.map((person) => (
                 <TableRow key={person.bookingId} className="border-border">
                   <TableCell className="min-w-[9rem] px-3 py-2.5 align-middle text-sm">
-                    <Link href={`/staff/socios/${person.userId}`} className="font-medium text-primary">
-                      {person.name}
+                    <Link href={`/staff/socios/${person.userId}`} className="inline-flex min-w-0 items-center gap-2 font-medium text-primary">
+                      <ProfileAvatar name={person.name} imageUrl={person.profileImageUrl} size="sm" />
+                      <span className="min-w-0 wrap-break-word">{person.name}</span>
                     </Link>
                   </TableCell>
                   <TableCell className="px-3 py-2.5 align-middle text-sm text-muted-foreground">

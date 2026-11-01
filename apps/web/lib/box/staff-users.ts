@@ -3,6 +3,7 @@ import { hashPassword } from "../auth/password";
 import { prisma } from "../db";
 import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
+import { profileImageUrl } from "./profile-images";
 
 function staffView(user: {
   id: string;
@@ -14,6 +15,7 @@ function staffView(user: {
   dni: string | null;
   phone: string | null;
   email: string | null;
+  profileImage?: { updatedAt: Date } | null;
 }) {
   return {
     id: user.id,
@@ -25,6 +27,7 @@ function staffView(user: {
     dni: user.dni,
     phone: user.phone,
     email: user.email,
+    profileImageUrl: profileImageUrl(user.id, user.profileImage?.updatedAt),
   };
 }
 
@@ -41,6 +44,7 @@ export async function listStaff() {
       dni: true,
       phone: true,
       email: true,
+      profileImage: { select: { updatedAt: true } },
     },
     orderBy: [{ role: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
   });
@@ -60,6 +64,7 @@ export async function getStaff(id: string) {
       dni: true,
       phone: true,
       email: true,
+      profileImage: { select: { updatedAt: true } },
     },
   });
   if (!user || (user.role !== "coach" && user.role !== "admin")) {
@@ -71,13 +76,14 @@ export async function getStaff(id: string) {
 export async function listCoaches() {
   const rows = await prisma.user.findMany({
     where: { role: { in: ["coach", "admin"] }, status: "active" },
-    select: { id: true, firstName: true, lastName: true, role: true },
+    select: { id: true, firstName: true, lastName: true, role: true, profileImage: { select: { updatedAt: true } } },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
   return rows.map((row) => ({
     id: row.id,
     name: `${row.firstName} ${row.lastName}`.trim(),
     role: row.role,
+    profileImageUrl: profileImageUrl(row.id, row.profileImage?.updatedAt),
   }));
 }
 
@@ -156,6 +162,7 @@ export async function patchStaff(id: string, patch: PatchStaff) {
       dni: true,
       phone: true,
       email: true,
+      profileImage: { select: { updatedAt: true } },
     },
   });
   return staffView(user);

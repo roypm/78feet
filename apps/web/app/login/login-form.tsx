@@ -4,8 +4,12 @@ import { PendingButton } from "@/components/feedback/pending-button";
 
 import { useState, type FormEvent } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
+import { useTheme, type Theme } from "@/components/theme-provider";
+import { Field } from "@/components/staff/field";
+import { Input } from "@/components/ui/input";
 
 export function LoginForm() {
+  const { applyTheme } = useTheme();
   const { router, pending, begin, setPending } = useActionFeedback();
   const [error, setError] = useState<string | null>(null);
 
@@ -27,11 +31,13 @@ export function LoginForm() {
       const payload = (await response.json()) as {
         error?: { message: string };
         user?: { role: string };
+        theme?: Theme;
       };
       if (!response.ok) {
         setError(payload.error?.message ?? "No se pudo entrar");
         return;
       }
+      applyTheme(payload.theme ?? "system");
       router.push(payload.user?.role === "member" ? "/calendario" : "/staff/hoy");
       router.refresh();
     } catch {
@@ -42,36 +48,36 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
-        <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <label className="flex flex-col gap-1 text-sm">
-            Usuario o DNI
-            <input
-              name="loginId"
-              autoComplete="username"
-              required
-              className="rounded-md border border-input bg-card px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Contraseña
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="rounded-md border border-input bg-card px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-            />
-          </label>
-          {error ? (
-            <p className="text-sm text-[var(--color-error)]" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <PendingButton type="submit" disabled={pending} className="min-h-11" pending={pending} pendingLabel={"Entrando…"}>
-            {"Entrar"}
-          </PendingButton>
-        </fieldset>
-      </form>
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <fieldset disabled={pending} aria-busy={pending} className="contents">
+        <Field label="Usuario o DNI" htmlFor="loginId">
+          <Input
+            id="loginId"
+            name="loginId"
+            autoComplete="username"
+            required
+            className="h-11 px-3"
+          />
+        </Field>
+        <Field label="Contraseña" htmlFor="password">
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            className="h-11 px-3"
+          />
+        </Field>
+        {error ? (
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <PendingButton type="submit" disabled={pending} className="mt-1 min-h-11 w-full text-base" pending={pending} pendingLabel="Entrando…">
+          Entrar
+        </PendingButton>
+      </fieldset>
+    </form>
   );
 }

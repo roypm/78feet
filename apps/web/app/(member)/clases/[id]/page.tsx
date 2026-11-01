@@ -16,6 +16,7 @@ import { CancelBookingButton } from "@/components/member/cancel-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
@@ -59,7 +60,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             {kindLabel(detail.kind)}
           </Badge>
         }
-        description={`${formatDay(detail.date)} · ${formatTime(new Date(detail.startAt))}–${formatTime(new Date(detail.endAt))}${detail.coachName ? ` · ${detail.coachName}` : ""}`}
+        description={`${formatDay(detail.date)} · ${formatTime(new Date(detail.startAt))}–${formatTime(new Date(detail.endAt))}`}
         toolbar={
           <p className="text-sm tabular-nums text-muted-foreground">
             {detail.bookedCount}/{detail.capacity} · {freeSpotLabel(detail.freeSpots)}
@@ -67,16 +68,26 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         }
       />
       <ModuleBody>
-                <ResourceImage src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
+        {detail.coachName ? (
+          <div className="flex min-w-0 items-center gap-3">
+            <ProfileAvatar name={detail.coachName} imageUrl={detail.coachProfileImageUrl} />
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Coach</p>
+              <p className="truncate font-medium">{detail.coachName}</p>
+            </div>
+          </div>
+        ) : null}
+        <ResourceImage src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
         <section className="flex flex-col gap-3 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
           <h2 className="text-sm font-medium">Roster</h2>
           {detail.roster.length === 0 ? (
             <EmptyState compact title="Todavía no hay nadie apuntado" description="Las reservas de esta clase aparecerán acá." />
           ) : (
             <ul className="flex flex-col gap-2">
-              {detail.roster.map((name, index) => (
-                <li key={`${name}-${index}`} className="min-w-0 truncate">
-                  {name}
+              {detail.roster.map((person) => (
+                <li key={person.userId} className="flex min-w-0 items-center gap-3">
+                  <ProfileAvatar name={person.name} imageUrl={person.profileImageUrl} size="sm" />
+                  <span className="min-w-0 truncate">{person.name}</span>
                 </li>
               ))}
             </ul>

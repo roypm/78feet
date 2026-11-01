@@ -12,6 +12,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/staff/field";
 import { FormDialog } from "@/components/staff/form-dialog";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 export type StaffProfileData = {
   id: string;
@@ -23,6 +24,7 @@ export type StaffProfileData = {
   dni: string | null;
   phone: string | null;
   email: string | null;
+  profileImageUrl: string | null;
 };
 
 function ProfileField({ label, value }: { label: string; value: ReactNode }) {
@@ -107,7 +109,8 @@ export function StaffProfile({ person }: { person: StaffProfileData }) {
   return (
     <section className="rounded-lg bg-card p-4 ring-1 ring-foreground/10 md:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <ProfileAvatar name={`${person.firstName} ${person.lastName}`} imageUrl={person.profileImageUrl} size="sm" />
           <Badge variant="secondary">{person.role === "admin" ? "Admin" : "Coach"}</Badge>
           <Badge variant={person.status === "active" ? "secondary" : "outline"}>
             {person.status === "active" ? "Activo" : "Inactivo"}

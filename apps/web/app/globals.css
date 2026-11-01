@@ -2,14 +2,25 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (@media (prefers-color-scheme: dark));
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme="system"], [data-theme="system"] *) {
+      @slot;
+    }
+  }
+}
 @custom-variant pointer-hover {
   @media (hover: hover) and (pointer: fine) {
     &:hover { @slot; }
   }
 }
 
-:root {
+:root,
+[data-theme="light"],
+[data-theme="system"] {
   --color-primary: #ff931d;
   --color-bg: #f4f1eb;
   --color-surface: #ffffff;
@@ -20,7 +31,7 @@
   --color-error: #dc2626;
   --success: #16a34a;
   --warning: #f59e0b;
-  color-scheme: light dark;
+  color-scheme: light;
   --background: #f4f1eb;
   --foreground: #111827;
   --card: #ffffff;
@@ -51,8 +62,46 @@
   --sidebar-ring: #ff931d;
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #1c2838;
+  --color-surface: #3a516c;
+  --color-header: #2c3e54;
+  --color-border: #4a5e78;
+  --color-text: #f9fafb;
+  --color-text-muted: #b6c2ce;
+  --background: #1c2838;
+  --foreground: #f9fafb;
+  --card: #3a516c;
+  --card-foreground: #f9fafb;
+  --header: #2c3e54;
+  --popover: #3a516c;
+  --popover-foreground: #f9fafb;
+  --primary: #ff931d;
+  --primary-foreground: #111827;
+  --secondary: #31445c;
+  --secondary-foreground: #f9fafb;
+  --muted: #31445c;
+  --muted-foreground: #b6c2ce;
+  --accent: #31445c;
+  --accent-foreground: #f9fafb;
+  --destructive: #dc2626;
+  --border: #4a5e78;
+  --input: #4a5e78;
+  --ring: #ff931d;
+  --sidebar: #0e1620;
+  --sidebar-foreground: #f9fafb;
+  --sidebar-primary: #ff931d;
+  --sidebar-primary-foreground: #111827;
+  --sidebar-accent: #1c2838;
+  --sidebar-accent-foreground: #f9fafb;
+  --sidebar-border: #2c3e54;
+  --sidebar-ring: #ff931d;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  [data-theme="system"] {
+    color-scheme: dark;
     --color-bg: #1c2838;
     --color-surface: #3a516c;
     --color-header: #2c3e54;

@@ -12,6 +12,7 @@ import { groupDayByKind, kindViewFromParam, viewKind } from "@/lib/box/day-group
 import { formatDay, formatTime, kindGroupLabel } from "@/lib/box/format";
 import { KindTabs } from "@/components/member/kind-tabs";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 function todayClassMeta(item: {
   startAt: string;
@@ -23,7 +24,6 @@ function todayClassMeta(item: {
 }): string {
   return [
     `${formatTime(new Date(item.startAt))}–${formatTime(new Date(item.endAt))}`,
-    item.coachName,
     item.status === "cancelled" ? null : `${item.bookedCount}/${item.capacity}`,
   ]
     .filter((part): part is string => Boolean(part))
@@ -104,7 +104,7 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string }
                           <Link
                             href={`/staff/clases/${item.id}`}
                             prefetch={true}
-                            aria-label={`${item.name}, ${meta}`}
+                            aria-label={`${item.name}, ${meta}${item.coachName ? `, coach ${item.coachName}` : ""}`}
                             className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/40"
                           />
                           <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
@@ -126,6 +126,12 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string }
                           <span className="pointer-events-none relative min-w-0 flex-1">
                             <span className="block truncate font-medium">{item.name}</span>
                             <span className="block truncate text-sm text-muted-foreground tabular-nums">{meta}</span>
+                            {item.coachName ? (
+                              <span className="mt-1 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                                <ProfileAvatar name={item.coachName} imageUrl={item.coachProfileImageUrl} size="sm" />
+                                <span className="min-w-0 truncate">{item.coachName}</span>
+                              </span>
+                            ) : null}
                           </span>
                         </li>
                       );

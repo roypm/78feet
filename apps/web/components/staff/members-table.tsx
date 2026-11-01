@@ -13,6 +13,7 @@ import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
 import { memberFullName } from "@/lib/box/format";
 import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
 import { cn } from "cn";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 export type MemberListRow = {
   id: string;
@@ -21,6 +22,7 @@ export type MemberListRow = {
   dni: string | null;
   phone: string | null;
   email: string | null;
+  profileImageUrl: string | null;
   membership: {
     tariffName: string;
     consumptionModel: import("@78feet/domain").TariffConsumption;
@@ -168,7 +170,9 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
                 }}
               >
                 <TableCell className="min-w-[9rem] px-3 py-2.5 align-middle">
-                  <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <ProfileAvatar name={fullName} imageUrl={member.profileImageUrl} size="sm" />
+                    <div className="min-w-0">
                     <span className="inline-flex items-center gap-2 font-medium wrap-break-word">{fullName}{pending && openingId === member.id && <Spinner aria-label="Abriendo socio" />}</span>
                     <span className="mt-0.5 block truncate text-sm text-muted-foreground sm:hidden">
                       {[member.dni, member.phone].filter(Boolean).join(" · ") || null}
@@ -178,6 +182,7 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
                         {member.email}
                       </span>
                     ) : null}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="hidden max-w-[8rem] px-3 py-2.5 align-middle sm:table-cell">

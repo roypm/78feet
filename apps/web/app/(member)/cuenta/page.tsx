@@ -1,19 +1,20 @@
+import { ThemePreferencePanel } from "@/components/member/theme-preference-panel";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
 import { getOwnProfile } from "@/lib/box/summary";
-import { LogoutButton } from "@/components/member/logout-button";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ProfilePhotoEditor } from "@/components/member/profile-photo-editor";
 
 export default function Page() {
   return (
     <Suspense
       fallback={
         <ModulePage>
-          <ModuleHeader title="Mi cuenta" description="Datos de contacto y cierre de sesión." />
+          <ModuleHeader title="Mi perfil" description="Consultá tus datos personales." />
           <ModuleBody>
-            <LoadingState variant="profile" label="Cargando tu cuenta…" />
+            <LoadingState variant="profile" label="Cargando tu perfil…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -29,9 +30,9 @@ async function Account() {
   if (!profile) {
     return (
       <ModulePage>
-        <ModuleHeader title="Mi cuenta" description="Datos de contacto y cierre de sesión." />
+        <ModuleHeader title="Mi perfil" description="Consultá tus datos personales." />
         <ModuleBody>
-          <EmptyState title="No encontramos los datos de tu cuenta" description="Hablá con el staff para revisar tu cuenta. Podés cerrar la sesión y volver a entrar."><LogoutButton /></EmptyState>
+          <EmptyState title="No encontramos los datos de tu cuenta" description="Hablá con el staff para revisar tus datos personales." />
         </ModuleBody>
       </ModulePage>
     );
@@ -46,8 +47,10 @@ async function Account() {
 
   return (
     <ModulePage>
-      <ModuleHeader title="Mi cuenta" description="Datos de contacto y cierre de sesión." />
+      <ModuleHeader title="Mi perfil" description="Consultá tus datos personales." />
       <ModuleBody>
+        <ProfilePhotoEditor name={`${profile.firstName} ${profile.lastName}`.trim()} imageUrl={profile.profileImageUrl} />
+        <ThemePreferencePanel />
         <div className="flex flex-col gap-4 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
           <dl className="flex flex-col gap-4">
             {rows.map((row) => (
@@ -59,7 +62,6 @@ async function Account() {
           </dl>
           <p className="text-sm text-muted-foreground">Para cambiar estos datos, hablá con el box.</p>
         </div>
-        <LogoutButton />
       </ModuleBody>
     </ModulePage>
   );

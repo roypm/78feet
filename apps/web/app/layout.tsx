@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
+import { getCurrentUser } from "@/lib/auth/current";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "78feet",
   description: "Gestión del box",
 };
+
+export const instant = false;
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -17,12 +21,16 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const user = await getCurrentUser();
+  const theme = user?.theme ?? "system";
   return (
-    <html lang="es">
+    <html lang="es" data-theme={theme}>
       <body>
-        {children}
-        <Toaster />
+        <ThemeProvider initialTheme={theme}>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

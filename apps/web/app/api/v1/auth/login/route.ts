@@ -24,7 +24,7 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError("FORBIDDEN", 403, "Usuario o contraseña incorrectos");
   }
 
-  const response = jsonOk({ token: result.token, user: result.user });
+  const response = jsonOk({ token: result.token, user: result.user, theme: result.theme });
   response.headers.append("Set-Cookie", buildSessionCookie(result.token));
   return response;
 }

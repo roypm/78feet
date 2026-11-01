@@ -10,7 +10,7 @@ import { verifyPassword } from "./password";
 import { toSessionUser } from "./session";
 
 export type LoginResult =
-  | { ok: true; token: string; user: ReturnType<typeof toSessionUser> }
+  | { ok: true; token: string; user: ReturnType<typeof toSessionUser>; theme: "system" | "light" | "dark" }
   | { ok: false; locked: boolean };
 
 export async function loginWithPassword(loginId: string, password: string): Promise<LoginResult> {
@@ -55,5 +55,5 @@ export async function loginWithPassword(loginId: string, password: string): Prom
     role: user.role,
     tv: user.tokenVersion,
   });
-  return { ok: true, token, user: toSessionUser(user) };
+  return { ok: true, token, user: toSessionUser(user), theme: user.theme };
 }

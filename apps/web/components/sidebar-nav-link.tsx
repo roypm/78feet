@@ -19,7 +19,9 @@ export function SidebarNavLink({
     <SidebarMenuItem>
       <SidebarMenuButton
         isActive={active}
+        aria-current={active ? "page" : undefined}
         tooltip={label}
+        className="h-11 md:h-9 [&_svg]:size-5 group-data-[collapsible=icon]:[&_svg]:size-4 data-active:text-sidebar-primary"
         render={(props) => <Link {...props} href={href} />}
       >
         <Icon />

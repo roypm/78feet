@@ -14,6 +14,27 @@ const sql = [
 ].join("\n");
 
 describe("migration chain", () => {
+  it("añade el modo sistema sin cambiar la apariencia de las cuentas existentes", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(sql);
+      await db.exec(`INSERT INTO "user" (id, login_id, password_hash, role, status, first_name, last_name, updated_at)
+        VALUES ('00000000-0000-0000-0000-000000000001', 'existing-user', 'test-hash', 'admin', 'active', 'Existing', 'Admin', NOW())`);
+      await db.exec(readFileSync(join(root, "migrations/20261101193000_user_theme/migration.sql"), "utf8"));
+      await db.exec(readFileSync(join(root, "migrations/20261101200000_user_theme_system_value/migration.sql"), "utf8"));
+      await db.exec(readFileSync(join(root, "migrations/20261101200100_user_theme_system_default/migration.sql"), "utf8"));
+      expect((await db.query(`SELECT login_id, first_name, theme FROM "user"`)).rows).toEqual([
+        { login_id: "existing-user", first_name: "Existing", theme: "light" },
+      ]);
+      await db.exec(`UPDATE "user" SET theme = 'dark'`);
+      expect((await db.query(`SELECT theme FROM "user"`)).rows).toEqual([{ theme: "dark" }]);
+      await db.exec(`UPDATE "user" SET theme = 'system'`);
+      expect((await db.query(`SELECT theme FROM "user"`)).rows).toEqual([{ theme: "system" }]);
+    } finally {
+      await db.close();
+    }
+  }, 20_000);
+
   it("applies against Postgres, including recent schema changes and partial unique indexes", async () => {
     const db = new PGlite();
     await db.exec(sql);

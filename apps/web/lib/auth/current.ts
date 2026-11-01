@@ -4,8 +4,9 @@ import type { User } from "@prisma/client";
 import { prisma } from "../db";
 import { verifySessionToken } from "./jwt";
 import { SESSION_COOKIE } from "./session";
+import { cache } from "react";
 
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const claims = await verifySessionToken(token);
@@ -14,7 +15,7 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!user || user.status !== "active") return null;
   if (user.tokenVersion !== claims.tv) return null;
   return user;
-}
+});
 
 export async function requireMember(): Promise<User> {
   const user = await getCurrentUser();

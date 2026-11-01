@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
+import { ProfileAvatar } from "@/components/member/profile-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,6 +25,7 @@ export type TeamMember = {
   lastName: string;
   phone: string | null;
   email: string | null;
+  profileImageUrl: string | null;
 };
 
 export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[]; currentUserId: string; action?: ReactNode }) {
@@ -129,11 +131,13 @@ export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[
                         }}
                       >
                         <TableCell className="min-w-[12rem] px-3 py-2.5 align-middle">
-                          <div className="min-w-0">
-                            <span className="block font-medium wrap-break-word">
-                              {person.firstName} {person.lastName}
-                              {pending && openingId === person.id && <Spinner aria-label="Abriendo perfil" />}
-                            </span>
+                          <div className="flex min-w-0 items-start gap-2">
+                            <ProfileAvatar name={`${person.firstName} ${person.lastName}`} imageUrl={person.profileImageUrl} size="sm" />
+                            <div className="min-w-0">
+                              <span className="block font-medium wrap-break-word">
+                                {person.firstName} {person.lastName}
+                                {pending && openingId === person.id && <Spinner aria-label="Abriendo perfil" />}
+                              </span>
                             {isAdminAccount && (
                               <span className="mt-0.5 block text-sm text-muted-foreground">Cuenta principal del box</span>
                             )}
@@ -145,6 +149,7 @@ export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[
                             </span>
                             <div className="mt-1 flex flex-wrap gap-1.5 md:hidden">
                               <Badge variant="secondary">{person.role === "admin" ? "Admin" : "Coach"}</Badge>
+                            </div>
                             </div>
                           </div>
                         </TableCell>

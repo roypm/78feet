@@ -54,6 +54,7 @@ async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
     email: member.email,
     loginId: member.loginId,
     status: member.status,
+    profileImageUrl: member.profileImageUrl,
     membership: member.membership
       ? {
           tariffId: member.membership.tariffId,

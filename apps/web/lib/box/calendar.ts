@@ -12,6 +12,7 @@ import { classTypeImageUrl } from "./images";
 import { personName } from "./map";
 import { isoDateFromDb, isoDateToDb } from "./time";
 import { isCalendarException } from "./exceptions";
+import { profileImageUrl } from "./profile-images";
 
 export type CalendarClass = {
   id: string;
@@ -39,7 +40,8 @@ export type TrainingDetail = {
 };
 
 export type InstanceDetail = CalendarClass & {
-  roster: string[];
+  coachProfileImageUrl: string | null;
+  roster: { userId: string; name: string; profileImageUrl: string | null }[];
   bookingId: string | null;
   canBook: boolean;
   canCancel: boolean;
@@ -128,7 +130,7 @@ export async function getInstanceDetail(
     where: { id: instanceId },
     include: {
       classType: true,
-      coach: { select: { firstName: true, lastName: true } },
+      coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
       training: {
         include: {
           classType: true,
@@ -140,7 +142,7 @@ export async function getInstanceDetail(
       },
       bookings: {
         where: { status: "active" },
-        include: { member: { select: { firstName: true, lastName: true } } },
+        include: { member: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } } },
         orderBy: [{ member: { firstName: "asc" } }, { member: { lastName: "asc" } }],
       },
     },
@@ -154,7 +156,12 @@ export async function getInstanceDetail(
   const base = toCalendarClass(row, userId);
   return {
     ...base,
-    roster: row.bookings.map((booking) => rosterName(booking.member.firstName, booking.member.lastName)),
+    coachProfileImageUrl: row.coach ? profileImageUrl(row.coach.id, row.coach.profileImage?.updatedAt) : null,
+    roster: row.bookings.map((booking) => ({
+      userId: booking.member.id,
+      name: rosterName(booking.member.firstName, booking.member.lastName),
+      profileImageUrl: profileImageUrl(booking.member.id, booking.member.profileImage?.updatedAt),
+    })),
     bookingId: mine?.id ?? null,
     canBook: row.status === "scheduled" && !started && freeSpots > 0 && mine === null,
     canCancel: mine !== null && memberCanCancel(now, row.startAt),
