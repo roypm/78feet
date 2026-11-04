@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { hashPassword } from "../auth/password";
 import { signSessionToken } from "../auth/jwt";
 import { GET as listHours, PATCH as patchHours } from "../../app/api/v1/admin/hours/route";
@@ -11,6 +11,7 @@ import { GET as unpaid } from "../../app/api/v1/admin/unpaid/route";
 import { POST as pay } from "../../app/api/v1/admin/payments/route";
 import { POST as createMember } from "../../app/api/v1/admin/members/route";
 import { TRAINING_NAME_TAKEN, type BoxHoursConfig } from "@78feet/domain";
+import { primaryBoxId } from "./hours";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
 const png = Buffer.from(
@@ -69,16 +70,11 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
 
   afterAll(async () => {
     if (previousHours) {
-      await prisma.boxSettings.upsert({
-        where: { id: "default" },
-        create: {
-          id: "default",
-          weeklyHours: previousHours.weekly,
-          exceptions: previousHours.exceptions,
-        },
-        update: {
-          weeklyHours: previousHours.weekly,
-          exceptions: previousHours.exceptions,
+      await prisma.box.update({
+        where: { id: await primaryBoxId(prisma) },
+        data: {
+          weeklyHours: previousHours.weekly as Prisma.InputJsonValue,
+          exceptions: previousHours.exceptions as Prisma.InputJsonValue,
         },
       });
     }

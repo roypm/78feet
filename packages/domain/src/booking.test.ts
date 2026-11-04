@@ -123,6 +123,39 @@ describe("evaluateBooking", () => {
     );
   });
 
+  it("rejects an overlapping booking even when the classes are in different boxes", () => {
+    const first = makeInstance({
+      date: "2026-10-27",
+      kind: "directed",
+      title: "WOD",
+      boxId: "box-a",
+    });
+    const second = makeInstance({
+      date: "2026-10-27",
+      kind: "directed",
+      title: "Fuerza",
+      boxId: "box-b",
+      templateId: "tpl-other",
+      startAt: atBoxTime("2026-10-27", "18:30"),
+      endAt: atBoxTime("2026-10-27", "19:30"),
+    });
+    const bookings = [makeBooking({ instanceId: first.id, userId, pool: "quota_directed" })];
+    expectCode(
+      () =>
+        evaluateBooking({
+          now: atBoxTime("2026-10-26", "09:00"),
+          instance: second,
+          membership,
+          tariff: monthly,
+          userId,
+          bookings,
+          instancesById: instanceMap([first, second]),
+          grants: [],
+        }),
+      "OVERLAP",
+    );
+  });
+
   it("allows back-to-back classes that only touch at the boundary", () => {
     const first = makeInstance({
       date: "2026-10-27",

@@ -6,6 +6,7 @@ import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
 import { listMembersPage } from "@/lib/box/members";
+import { activePaymentCounts, listBoxes } from "@/lib/box/boxes";
 import { listTariffs } from "@/lib/box/tariffs";
 import { CreateMemberAltaButton } from "@/components/staff/member-forms";
 import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
@@ -37,13 +38,16 @@ async function Members({ searchParams }: { searchParams: Promise<{ estado?: stri
   const user = await requireStaff();
   const query = await searchParams;
   const inactive = query.estado === "baja";
-  const [result, tariffs] = await Promise.all([
+  const [result, tariffs, boxes, paymentCounts] = await Promise.all([
     listMembersPage(inactive ? "inactive" : "active", pageNumber(query.pagina)),
     listTariffs(),
+    listBoxes(),
+    activePaymentCounts(),
   ]);
 
   const members = result.items;
-  const memberAction = !inactive ? <CreateMemberAltaButton tariffs={tariffs} canManageTariffs={user.role === "admin"} /> : null;
+  const memberAction = !inactive ? <CreateMemberAltaButton tariffs={tariffs} boxes={boxes} canManageTariffs={user.role === "admin"} /> : null;
+  const paymentLine = paymentCounts.map((item) => `${item.name} · ${item.active}`).join("  ·  ");
   const actionInToolbar = !inactive && members.length > 0 && tariffs.some((tariff) => tariff.active);
 
   return (
@@ -63,6 +67,7 @@ async function Members({ searchParams }: { searchParams: Promise<{ estado?: stri
         }
       />
       <ModuleBody width="full" inset="content">
+        <p className="text-sm text-muted-foreground">{paymentLine}</p>
         {memberAction && !actionInToolbar ? (
           <ModulePrimaryAction>
             {memberAction}

@@ -2,6 +2,8 @@ import { DomainError } from "./errors";
 import { applyCancellation } from "./booking";
 import {
   atBoxTime,
+  BOX_CLOSE_TIME,
+  BOX_OPEN_TIME,
   clockIntervalsOverlap,
   clockToMinutes,
   datesOnWeekday,
@@ -27,6 +29,16 @@ export function assertValidTimeRange(startTime: string, endTime: string): void {
   if (clockToMinutes(endTime) <= clockToMinutes(startTime)) {
     throw new DomainError("FORBIDDEN", "La hora de fin debe ser posterior a la de inicio");
   }
+}
+
+export function defaultBoxHours(): BoxHoursConfig {
+  return {
+    weekly: Array.from({ length: 7 }, (_, index) => ({
+      weekday: index + 1,
+      intervals: [{ openTime: BOX_OPEN_TIME, closeTime: BOX_CLOSE_TIME }],
+    })),
+    exceptions: [],
+  };
 }
 
 export function openingIntervalsForDate(config: BoxHoursConfig, date: string) {
@@ -73,10 +85,11 @@ export function templatesOverlap(
 }
 
 export function templateConflicts(
-  candidate: Pick<ClassTemplate, "weekday" | "startTime" | "endTime" | "kind"> & { id?: string },
-  others: readonly (Pick<ClassTemplate, "id" | "weekday" | "startTime" | "endTime" | "active" | "kind">)[],
+  candidate: Pick<ClassTemplate, "boxId" | "weekday" | "startTime" | "endTime" | "kind"> & { id?: string },
+  others: readonly (Pick<ClassTemplate, "id" | "boxId" | "weekday" | "startTime" | "endTime" | "active" | "kind">)[],
 ): boolean {
   return others.some((other) => {
+    if (other.boxId !== candidate.boxId) return false;
     if (!other.active) return false;
     if (other.kind !== candidate.kind) return false;
     if (candidate.id !== undefined && other.id === candidate.id) return false;
@@ -85,10 +98,11 @@ export function templateConflicts(
 }
 
 export function instanceConflicts(
-  candidate: Pick<ClassInstance, "date" | "startAt" | "endAt" | "kind"> & { id?: string },
-  others: readonly Pick<ClassInstance, "id" | "date" | "startAt" | "endAt" | "status" | "kind">[],
+  candidate: Pick<ClassInstance, "boxId" | "date" | "startAt" | "endAt" | "kind"> & { id?: string },
+  others: readonly Pick<ClassInstance, "id" | "boxId" | "date" | "startAt" | "endAt" | "status" | "kind">[],
 ): boolean {
   return others.some((other) => {
+    if (other.boxId !== candidate.boxId) return false;
     if (other.status !== "scheduled") return false;
     if (other.kind !== candidate.kind) return false;
     if (candidate.id !== undefined && other.id === candidate.id) return false;
@@ -119,6 +133,7 @@ export function planMaterializedInstances(params: {
     for (const date of datesOnWeekday(params.from, params.to, template.weekday)) {
       if (params.existingKeys.has(instanceKey(template.id, date))) continue;
       planned.push({
+        boxId: template.boxId,
         templateId: template.id,
         date,
         startAt: atBoxTime(date, template.startTime),
@@ -134,8 +149,8 @@ export function planMaterializedInstances(params: {
   return planned;
 }
 
-function identityKey(instance: Pick<ClassInstance, "date" | "startAt" | "endAt" | "classTypeId">): string {
-  return `${instance.date}|${instance.startAt.toISOString()}|${instance.endAt.toISOString()}|${instance.classTypeId}`;
+function identityKey(instance: Pick<ClassInstance, "boxId" | "date" | "startAt" | "endAt" | "classTypeId">): string {
+  return `${instance.boxId}|${instance.date}|${instance.startAt.toISOString()}|${instance.endAt.toISOString()}|${instance.classTypeId}`;
 }
 
 function cloneInstance(instance: ClassInstance): ClassInstance {
@@ -218,6 +233,7 @@ function cancelActiveBookings(
 
 function newSlotIdentity(instance: ClassInstance, template: ClassTemplate): string {
   return identityKey({
+    boxId: template.boxId,
     date: instance.date,
     startAt: atBoxTime(instance.date, template.startTime),
     endAt: atBoxTime(instance.date, template.endTime),

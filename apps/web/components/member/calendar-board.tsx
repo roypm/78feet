@@ -3,6 +3,7 @@
 import type { BoxHoursConfig } from "@78feet/domain";
 import type { CalendarClass } from "@/lib/box/calendar";
 import type { CalendarHours } from "@/lib/box/calendar-layout";
+import type { BoxSummary } from "@/lib/box/boxes";
 import type { CalendarView, CalendarWeek } from "./calendar-board/types";
 import { StaffCalendarBoard } from "./calendar-board/staff-view";
 import { MemberCalendarBoard } from "./calendar-board/member-view";
@@ -20,6 +21,8 @@ export function CalendarBoard({
   basePath = "/calendario",
   classHrefPrefix = "/clases",
   classHrefSearch,
+  boxes,
+  boxId,
   emptyDirected = "No hay clases dirigidas esta semana.",
   emptyOpen = "No hay opens esta semana.",
   variant = "member",
@@ -37,6 +40,8 @@ export function CalendarBoard({
   basePath?: string;
   classHrefPrefix?: string;
   classHrefSearch?: string;
+  boxes?: readonly BoxSummary[];
+  boxId?: string;
   emptyDirected?: string;
   emptyOpen?: string;
   variant?: "member" | "staff";
@@ -57,6 +62,8 @@ export function CalendarBoard({
         basePath={basePath}
         classHrefPrefix={classHrefPrefix}
         classHrefSearch={classHrefSearch}
+        boxes={boxes}
+        boxId={boxId}
         emptyDirected={emptyDirected}
         emptyOpen={emptyOpen}
         description={description}
@@ -77,6 +84,8 @@ export function CalendarBoard({
       title={title}
       basePath={basePath}
       classHrefPrefix={classHrefPrefix}
+      boxes={boxes}
+      boxId={boxId}
       emptyDirected={emptyDirected}
       emptyOpen={emptyOpen}
     />

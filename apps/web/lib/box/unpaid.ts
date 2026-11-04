@@ -14,9 +14,10 @@ import { isUniqueViolation } from "./db";
 import { BoxError } from "./errors";
 import { isoDateFromDb, isoDateToDb } from "./time";
 
-function unpaidWhere(today: string): Prisma.UserWhereInput {
+function unpaidWhere(today: string, paymentBoxId?: string): Prisma.UserWhereInput {
   return {
     role: "member", status: "active",
+    ...(paymentBoxId ? { paymentBoxId } : {}),
     OR: (["monthly", "quarterly", "semiannual", "annual"] as const).map((billingPeriod) => ({
       memberships: { some: { endedAt: null, tariff: { billingPeriod } } },
       paymentsReceived: { none: { billingPeriod, periodStart: isoDateToDb(periodStartForDate(today, billingPeriod)) } },
@@ -24,18 +25,18 @@ function unpaidWhere(today: string): Prisma.UserWhereInput {
   };
 }
 
-export async function listUnpaidPage(onDate?: string, page = 1) {
+export async function listUnpaidPage(onDate?: string, page = 1, paymentBoxId?: string) {
   const today = onDate ?? localDateString(new Date());
-  const total = await prisma.user.count({ where: unpaidWhere(today) });
-  const result = await paginate(total, page, async (window) => (await listUnpaid(today, window)).members);
+  const total = await prisma.user.count({ where: unpaidWhere(today, paymentBoxId) });
+  const result = await paginate(total, page, async (window) => (await listUnpaid(today, window, paymentBoxId)).members);
   return { ...result, asOf: today };
 }
 
-export async function listUnpaid(onDate?: string, window?: PageWindow) {
+export async function listUnpaid(onDate?: string, window?: PageWindow, paymentBoxId?: string) {
   const today = onDate ?? localDateString(new Date());
   const members = await prisma.user.findMany({
     ...window,
-    where: unpaidWhere(today),
+    where: unpaidWhere(today, paymentBoxId),
     select: {
       id: true, firstName: true, lastName: true, dni: true, phone: true,
       memberships: {

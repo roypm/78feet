@@ -9,12 +9,14 @@ import type { CalendarWeek, CalendarView } from "./types";
 export function WeekNav({
   basePath,
   view,
+  boxId,
   week,
   align,
   width = "content",
 }: {
   basePath: string;
   view: CalendarView;
+  boxId?: string;
   week: CalendarWeek;
   align?: "start" | "center";
   width?: "content" | "calendar";
@@ -31,7 +33,7 @@ export function WeekNav({
         return (
           <Link
             key={item.start}
-            href={calendarHref(basePath, item.start, view)}
+            href={calendarHref(basePath, item.start, view, boxId)}
             prefetch={true}
             aria-current={active ? "page" : undefined}
             aria-label={`Semana del ${formatWeekRange(item.start, item.end)}`}
@@ -56,7 +58,7 @@ export function WeekNav({
         className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1"
       >
         {week.canPrev ? (
-          <Link href={calendarHref(basePath, week.prev, view)} prefetch={true} className={navLink}>
+          <Link href={calendarHref(basePath, week.prev, view, boxId)} prefetch={true} className={navLink}>
             Anterior
           </Link>
         ) : (
@@ -65,7 +67,7 @@ export function WeekNav({
         <div className="flex min-w-0 justify-center overflow-x-auto px-1">{chips}</div>
         {week.canNext ? (
           <Link
-            href={calendarHref(basePath, week.next, view)}
+            href={calendarHref(basePath, week.next, view, boxId)}
             prefetch={true}
             className={cn(navLink, "justify-self-end")}
           >
@@ -87,7 +89,7 @@ export function WeekNav({
       )}
     >
       {week.canPrev ? (
-        <Link href={calendarHref(basePath, week.prev, view)} prefetch={true} className={navLink}>
+        <Link href={calendarHref(basePath, week.prev, view, boxId)} prefetch={true} className={navLink}>
           Anterior
         </Link>
       ) : (
@@ -95,7 +97,7 @@ export function WeekNav({
       )}
       <div className="flex min-w-0 max-w-[min(100%,20rem)] overflow-x-auto sm:max-w-none">{chips}</div>
       {week.canNext ? (
-        <Link href={calendarHref(basePath, week.next, view)} prefetch={true} className={navLink}>
+        <Link href={calendarHref(basePath, week.next, view, boxId)} prefetch={true} className={navLink}>
           Siguiente
         </Link>
       ) : (

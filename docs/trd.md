@@ -1,4 +1,4 @@
-# TRD — gestión de un box de CrossFit
+# TRD — gestión de los boxes de una empresa de CrossFit
 
 Arquitectura, tecnologías, estructura del proyecto y cómo funciona la app por dentro.
 
@@ -51,6 +51,8 @@ La web usa las validaciones compartidas; la app Expo consumirá la misma API cua
 | `dni` | text, nullable | obligatorio en altas nuevas de socios y staff; puede repetirse entre sus cuentas |
 | `phone`, `email` | text, nullable | opcionales |
 | `theme` | enum `UserTheme`, default `system` | Preferencia de apariencia: `system`, `light` o `dark`. |
+| `payment_box_id` | uuid, nullable | FK `box`. Solo socios. El alta lo deja en el box elegido; si no viene, el primero. Cambiarlo no toca reservas ni pagos. |
+| `preference_box_id` | uuid, nullable | FK `box`. Solo socios. El calendario abre ahí. Elegir otro box en el selector lo guarda. El staff no lo edita. |
 | `failed_logins`, `locked_until` | int, timestamptz | límite de intentos |
 | `token_version` | int, default 0 | se incrementa al resetear contraseña o desactivar; invalida JWTs previos |
 | `created_at`, `updated_at` | timestamptz | |
@@ -178,11 +180,30 @@ Almacén compartido de imágenes subidas. El identificador lleva el prefijo `db_
 | `data` | bytea | Contenido de la imagen. |
 | `created_at` | timestamptz | |
 
+### `box`
+
+Una sede de la empresa. Puede haber más de una. En esta v1 no se borra.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | uuid | |
+| `name` | text, único | El dato que ya existía se llama Box 1. La unicidad es el texto guardado. |
+| `weekly_hours` | jsonb | Siete días ISO (lunes = 1). Cada día tiene cero o más intervalos `[openTime, closeTime)`. |
+| `exceptions` | jsonb | Excepciones por fecha. Si existe la fecha, sus intervalos sustituyen el día semanal. Una lista vacía cierra el día. Solo se guardan para hoy o una fecha futura. |
+| `created_at` | timestamptz | El primer box es el de `created_at` más antiguo. |
+
+Hasta el selector de la llesca siguiente, la web lee y escribe el horario, la plantilla y las clases nuevas sobre ese primer box. La materialización recorre cada box con su propio horario.
+
+Un box nuevo, cuando el producto lo permita, nace con la plantilla vacía y abierto de `07:00` a `21:00` los siete días. Ese horario por defecto vive en `defaultBoxHours`.
+
+Tarifas, biblioteca, tipos de clase y equipo no tienen `box_id`.
+
 ### `class_template`
 
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid | |
+| `box_id` | uuid | FK `box`. El hueco es de esa sede. |
 | `weekday` | int | 1 = lunes … 7 = domingo |
 | `start_time`, `end_time` | time | hora local `Europe/Madrid` |
 | `class_type_id` | uuid | FK `class_type`. La grilla sale del tipo. |
@@ -195,6 +216,7 @@ Almacén compartido de imágenes subidas. El identificador lleva el prefijo `db_
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid | |
+| `box_id` | uuid | FK `box`. Una clase extra también es de un box. Si viene de plantilla, es el box de esa plantilla. |
 | `template_id` | uuid, nullable | FK `class_template` |
 | `date` | date | fecha local |
 | `start_at`, `end_at` | timestamptz | |
@@ -417,8 +439,8 @@ cancelar(booking, actor):
 ### 4.6 Validaciones de horario
 
 - Al crear o editar una plantilla: rechazar si se solapa en el tiempo con otra plantilla activa
-  del mismo `weekday` **y el mismo `kind`** (dirigida vs open pueden coincidir en hora).
-- Al editar una instancia: misma validación contra las instancias programadas del mismo día **y mismo `kind`**.
+  del mismo box, mismo `weekday` **y el mismo `kind`** (dirigida vs open pueden coincidir en hora; otro box no).
+- Al editar una instancia: misma validación contra las instancias programadas del mismo box, mismo día **y mismo `kind`**.
 - Una instancia **no puede moverse a otro día**: la UI solo permite cambiar la hora dentro del
   mismo `date`. Mover de día es cancelar y crear una instancia nueva.
 - `capacity` puede bajarse por debajo de las reservas activas: en ese caso se cancelan **todas** las
@@ -426,18 +448,19 @@ cancelar(booking, actor):
   confirmación explícita y muestra cuántas reservas se van a cancelar.
 - `end_at` > `start_at`.
 
-Además, el horario habitual del box se configura en `box_settings.weekly_hours` como siete días ISO (lunes = 1), cada uno con cero o más intervalos `[openTime, closeTime)`. Las excepciones por fecha viven en `box_settings.exceptions`; solo se guardan para hoy o una fecha futura. Si existe una fecha, sus intervalos sustituyen los del día semanal y una lista vacía significa cerrado todo el día.
+El horario habitual de cada box vive en `box.weekly_hours`: siete días ISO (lunes = 1), cada uno con cero o más intervalos `[openTime, closeTime)`. Las excepciones por fecha viven en `box.exceptions`; solo se guardan para hoy o una fecha futura. Si existe una fecha, sus intervalos sustituyen los del día semanal y una lista vacía significa cerrado todo el día.
 
-- Plantillas, clases extra y ediciones de clase deben quedar enteras dentro de un único intervalo abierto de su fecha o día semanal. Dirigidas y Open comparten la disponibilidad del box.
-- Los cambios del horario habitual y sus excepciones son inmediatos. Antes de persistirlos se comprueba que todas las plantillas activas y las clases programadas futuras sigan dentro de apertura. Si hay conflictos, se rechaza el cambio con el número de elementos afectados; el staff los ajusta o cancela manualmente. No se cancelan reservas automáticamente.
-- La materialización omite las ocurrencias de plantilla cuya fecha tenga una excepción cerrada o cuyo horario efectivo no contenga la clase. Si después se elimina la excepción, la siguiente llamada idempotente puede materializar la ocurrencia.
-- La migración inicial convierte el horario anterior (`07:00–21:00`) en ese mismo tramo para los siete días y no define excepciones.
+- Plantillas, clases extra y ediciones de clase deben quedar enteras dentro de un único intervalo abierto de su fecha o día semanal, según el horario de su box. Dirigidas y Open comparten la disponibilidad de ese box.
+- Los cambios del horario habitual y sus excepciones son inmediatos y solo de ese box. Antes de persistirlos se comprueba que las plantillas activas y las clases programadas futuras de ese box sigan dentro de apertura. Si hay conflictos, se rechaza el cambio con el número de elementos afectados; el staff los ajusta o cancela manualmente. No se cancelan reservas automáticamente. Otro box no entra en la comprobación.
+- La materialización omite las ocurrencias de plantilla cuya fecha tenga una excepción cerrada en su box o cuyo horario efectivo no contenga la clase. Si después se elimina la excepción, la siguiente llamada idempotente puede materializar la ocurrencia.
+- Mover reservas al publicar un cambio de plantilla solo encuentra sucesora en el mismo box. Un hueco idéntico de otro box no recibe esas reservas.
+- La migración del horario semanal convirtió el tramo anterior (`07:00–21:00`) en ese horario para los siete días. La migración del box copia ese horario y sus excepciones al box Box 1 y le asigna la plantilla y las clases que ya existían.
 
 ### 4.7 Eje del calendario
 
 - El eje parte de la apertura más temprana y el cierre más tardío del horario semanal o de las excepciones, en `Europe/Madrid`.
 - El mismo eje para Dirigidas y Open y para las cuatro semanas. No se recalcula con la primera o la última clase de la vista.
-- El admin persiste el horario semanal y las excepciones en `box_settings`. Si no hay fila, cada día abre `07:00–21:00`.
+- El admin persiste el horario semanal y las excepciones en el primer box. Si no hay fila, cada día abre `07:00–21:00`.
 - Si una instancia empieza antes de la apertura o acaba después del cierre, el eje se extiende a la hora en punto que la cubre.
 
 ### 4.8 Biblioteca
@@ -468,7 +491,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| GET | `/api/v1/calendar?from&to` | instancias con imagen del tipo (`null` si no hay), ocupación y si el socio está apuntado |
+| GET | `/api/v1/calendar?from&to&box` | instancias del box (`box` opcional: si falta, el de preferencia) con imagen del tipo (`null` si no hay), ocupación y si el socio está apuntado |
 | GET | `/api/v1/instances/:id` | detalle (imagen, nombre, coach) + roster (`Nombre I.`) + entrenamiento asociado, si hay |
 | GET | `/api/v1/trainings?classTypeId` | biblioteca de socio: nombre y tipo, del último editado al más antiguo. Sin `classTypeId`, todos |
 | GET | `/api/v1/trainings/:id` | ficha: fases y bloques en orden |
@@ -488,7 +511,10 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | GET | `/api/v1/admin/week?from` | ocupación `usadas/capacidad` | coach, admin |
 | GET | `/api/v1/admin/templates` | ver plantilla semanal | coach, admin |
 | GET | `/api/v1/admin/coaches` | opciones de coach para asignar a clases | coach, admin |
-| GET/PATCH | `/api/v1/admin/hours` | horario semanal y excepciones; guardar valida la disponibilidad antes de aplicar | GET coach/admin, PATCH admin |
+| GET/PATCH | `/api/v1/admin/hours?box` | horario semanal y excepciones de ese box; si falta `box`, el primero. Guardar valida solo ese box | GET coach/admin, PATCH admin |
+| GET/POST | `/api/v1/admin/boxes` | listar boxes; el admin crea uno con nombre, plantilla vacía y horario 07:00–21:00 | GET coach/admin, POST admin |
+| PATCH | `/api/v1/admin/boxes/:id` | renombrar. Dos boxes no pueden guardar el mismo texto | admin |
+| POST | `/api/v1/admin/members/:id/payment-box` | cambiar el box de pago. No cancela reservas ni reescribe pagos | coach, admin |
 | GET | `/api/v1/admin/class-types` | ver catálogo para colocarlo en el plano | coach, admin |
 | POST | `/api/v1/admin/class-types` | crear tipo; la imagen es opcional | admin |
 | PATCH/DELETE | `/api/v1/admin/class-types/:id` | editar nombre/imagen o borrar si no está en uso | admin |
@@ -545,7 +571,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 ## 8. Tiempo
 
-- Las horas concretas de instancias se guardan en `timestamptz` (UTC). Las horas de plantillas usan `time` local; el horario del box conserva horas locales `HH:mm` en JSON.
+- Las horas concretas de instancias se guardan en `timestamptz` (UTC). Las horas de plantillas usan `time` local; el horario de cada box conserva horas locales `HH:mm` en JSON.
 - Los cálculos de semana, día y "2 horas antes" se hacen en `Europe/Madrid`.
 - `date` de la instancia y `period_start` son fechas locales del box; el ajuste indica si es `week` o `month`.
 - Formato de moneda: EUR, `es-ES`.
@@ -557,7 +583,9 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
   - desborde a bono y saldo resultante,
   - cancelación con y sin devolución,
   - cancelación de instancia que devuelve todo,
-  - solapamiento de reservas y de horarios,
+  - solapamiento de reservas de una persona aunque las clases sean de boxes distintos,
+  - solapamiento de plantilla y de clases dentro del mismo box, y que dos boxes puedan coincidir en hora,
+  - que un cambio de plantilla no mueva reservas a un hueco idéntico de otro box,
   - generación idempotente de instancias,
   - cambiar el tipo de un hueco cancela las reservas; cambiar la imagen del tipo no.
 - **API**: integración contra Postgres real (Neon branch o local), sin mocks de base.

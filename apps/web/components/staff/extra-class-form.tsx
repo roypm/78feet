@@ -14,15 +14,18 @@ import { QuantityField } from "@/components/staff/numeric-field";
 import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 import type { ClassType, Coach } from "./instance-form-types";
+import type { BoxSummary } from "@/lib/box/boxes";
 
 export function ExtraClassForm({
   defaultDate,
   classTypes,
   coaches,
+  boxes,
 }: {
   defaultDate: string;
   classTypes: ClassType[];
   coaches: Coach[];
+  boxes: readonly BoxSummary[];
 }) {
   const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
@@ -39,6 +42,7 @@ export function ExtraClassForm({
         classTypeId: String(form.get("classTypeId")),
         coachId: String(form.get("coachId") || "") || null,
         capacity: Number(form.get("capacity")),
+        boxId: String(form.get("boxId")),
       });
       toast.success("Clase extra creada");
       setOpen(false);
@@ -62,6 +66,8 @@ export function ExtraClassForm({
       >
         <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <FormSelect label="Box" name="boxId" required disabled={pending}
+            defaultValue={boxes[0]?.id ?? ""} options={boxes.map((box) => ({ value: box.id, label: box.name }))} />
           <DatePicker label="Día" disabled={pending} name="date" required min={defaultDate} defaultValue={defaultDate} />
           <TimePicker label="Inicio" disabled={pending} name="startTime" required />
           <TimePicker label="Fin" disabled={pending} name="endTime" required />

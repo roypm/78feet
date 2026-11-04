@@ -1,5 +1,6 @@
 import {
   boxHoursConfigSchema,
+  defaultBoxHours,
   isOpenDuring,
   isWithinOpeningIntervals,
   BOX_CLOSE_TIME,
@@ -13,49 +14,31 @@ import type { Db } from "./db";
 import { BoxError } from "./errors";
 import { clockFromDb } from "./time";
 
-const DEFAULT_ID = "default";
-
-function defaultHours(): BoxHoursConfig {
-  return {
-    weekly: Array.from({ length: 7 }, (_, index) => ({
-      weekday: index + 1,
-      intervals: [{ openTime: BOX_OPEN_TIME, closeTime: BOX_CLOSE_TIME }],
-    })),
-    exceptions: [],
-  };
+export async function primaryBoxId(db: Db = prisma): Promise<string> {
+  const box = await db.box.findFirst({
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+  if (!box) throw new BoxError(500, "FORBIDDEN", "No hay ningún box");
+  return box.id;
 }
 
-export async function getBoxHours(db: Db = prisma): Promise<BoxHoursConfig> {
-  const row = await db.boxSettings.findUnique({ where: { id: DEFAULT_ID } });
-  if (!row) return defaultHours();
+function hoursFromRow(row: { weeklyHours: unknown; exceptions: unknown }): BoxHoursConfig {
+  return boxHoursConfigSchema.parse({
+    weekly: row.weeklyHours,
+    exceptions: Array.isArray(row.exceptions) ? row.exceptions : [],
+  });
+}
 
-  const persisted = row as typeof row & {
-    weeklyHours?: unknown;
-    exceptions?: unknown;
-    openTime?: Date;
-    closeTime?: Date;
-  };
-  if (Array.isArray(persisted.weeklyHours)) {
-    return boxHoursConfigSchema.parse({
-      weekly: persisted.weeklyHours,
-      exceptions: Array.isArray(persisted.exceptions) ? persisted.exceptions : [],
-    });
-  }
-
-  // A running process can still hold a Prisma Client generated against the old columns.
-  if (persisted.openTime instanceof Date && persisted.closeTime instanceof Date) {
-    const intervals = [{
-      openTime: clockFromDb(persisted.openTime).slice(0, 5),
-      closeTime: clockFromDb(persisted.closeTime).slice(0, 5),
-    }];
-    return {
-      weekly: Array.from({ length: 7 }, (_, index) => ({ weekday: index + 1, intervals })),
-      exceptions: [],
-    };
-  }
-
-  // Keep the calendar available until the new client and database migration are active.
-  return defaultHours();
+export async function getBoxHours(db: Db = prisma, boxId?: string): Promise<BoxHoursConfig> {
+  const row = boxId
+    ? await db.box.findUnique({ where: { id: boxId }, select: { weeklyHours: true, exceptions: true } })
+    : await db.box.findFirst({
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { weeklyHours: true, exceptions: true },
+      });
+  if (!row) return defaultBoxHours();
+  return hoursFromRow(row);
 }
 
 function instanceClocks(startAt: Date, endAt: Date): { start: string; end: string } {
@@ -77,12 +60,13 @@ function containsWeeklyTemplate(
   return isWithinOpeningIntervals(intervals, clockFromDb(template.startTime), clockFromDb(template.endTime));
 }
 
-async function assertNoScheduledClassOutsideHours(config: BoxHoursConfig, now: Date): Promise<void> {
+async function assertNoScheduledClassOutsideHours(config: BoxHoursConfig, boxId: string, now: Date): Promise<void> {
   const today = localDateString(now);
   const [templates, instances] = await Promise.all([
-    prisma.classTemplate.findMany({ where: { active: true } }),
+    prisma.classTemplate.findMany({ where: { active: true, boxId } }),
     prisma.classInstance.findMany({
       where: {
+        boxId,
         date: { gte: new Date(`${today}T00:00:00.000Z`) },
         startAt: { gt: now },
         status: "scheduled",
@@ -111,7 +95,7 @@ async function assertNoScheduledClassOutsideHours(config: BoxHoursConfig, now: D
   }
 }
 
-export async function updateBoxHours(input: BoxHoursConfig, now = new Date()): Promise<BoxHoursConfig> {
+export async function updateBoxHours(input: BoxHoursConfig, now = new Date(), boxId?: string): Promise<BoxHoursConfig> {
   const config = boxHoursConfigSchema.parse(input);
   const today = localDateString(now);
   if (config.exceptions.some((exception) => {
@@ -121,16 +105,12 @@ export async function updateBoxHours(input: BoxHoursConfig, now = new Date()): P
     throw new BoxError(400, "FORBIDDEN", "Cada excepción debe ser una fecha válida de hoy o futura");
   }
 
-  await assertNoScheduledClassOutsideHours(config, now);
+  const targetId = boxId ?? await primaryBoxId();
+  await assertNoScheduledClassOutsideHours(config, targetId, now);
 
-  const row = await prisma.boxSettings.upsert({
-    where: { id: DEFAULT_ID },
-    create: {
-      id: DEFAULT_ID,
-      weeklyHours: config.weekly as Prisma.InputJsonValue,
-      exceptions: config.exceptions as Prisma.InputJsonValue,
-    },
-    update: {
+  const row = await prisma.box.update({
+    where: { id: targetId },
+    data: {
       weeklyHours: config.weekly as Prisma.InputJsonValue,
       exceptions: config.exceptions as Prisma.InputJsonValue,
     },

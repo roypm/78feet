@@ -4,16 +4,19 @@ import { requireStaff } from "@/lib/auth/current";
 import { kindViewFromParam } from "@/lib/box/day-groups";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listTemplates } from "@/lib/box/templates";
+import { listBoxes, pickBox } from "@/lib/box/boxes";
 import { listCoaches } from "@/lib/box/staff-users";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
+import { calendarHref } from "@/lib/box/calendar-navigation";
 import { TemplateSchedule } from "@/components/staff/template-schedule";
+import { BoxTabs } from "@/components/member/box-tabs";
 import { KindTabs } from "@/components/member/kind-tabs";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string }>;
+  searchParams: Promise<{ tipo?: string; box?: string }>;
 }) {
   return (
     <Suspense
@@ -31,16 +34,18 @@ export default function Page({
   );
 }
 
-async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: string; box?: string }> }) {
   const user = await requireStaff();
   const query = await searchParams;
+  const boxes = await listBoxes();
+  const box = pickBox(boxes, query.box);
   const view = kindViewFromParam(query.tipo);
   const canWrite = user.role === "admin";
   const [types, templates, coaches, hours] = await Promise.all([
     listClassTypes(),
-    listTemplates(),
+    listTemplates(box.id),
     listCoaches(),
-    getBoxHours(),
+    getBoxHours(undefined, box.id),
   ]);
 
   return (
@@ -49,11 +54,14 @@ async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: stri
         title="Plantilla"
         description="Horario recurrente. Editá la grilla y aplicá cuando esté listo; rige desde el lunes siguiente."
         tabs={
-          <KindTabs
-            view={view}
-            directedHref="/staff/plantilla"
-            openHref="/staff/plantilla?tipo=open"
-          />
+          <div className="flex flex-col items-start gap-2">
+            <BoxTabs boxes={boxes} boxId={box.id} hrefFor={(id) => calendarHref("/staff/plantilla", undefined, view, id)} />
+            <KindTabs
+              view={view}
+              directedHref={calendarHref("/staff/plantilla", undefined, "dirigidas", box.id)}
+              openHref={calendarHref("/staff/plantilla", undefined, "open", box.id)}
+            />
+          </div>
         }
       />
       <ModuleBody width="full" fill>
@@ -65,6 +73,7 @@ async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: stri
           hours={calendarAxisRange(hours)}
           openingHours={hours}
           canWrite={canWrite}
+          boxId={box.id}
         />
       </ModuleBody>
     </ModulePage>

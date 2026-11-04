@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { eachDate } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listWeek } from "@/lib/box/staff-calendar";
+import { listBoxes, pickBox } from "@/lib/box/boxes";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
 import { CalendarBoard } from "@/components/member/calendar-board";
@@ -11,7 +12,7 @@ import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ semana?: string; tipo?: string }>;
+  searchParams: Promise<{ semana?: string; tipo?: string; box?: string }>;
 }) {
   return (
     <Suspense
@@ -29,13 +30,15 @@ export default function Page({
   );
 }
 
-async function Week({ searchParams }: { searchParams: Promise<{ semana?: string; tipo?: string }> }) {
+async function Week({ searchParams }: { searchParams: Promise<{ semana?: string; tipo?: string; box?: string }> }) {
   await requireStaff();
   const query = await searchParams;
+  const boxes = await listBoxes();
+  const box = pickBox(boxes, query.box);
   const now = new Date();
   const week = memberWeek(now, query.semana);
   const view = query.tipo === "open" ? "open" : "dirigidas";
-  const [classes, hours] = await Promise.all([listWeek(week.start, now), getBoxHours()]);
+  const [classes, hours] = await Promise.all([listWeek(week.start, now, box.id), getBoxHours(undefined, box.id)]);
   const filtered = classes.filter((item) => (view === "open" ? item.kind === "open" : item.kind === "directed"));
 
   return (
@@ -61,6 +64,8 @@ async function Week({ searchParams }: { searchParams: Promise<{ semana?: string;
       }}
       days={eachDate(week.start, week.end)}
       classes={filtered}
+      boxes={boxes}
+      boxId={box.id}
     />
   );
 }

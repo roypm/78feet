@@ -69,7 +69,7 @@ async function ClassDetail({
   const query = await searchParams;
   const now = new Date();
   const startAt = new Date(instance.startAt);
-  const back = staffClassOriginBack(parseStaffClassOrigin(query.desde), instance.date, now);
+  const back = staffClassOriginBack(parseStaffClassOrigin(query.desde), instance.date, now, instance.boxId);
   const canAddMember = instance.status === "scheduled" && !instanceHasStarted(now, startAt);
   const canRemoveMember = instance.status === "scheduled" && instance.roster.length > 0;
 
@@ -78,7 +78,7 @@ async function ClassDetail({
       <ModuleHeader
         eyebrow={<StaffCrumbs items={[{ href: back.href, label: back.label }, { label: instance.name }]} />}
         title={instance.name}
-        description={`${formatDay(instance.date)} · ${formatTime(new Date(instance.startAt))}–${formatTime(new Date(instance.endAt))}`}
+        description={`${instance.boxName} · ${formatDay(instance.date)} · ${formatTime(new Date(instance.startAt))}–${formatTime(new Date(instance.endAt))}`}
         action={
           <InstanceDetailActions
             instance={instance}

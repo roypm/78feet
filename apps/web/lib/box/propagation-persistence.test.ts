@@ -9,6 +9,7 @@ const actorId = "admin-1";
 function instance(id: string, overrides: Partial<ClassInstance> = {}): ClassInstance {
   return {
     id,
+    boxId: "box-1",
     templateId: `template-${id}`,
     date: "2026-11-02",
     startAt: new Date("2026-11-02T17:00:00.000Z"),

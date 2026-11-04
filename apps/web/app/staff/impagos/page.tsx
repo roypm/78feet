@@ -6,10 +6,12 @@ import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
 import { listUnpaidPage } from "@/lib/box/unpaid";
+import { listBoxes } from "@/lib/box/boxes";
+import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
 import { UnpaidMembersTable } from "@/components/staff/unpaid-members-table";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
-export default function Page({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
+export default function Page({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string }> }) {
   return (
     <Suspense
       fallback={
@@ -26,16 +28,30 @@ export default function Page({ searchParams }: { searchParams: Promise<{ pagina?
   );
 }
 
-async function Unpaid({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
+async function Unpaid({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string }> }) {
   await requireStaff();
   const query = await searchParams;
-  const unpaid = await listUnpaidPage(undefined, pageNumber(query.pagina));
+  const boxes = await listBoxes();
+  const paymentBoxId = boxes.some((box) => box.id === query.box) ? query.box : undefined;
+  const unpaid = await listUnpaidPage(undefined, pageNumber(query.pagina), paymentBoxId);
 
   return (
     <ModulePage>
       <ModuleHeader
         title="Impagos"
         description="Socios con el periodo de cobro de su tarifa sin registrar pago."
+        tabs={
+          <FilterTabs aria-label="Box de pago">
+            <FilterTabLink href="/staff/impagos" active={!paymentBoxId}>
+              Todos
+            </FilterTabLink>
+            {boxes.map((box) => (
+              <FilterTabLink key={box.id} href={`/staff/impagos?box=${box.id}`} active={paymentBoxId === box.id}>
+                {box.name}
+              </FilterTabLink>
+            ))}
+          </FilterTabs>
+        }
       />
       <ModuleBody width="full" inset="content">
         {unpaid.items.length === 0 ? (
@@ -43,7 +59,7 @@ async function Unpaid({ searchParams }: { searchParams: Promise<{ pagina?: strin
         ) : (
           <UnpaidMembersTable members={unpaid.items} />
         )}
-        <ListPagination pageInfo={unpaid.pageInfo} path="/staff/impagos" />
+        <ListPagination pageInfo={unpaid.pageInfo} path="/staff/impagos" filters={{ box: paymentBoxId }} />
       </ModuleBody>
     </ModulePage>
   );

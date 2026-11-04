@@ -13,12 +13,12 @@ function spots(capacity: number, bookedCount: number): number {
   return Math.max(0, capacity - bookedCount);
 }
 
-export async function listDay(date: string, now = new Date()) {
+export async function listDay(date: string, now = new Date(), boxId?: string) {
   const today = localDateString(now);
   const horizon = horizonRange(today);
   await ensureInstances(prisma, horizon.from, horizon.to);
   const rows = await prisma.classInstance.findMany({
-    where: { date: isoDateToDb(date) },
+    where: { date: isoDateToDb(date), ...(boxId ? { boxId } : {}) },
     include: {
       classType: true,
       coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
@@ -57,7 +57,7 @@ export async function listDay(date: string, now = new Date()) {
   }));
 }
 
-export async function listWeek(from: string, now = new Date()) {
+export async function listWeek(from: string, now = new Date(), boxId?: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) {
     throw new BoxError(400, "FORBIDDEN", "Fecha inválida");
   }
@@ -66,7 +66,7 @@ export async function listWeek(from: string, now = new Date()) {
   await ensureInstances(prisma, horizon.from, horizon.to);
   const to = addDays(from, 6);
   const rows = await prisma.classInstance.findMany({
-    where: { date: { gte: isoDateToDb(from), lte: isoDateToDb(to) } },
+    where: { date: { gte: isoDateToDb(from), lte: isoDateToDb(to) }, ...(boxId ? { boxId } : {}) },
     include: {
       classType: true,
       coach: { select: { firstName: true, lastName: true } },
@@ -98,6 +98,7 @@ export async function getStaffInstance(id: string, now = new Date()) {
     where: { id },
     include: {
       classType: true,
+      box: { select: { id: true, name: true } },
       template: { select: { weekday: true, active: true } },
       coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
       training: { include: { classType: true } },
@@ -115,6 +116,8 @@ export async function getStaffInstance(id: string, now = new Date()) {
   const isModified = row.templateId !== null && row.editedAt !== null;
   return {
     id: row.id,
+    boxId: row.box.id,
+    boxName: row.box.name,
     date,
     startAt: row.startAt.toISOString(),
     endAt: row.endAt.toISOString(),

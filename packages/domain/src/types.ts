@@ -24,6 +24,7 @@ export type TariffSnapshot = {
 
 export type ClassTemplate = {
   id: string;
+  boxId: string;
   weekday: number;
   startTime: string;
   endTime: string;
@@ -36,6 +37,7 @@ export type ClassTemplate = {
 
 export type ClassInstance = {
   id: string;
+  boxId: string;
   templateId: string | null;
   date: string;
   startAt: Date;
@@ -75,6 +77,7 @@ export type MembershipSnapshot = {
 };
 
 export type PlannedInstance = {
+  boxId: string;
   templateId: string;
   date: string;
   startAt: Date;

@@ -24,6 +24,7 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
         const cancelled = item.status === "cancelled";
         const timeRange = `${formatTime(new Date(item.startAt))}–${formatTime(new Date(item.endAt))}`;
         const meta = [
+          item.boxName,
           formatDay(item.date),
           timeRange,
           cancelled ? null : `${item.bookedCount}/${item.capacity}`,

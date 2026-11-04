@@ -27,6 +27,7 @@ export function makeTemplate(
   void _title;
   return {
     id: nextId("tpl"),
+    boxId: "box-1",
     coachId: "coach-1",
     defaultCapacity: 12,
     active: true,
@@ -47,6 +48,7 @@ export function makeInstance(
   void _title;
   return {
     id: nextId("inst"),
+    boxId: "box-1",
     templateId: "tpl-1",
     startAt: atBoxTime(overrides.date, startTime),
     endAt: atBoxTime(overrides.date, endTime),

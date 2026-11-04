@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { BLOCK_INSET, calendarAxis, columnHeight } from "@/lib/box/calendar-layout";
 import { calendarHref } from "@/lib/box/calendar-navigation";
 import { KindTabs } from "@/components/member/kind-tabs";
+import { BoxTabs } from "@/components/member/box-tabs";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { CalendarGrid } from "./grid";
 import { WeekNav } from "./week-nav";
@@ -25,6 +26,8 @@ export function MemberCalendarBoard({
   title,
   basePath,
   classHrefPrefix,
+  boxes = [],
+  boxId,
   emptyDirected,
   emptyOpen,
 }: CalendarBoardCoreProps) {
@@ -39,11 +42,14 @@ export function MemberCalendarBoard({
         title={title}
         description="Cuatro semanas de clases. Tocá un bloque para reservar o ver plazas y roster."
         tabs={
-          <KindTabs
-            view={view}
-            directedHref={calendarHref(basePath, semana, "dirigidas")}
-            openHref={calendarHref(basePath, semana, "open")}
-          />
+          <div className="flex flex-col items-start gap-2">
+            <BoxTabs boxes={boxes} boxId={boxId ?? ""} hrefFor={(id) => calendarHref(basePath, semana, view, id)} />
+            <KindTabs
+              view={view}
+              directedHref={calendarHref(basePath, semana, "dirigidas", boxId)}
+              openHref={calendarHref(basePath, semana, "open", boxId)}
+            />
+          </div>
         }
         action={
           desktop ? (
@@ -62,7 +68,7 @@ export function MemberCalendarBoard({
         }
         toolbar={
           <div className="flex w-full justify-center">
-            <WeekNav basePath={basePath} view={view} week={week} width="content" />
+            <WeekNav basePath={basePath} view={view} boxId={boxId} week={week} width="content" />
           </div>
         }
       />

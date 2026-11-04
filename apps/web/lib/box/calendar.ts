@@ -40,6 +40,7 @@ export type TrainingDetail = {
 };
 
 export type InstanceDetail = CalendarClass & {
+  boxName: string;
   coachProfileImageUrl: string | null;
   roster: { userId: string; name: string; profileImageUrl: string | null }[];
   bookingId: string | null;
@@ -95,6 +96,7 @@ export async function listCalendar(
   from: string,
   to: string,
   now = new Date(),
+  boxId?: string,
 ): Promise<CalendarClass[]> {
   if (from > to) throw new BoxError(400, "FORBIDDEN", "El rango de fechas no es válido");
   const today = localDateString(now);
@@ -105,7 +107,7 @@ export async function listCalendar(
   if (start > end) return [];
 
   const rows = await prisma.classInstance.findMany({
-    where: { date: { gte: isoDateToDb(start), lte: isoDateToDb(end) } },
+    where: { date: { gte: isoDateToDb(start), lte: isoDateToDb(end) }, ...(boxId ? { boxId } : {}) },
     include: {
       classType: true,
       coach: { select: { firstName: true, lastName: true } },
@@ -130,6 +132,7 @@ export async function getInstanceDetail(
     where: { id: instanceId },
     include: {
       classType: true,
+      box: { select: { name: true } },
       coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
       training: {
         include: {
@@ -156,6 +159,7 @@ export async function getInstanceDetail(
   const base = toCalendarClass(row, userId);
   return {
     ...base,
+    boxName: row.box.name,
     coachProfileImageUrl: row.coach ? profileImageUrl(row.coach.id, row.coach.profileImage?.updatedAt) : null,
     roster: row.bookings.map((booking) => ({
       userId: booking.member.id,

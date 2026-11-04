@@ -4,6 +4,7 @@ import { classTypeImageUrl } from "./images";
 
 export function toDomainTemplate(row: {
   id: string;
+  boxId: string;
   weekday: number;
   startTime: Date;
   endTime: Date;
@@ -16,6 +17,7 @@ export function toDomainTemplate(row: {
 }): ClassTemplate {
   return {
     id: row.id,
+    boxId: row.boxId,
     weekday: row.weekday,
     startTime: clockFromDb(row.startTime),
     endTime: clockFromDb(row.endTime),
@@ -29,6 +31,7 @@ export function toDomainTemplate(row: {
 
 export function toDomainInstance(row: {
   id: string;
+  boxId: string;
   templateId: string | null;
   date: Date;
   startAt: Date;
@@ -44,6 +47,7 @@ export function toDomainInstance(row: {
 }): ClassInstance {
   return {
     id: row.id,
+    boxId: row.boxId,
     templateId: row.templateId,
     date: isoDateFromDb(row.date),
     startAt: row.startAt,

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { addDays, localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listExceptions } from "@/lib/box/exceptions";
+import { listBoxes } from "@/lib/box/boxes";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listCoaches } from "@/lib/box/staff-users";
 import { ExtraClassForm } from "@/components/staff/extra-class-form";
@@ -31,10 +32,11 @@ export default function Page() {
 async function Exceptions() {
   const user = await requireStaff();
   const today = localDateString(new Date());
-  const [items, classTypes, coaches] = await Promise.all([
+  const [items, classTypes, coaches, boxes] = await Promise.all([
     listExceptions(today),
     listClassTypes(),
     listCoaches(),
+    listBoxes(),
   ]);
 
   return (
@@ -49,7 +51,7 @@ async function Exceptions() {
         ) : (
           <>
             <ModulePrimaryAction>
-              <ExtraClassForm defaultDate={addDays(today, 1)} classTypes={classTypes} coaches={coaches} />
+              <ExtraClassForm defaultDate={addDays(today, 1)} classTypes={classTypes} coaches={coaches} boxes={boxes} />
             </ModulePrimaryAction>
             <ExceptionsList items={items} />
           </>

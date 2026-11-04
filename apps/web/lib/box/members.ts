@@ -23,6 +23,7 @@ import { isoDateFromDb, isoDateToDb } from "./time";
 import { getMemberSummary } from "./summary";
 import { createQuotaAdjustment, listQuotaAdjustments } from "./quota-adjustments";
 import { profileImageUrl } from "./profile-images";
+import { primaryBoxId } from "./hours";
 
 type MemberUser = {
   id: string;
@@ -34,6 +35,7 @@ type MemberUser = {
   email: string | null;
   status: "active" | "inactive";
   profileImage?: { updatedAt: Date } | null;
+  paymentBox?: { id: string; name: string } | null;
 };
 
 type MembershipView = {
@@ -58,6 +60,8 @@ function userView(user: MemberUser) {
     email: user.email,
     status: user.status,
     profileImageUrl: profileImageUrl(user.id, user.profileImage?.updatedAt),
+    paymentBoxId: user.paymentBox?.id ?? null,
+    paymentBoxName: user.paymentBox?.name ?? null,
   };
 }
 
@@ -148,6 +152,7 @@ export async function listMembers(status: "active" | "inactive" | "all", window?
       email: true,
       status: true,
       profileImage: { select: { updatedAt: true } },
+      paymentBox: { select: { id: true, name: true } },
       memberships: {
         where: { endedAt: null },
         include: membershipInclude,
@@ -174,6 +179,11 @@ export async function listMembers(status: "active" | "inactive" | "all", window?
 
 export async function createMember(input: CreateMember, startedAt = new Date()) {
   await requireAssignableTariff(input.tariffId);
+  const boxId = input.paymentBoxId ?? await primaryBoxId();
+  if (input.paymentBoxId) {
+    const box = await prisma.box.findUnique({ where: { id: input.paymentBoxId }, select: { id: true } });
+    if (!box) throw new BoxError(404, "FORBIDDEN", "El box no existe");
+  }
   const passwordHash = await hashPassword(input.password);
   try {
     const user = await prisma.user.create({
@@ -187,6 +197,8 @@ export async function createMember(input: CreateMember, startedAt = new Date()) 
         dni: input.dni,
         phone: input.phone ?? null,
         email: input.email ?? null,
+        paymentBoxId: boxId,
+        preferenceBoxId: boxId,
         memberships: {
           create: {
             tariffId: input.tariffId,
@@ -196,6 +208,7 @@ export async function createMember(input: CreateMember, startedAt = new Date()) 
       },
       include: {
         profileImage: { select: { updatedAt: true } },
+        paymentBox: { select: { id: true, name: true } },
         memberships: { where: { endedAt: null }, include: membershipInclude },
       },
     });
@@ -216,6 +229,7 @@ export async function getMember(id: string) {
     where: { id },
     include: {
       profileImage: { select: { updatedAt: true } },
+      paymentBox: { select: { id: true, name: true } },
       memberships: {
         include: membershipInclude,
         orderBy: { startedAt: "desc" },
@@ -300,6 +314,7 @@ export async function updateMember(id: string, patch: PatchMember) {
       },
       include: {
         profileImage: { select: { updatedAt: true } },
+        paymentBox: { select: { id: true, name: true } },
         memberships: { where: { endedAt: null }, include: membershipInclude },
       },
     });

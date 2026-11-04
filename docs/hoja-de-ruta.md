@@ -53,8 +53,8 @@ Obligatoria y encadenada. La 18 no empieza hasta que la 17 esté hecha. Esquema 
 
 | # | Llesca | Estado | Hecho cuando |
 |---|---|---|---|
-| 17 | Segundo box: datos | pendiente | Existe el box como dato; lo de hoy es «Box 1»; horario, cierres, plantilla y clases son de cada box; tarifas, biblioteca, tipos y equipo siguen únicos; migración y tests de dominio. Actualiza PRD/TRD |
-| 18 | Segundo box: producto | pendiente | Selector y URL; admin crea y renombra en Horario; socio con box de pago y de preferencia; cupo de empresa y sin solape entre boxes; Excepciones lista todos; publicar plantilla solo el box en pantalla |
+| 17 | Segundo box: datos | hecha | Existe el box como dato; lo de hoy es «Box 1»; horario, cierres, plantilla y clases son de cada box; tarifas, biblioteca, tipos y equipo siguen únicos; migración y tests de dominio. Actualiza PRD/TRD |
+| 18 | Segundo box: producto | hecha | Selector y URL; admin crea y renombra en Horario; socio con box de pago y de preferencia; cupo de empresa y sin solape entre boxes; Excepciones lista todos; publicar plantilla solo el box en pantalla |
 
 ### Después de Segundo box (19–20)
 

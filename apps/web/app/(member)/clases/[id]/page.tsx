@@ -60,7 +60,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             {kindLabel(detail.kind)}
           </Badge>
         }
-        description={`${formatDay(detail.date)} · ${formatTime(new Date(detail.startAt))}–${formatTime(new Date(detail.endAt))}`}
+        description={`${detail.boxName} · ${formatDay(detail.date)} · ${formatTime(new Date(detail.startAt))}–${formatTime(new Date(detail.endAt))}`}
         toolbar={
           <p className="text-sm tabular-nums text-muted-foreground">
             {detail.bookedCount}/{detail.capacity} · {freeSpotLabel(detail.freeSpots)}

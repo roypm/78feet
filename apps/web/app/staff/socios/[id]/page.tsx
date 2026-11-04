@@ -4,6 +4,7 @@ import { StaffCrumbs } from "@/components/staff/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { getMember } from "@/lib/box/members";
+import { listBoxes } from "@/lib/box/boxes";
 import { listTariffs } from "@/lib/box/tariffs";
 import { BoxError } from "@/lib/box/errors";
 import { memberFullName } from "@/lib/box/format";
@@ -32,7 +33,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
   const staff = await requireStaff();
   const { id } = await params;
-  const [member, tariffs, summary] = await Promise.all([
+  const [member, tariffs, summary, boxes] = await Promise.all([
     (async () => {
       try {
         return await getMember(id);
@@ -43,6 +44,7 @@ async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
     })(),
     listTariffs(),
     getMemberSummary(id),
+    listBoxes(),
   ]);
 
   const profileMember = {
@@ -64,6 +66,8 @@ async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
           priceCents: member.membership.priceCents,
         }
       : null,
+    paymentBoxId: member.paymentBoxId,
+    paymentBoxName: member.paymentBoxName,
   };
 
   return (
@@ -92,6 +96,7 @@ async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
           member={profileMember}
           summary={summary}
           tariffs={tariffs}
+          boxes={boxes}
           isAdmin={staff.role === "admin"}
         />
       </ModuleBody>

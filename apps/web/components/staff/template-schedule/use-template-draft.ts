@@ -13,8 +13,8 @@ function minutesToClock(minutes: number): string {
   return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
 }
 
-export function useTemplateDraft({ templates, types, openingHours }: {
-  templates: ScheduleTemplate[]; types: ClassType[]; openingHours: BoxHoursConfig;
+export function useTemplateDraft({ templates, types, openingHours, boxId }: {
+  templates: ScheduleTemplate[]; types: ClassType[]; openingHours: BoxHoursConfig; boxId: string;
 }) {
   const { router, pending: applying, begin, setPending: setApplying } = useActionFeedback();
   const baseline = useMemo(() => templatesSnapshot(templates), [templates]);
@@ -135,7 +135,7 @@ export function useTemplateDraft({ templates, types, openingHours }: {
   async function applyTemplate() {
     if (!begin()) return;
     try {
-      const summary = await applyTemplateDraft(baseline, working);
+      const summary = await applyTemplateDraft(baseline, working, boxId);
       toast.success(summaryMessage(summary));
       setApplyOpen(false);
       setDraft(null);

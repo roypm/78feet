@@ -91,6 +91,7 @@ export function localTemplateOverlap(
     )
     .map((item) => ({
       id: item.id,
+      boxId: "draft",
       weekday: item.weekday,
       startTime: clock5(item.startTime),
       endTime: clock5(item.endTime),
@@ -100,6 +101,7 @@ export function localTemplateOverlap(
   return templateConflicts(
     {
       id: candidate.id,
+      boxId: "draft",
       weekday: candidate.weekday,
       startTime: clock5(candidate.startTime),
       endTime: clock5(candidate.endTime),

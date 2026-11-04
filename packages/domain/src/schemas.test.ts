@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   boxHoursConfigSchema,
+  boxNameSchema,
   createStaffSchema,
   patchStaffSchema,
   tariffWriteSchema,
@@ -90,6 +91,14 @@ describe("tariffWriteSchema", () => {
         quotaDirected: 1,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("boxNameSchema", () => {
+  it("trims the name and rejects an empty or oversized one", () => {
+    expect(boxNameSchema.parse("  Box Norte  ")).toBe("Box Norte");
+    expect(boxNameSchema.safeParse("   ").success).toBe(false);
+    expect(boxNameSchema.safeParse("a".repeat(41)).success).toBe(false);
   });
 });
 

@@ -12,10 +12,19 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { FormInput } from "@/components/staff/form-control";
 import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
+import type { BoxSummary } from "@/lib/box/boxes";
 
 type Tariff = { id: string; name: string; active: boolean };
 
-export function CreateMemberAltaButton({ tariffs, canManageTariffs = false }: { tariffs: Tariff[]; canManageTariffs?: boolean }) {
+export function CreateMemberAltaButton({
+  tariffs,
+  boxes,
+  canManageTariffs = false,
+}: {
+  tariffs: Tariff[];
+  boxes: readonly BoxSummary[];
+  canManageTariffs?: boolean;
+}) {
   const { router, pending, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
   const assignable = tariffs.filter((tariff) => tariff.active);
@@ -42,6 +51,7 @@ export function CreateMemberAltaButton({ tariffs, canManageTariffs = false }: { 
     >
       <CreateMemberForm
         tariffs={tariffs}
+        boxes={boxes}
         pending={pending}
         onPendingChange={setPending}
         onSuccess={(id) => {
@@ -57,12 +67,14 @@ export function CreateMemberAltaButton({ tariffs, canManageTariffs = false }: { 
 
 export function CreateMemberForm({
   tariffs,
+  boxes,
   pending = false,
   onPendingChange,
   onSuccess,
   onCancel,
 }: {
   tariffs: Tariff[];
+  boxes: readonly BoxSummary[];
   pending?: boolean;
   onPendingChange?: (pending: boolean) => void;
   onSuccess?: (id: string) => void;
@@ -90,6 +102,7 @@ export function CreateMemberForm({
           phone: String(form.get("phone") || "") || null,
           email: String(form.get("email") || "") || null,
           tariffId: String(form.get("tariffId")),
+          paymentBoxId: String(form.get("paymentBoxId")),
         }),
       });
       toast.success("Socio creado");
@@ -117,6 +130,8 @@ export function CreateMemberForm({
           <FormInput label="Contraseña" name="password" type="password" required minLength={8} autoComplete="new-password" />
           <FormInput label="Teléfono" name="phone" type="tel" autoComplete="tel" />
           <FormInput label="Email" name="email" type="email" autoComplete="email" />
+          <FormSelect label="Box de pago" name="paymentBoxId" required disabled={busy}
+            defaultValue={boxes[0]?.id ?? ""} options={boxes.map((box) => ({ value: box.id, label: box.name }))} />
           <FormSelect label="Tarifa" name="tariffId" required defaultValue="" disabled={busy}
             options={[{ value: "", label: "Elegí una tarifa…" }, ...assignable.map((tariff) => ({ value: tariff.id, label: tariff.name }))]} />
           {inDialog ? (

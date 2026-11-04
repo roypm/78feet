@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { eachDate } from "@78feet/domain";
 import { requireMember } from "@/lib/auth/current";
 import { listCalendar } from "@/lib/box/calendar";
+import { listBoxes, memberBoxes, pickBox, rememberPreference } from "@/lib/box/boxes";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
 import { CalendarBoard } from "@/components/member/calendar-board";
@@ -11,7 +12,7 @@ import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ semana?: string; tipo?: string }>;
+  searchParams: Promise<{ semana?: string; tipo?: string; box?: string }>;
 }) {
   return (
     <Suspense
@@ -29,15 +30,22 @@ export default function Page({
   );
 }
 
-async function Calendar({ searchParams }: { searchParams: Promise<{ semana?: string; tipo?: string }> }) {
+async function Calendar({ searchParams }: { searchParams: Promise<{ semana?: string; tipo?: string; box?: string }> }) {
   const user = await requireMember();
   const query = await searchParams;
   const now = new Date();
+  const [boxes, prefs] = await Promise.all([listBoxes(), memberBoxes(user.id)]);
+  const preferred = boxes.find((box) => box.id === prefs.preferenceBoxId);
+  const requested = query.box ? boxes.find((box) => box.id === query.box) : undefined;
+  const box = requested ?? preferred ?? pickBox(boxes, undefined);
+  if (requested && requested.id !== prefs.preferenceBoxId) {
+    await rememberPreference(user.id, requested.id);
+  }
   const week = memberWeek(now, query.semana);
   const view = query.tipo === "open" ? "open" : "dirigidas";
   const [listed, hours] = await Promise.all([
-    listCalendar(user.id, week.start, week.end, now),
-    getBoxHours(),
+    listCalendar(user.id, week.start, week.end, now, box.id),
+    getBoxHours(undefined, box.id),
   ]);
   const classes = listed.filter((item) =>
     view === "open" ? item.kind === "open" : item.kind === "directed",
@@ -60,6 +68,8 @@ async function Calendar({ searchParams }: { searchParams: Promise<{ semana?: str
       }}
       days={eachDate(week.start, week.end)}
       classes={classes}
+      boxes={boxes}
+      boxId={box.id}
     />
   );
 }

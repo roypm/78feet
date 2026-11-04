@@ -20,7 +20,7 @@ import { BoxError } from "./errors";
 import { requireClassType } from "./class-types";
 import { toDomainBooking, toDomainInstance, toDomainTemplate, typeView } from "./map";
 import { ensureInstances } from "./materialize";
-import { getBoxHours } from "./hours";
+import { getBoxHours, primaryBoxId } from "./hours";
 import { persistPropagationChanges } from "./propagation-persistence";
 import { clockFromDb, clockToDb, isoDateToDb, normalizeClock } from "./time";
 
@@ -83,10 +83,10 @@ async function assertCoach(coachId: string | null | undefined): Promise<void> {
 }
 
 async function assertNoOverlap(
-  candidate: Pick<ClassTemplate, "weekday" | "startTime" | "endTime" | "kind"> & { id?: string },
+  candidate: Pick<ClassTemplate, "boxId" | "weekday" | "startTime" | "endTime" | "kind"> & { id?: string },
 ): Promise<void> {
   const others = await prisma.classTemplate.findMany({
-    where: { active: true, weekday: candidate.weekday },
+    where: { active: true, weekday: candidate.weekday, boxId: candidate.boxId },
     include: { classType: true },
   });
   const domainOthers = others.map((row) => toDomainTemplate(row));
@@ -96,9 +96,9 @@ async function assertNoOverlap(
   }
 }
 
-export async function listTemplates(): Promise<TemplateView[]> {
+export async function listTemplates(boxId?: string): Promise<TemplateView[]> {
   const rows = await prisma.classTemplate.findMany({
-    where: { active: true },
+    where: { active: true, ...(boxId ? { boxId } : {}) },
     include: { classType: true },
     orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
   });
@@ -109,12 +109,18 @@ export async function createTemplate(input: TemplateWrite, now = new Date()) {
   const startTime = normalizeClock(input.startTime);
   const endTime = normalizeClock(input.endTime);
   assertValidTimeRange(startTime, endTime);
+  const boxId = input.boxId ?? await primaryBoxId();
+  if (input.boxId) {
+    const box = await prisma.box.findUnique({ where: { id: input.boxId }, select: { id: true } });
+    if (!box) throw new BoxError(404, "FORBIDDEN", "El box no existe");
+  }
   const [classType, , hours] = await Promise.all([
     requireClassType(input.classTypeId),
     assertCoach(input.coachId),
-    getBoxHours(),
+    getBoxHours(prisma, boxId),
   ]);
   const candidate = {
+    boxId,
     weekday: input.weekday,
     startTime,
     endTime,
@@ -133,6 +139,7 @@ export async function createTemplate(input: TemplateWrite, now = new Date()) {
   const template = await prisma.$transaction(async (tx) => {
     const created = await tx.classTemplate.create({
       data: {
+        boxId: candidate.boxId,
         weekday: candidate.weekday,
         startTime: clockToDb(candidate.startTime),
         endTime: clockToDb(candidate.endTime),
@@ -162,6 +169,7 @@ export async function updateTemplate(id: string, patch: PatchTemplate, actorId: 
       : existing.classType;
   const next: ClassTemplate = {
     id: current.id,
+    boxId: existing.boxId,
     weekday: patch.weekday ?? current.weekday,
     startTime: normalizeClock(patch.startTime ?? current.startTime),
     endTime: normalizeClock(patch.endTime ?? current.endTime),
@@ -172,7 +180,7 @@ export async function updateTemplate(id: string, patch: PatchTemplate, actorId: 
     active: true,
   };
   assertValidTimeRange(next.startTime, next.endTime);
-  const [hours] = await Promise.all([getBoxHours(), assertCoach(next.coachId)]);
+  const [hours] = await Promise.all([getBoxHours(prisma, next.boxId), assertCoach(next.coachId)]);
   const opening = hours.weekly.find((day) => day.weekday === next.weekday)?.intervals ?? [];
   if (!isWithinOpeningIntervals(opening, next.startTime, next.endTime)) {
     throw new BoxError(409, "SCHEDULE_CLOSED", "Ese hueco queda fuera del horario de apertura del box");
@@ -255,6 +263,7 @@ async function propagate(
         where: {
           status: "scheduled",
           OR: successorIdentities.map((identity) => ({
+            boxId: identity.boxId,
             date: isoDateToDb(identity.date),
             startAt: identity.startAt,
             endAt: identity.endAt,
@@ -283,12 +292,13 @@ async function propagate(
 function templateSuccessorIdentities(
   instances: readonly ClassInstance[],
   change: Parameters<typeof propagateTemplateChange>[0]["change"],
-): { date: string; startAt: Date; endAt: Date; classTypeId: string }[] {
-  const identities = new Map<string, { date: string; startAt: Date; endAt: Date; classTypeId: string }>();
+): { boxId: string; date: string; startAt: Date; endAt: Date; classTypeId: string }[] {
+  const identities = new Map<string, { boxId: string; date: string; startAt: Date; endAt: Date; classTypeId: string }>();
   for (const instance of instances) {
-    let identity: { date: string; startAt: Date; endAt: Date; classTypeId: string } | null = null;
+    let identity: { boxId: string; date: string; startAt: Date; endAt: Date; classTypeId: string } | null = null;
     if (change.type === "delete" || weekdayMonday1(instance.date) !== change.template.weekday) {
       identity = {
+        boxId: instance.boxId,
         date: instance.date,
         startAt: instance.startAt,
         endAt: instance.endAt,
@@ -303,6 +313,7 @@ function templateSuccessorIdentities(
         change.template.classTypeId !== instance.classTypeId
       ) {
         identity = {
+          boxId: instance.boxId,
           date: instance.date,
           startAt,
           endAt,
@@ -311,7 +322,7 @@ function templateSuccessorIdentities(
       }
     }
     if (!identity) continue;
-    const key = `${identity.date}|${identity.startAt.toISOString()}|${identity.endAt.toISOString()}|${identity.classTypeId}`;
+    const key = `${identity.boxId}|${identity.date}|${identity.startAt.toISOString()}|${identity.endAt.toISOString()}|${identity.classTypeId}`;
     identities.set(key, identity);
   }
   return [...identities.values()];

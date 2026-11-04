@@ -16,7 +16,7 @@ import { BoxError } from "./errors";
 import { requireClassType } from "./class-types";
 import { toDomainBooking, toDomainInstance } from "./map";
 import { clockFromDb, isoDateFromDb, isoDateToDb, normalizeClock } from "./time";
-import { getBoxHours, isDateOpenDuring } from "./hours";
+import { getBoxHours, isDateOpenDuring, primaryBoxId } from "./hours";
 
 function clocksFromInstance(startAt: Date, endAt: Date): { startTime: string; endTime: string } {
   const start = startAt.toLocaleTimeString("en-GB", {
@@ -38,10 +38,10 @@ function clocksFromInstance(startAt: Date, endAt: Date): { startTime: string; en
 
 async function assertNoInstanceOverlap(
   db: Db,
-  candidate: { id?: string; date: string; startAt: Date; endAt: Date; kind: "directed" | "open" },
+  candidate: { id?: string; boxId: string; date: string; startAt: Date; endAt: Date; kind: "directed" | "open" },
 ): Promise<void> {
   const others = await db.classInstance.findMany({
-    where: { date: isoDateToDb(candidate.date) },
+    where: { date: isoDateToDb(candidate.date), boxId: candidate.boxId },
   });
   if (instanceConflicts(candidate, others.map(toDomainInstance))) {
     const lane = candidate.kind === "open" ? "open" : "clase dirigida";
@@ -76,12 +76,18 @@ export async function createExtraInstance(input: CreateInstance, now = new Date(
   assertValidTimeRange(startTime, endTime);
   const startAt = atBoxTime(input.date, startTime);
   const endAt = atBoxTime(input.date, endTime);
-  if (!isDateOpenDuring(await getBoxHours(), input.date, startTime, endTime)) {
+  const boxId = input.boxId ?? await primaryBoxId();
+  if (input.boxId) {
+    const box = await prisma.box.findUnique({ where: { id: input.boxId }, select: { id: true } });
+    if (!box) throw new BoxError(404, "FORBIDDEN", "El box no existe");
+  }
+  if (!isDateOpenDuring(await getBoxHours(prisma, boxId), input.date, startTime, endTime)) {
     throw new BoxError(409, "SCHEDULE_CLOSED", "El box está cerrado en ese horario");
   }
-  await assertNoInstanceOverlap(prisma, { date: input.date, startAt, endAt, kind: classType.kind });
+  await assertNoInstanceOverlap(prisma, { boxId, date: input.date, startAt, endAt, kind: classType.kind });
   const row = await prisma.classInstance.create({
     data: {
+      boxId,
       date: isoDateToDb(input.date),
       startAt,
       endAt,
@@ -184,12 +190,12 @@ export async function restoreInstanceFromTemplate(id: string, actorId: string, n
     const trainingId =
       existing.training && existing.training.classTypeId !== classTypeId ? null : existing.trainingId;
 
-    const hours = await getBoxHours();
+    const hours = await getBoxHours(tx, existing.boxId);
     if (!isDateOpenDuring(hours, date, startTime, endTime)) {
       throw new BoxError(409, "SCHEDULE_CLOSED", "El horario actual de apertura no permite restaurar esta clase");
     }
 
-    await assertNoInstanceOverlap(tx, { id, date, startAt, endAt, kind });
+    await assertNoInstanceOverlap(tx, { id, boxId: existing.boxId, date, startAt, endAt, kind });
     let cancelledBookingCount = 0;
     if (typeChanged || capacityDrops) {
       cancelledBookingCount = await cancelActives(tx, id, actorId, now);
@@ -271,12 +277,12 @@ export async function patchInstance(id: string, patch: PatchInstance, actorId: s
     status !== existing.status ||
     trainingId !== existing.trainingId;
 
-  if (status === "scheduled" && !isDateOpenDuring(await getBoxHours(), date, startTime, endTime)) {
+  if (status === "scheduled" && !isDateOpenDuring(await getBoxHours(prisma, existing.boxId), date, startTime, endTime)) {
     throw new BoxError(409, "SCHEDULE_CLOSED", "El box está cerrado en ese horario");
   }
 
   return prisma.$transaction(async (tx) => {
-    await assertNoInstanceOverlap(tx, { id, date, startAt, endAt, kind });
+    await assertNoInstanceOverlap(tx, { id, boxId: existing.boxId, date, startAt, endAt, kind });
     let cancelledBookingCount = 0;
     if (status === "cancelled" && existing.status !== "cancelled") {
       cancelledBookingCount = await cancelActives(tx, id, actorId, now);

@@ -31,7 +31,11 @@ function slotBody(slot: TemplateSlotWrite) {
   };
 }
 
-export async function applyTemplateDraft(baseline: ScheduleTemplate[], working: ScheduleTemplate[]): Promise<Summary> {
+export async function applyTemplateDraft(
+  baseline: ScheduleTemplate[],
+  working: ScheduleTemplate[],
+  boxId?: string,
+): Promise<Summary> {
   const { deletedIds, created, updated } = diffTemplates(baseline, working);
   let summary: Summary = { cancelledClassCount: 0, cancelledBookingCount: 0, movedBookingCount: 0 };
   for (const id of deletedIds) {
@@ -46,7 +50,10 @@ export async function applyTemplateDraft(baseline: ScheduleTemplate[], working: 
     summary = mergeSummary(summary, result.summary);
   }
   for (const slot of created) {
-    await api("/api/v1/admin/templates", { method: "POST", body: JSON.stringify(slotBody(slot)) });
+    await api("/api/v1/admin/templates", {
+      method: "POST",
+      body: JSON.stringify({ ...slotBody(slot), ...(boxId ? { boxId } : {}) }),
+    });
   }
   return summary;
 }

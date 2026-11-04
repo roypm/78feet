@@ -18,6 +18,9 @@ export {
   classTypePatchSchema,
   classTypeWriteSchema,
   createInstanceSchema,
+  boxNameSchema,
+  createBoxSchema,
+  paymentBoxSchema,
   createMemberSchema,
   createPaymentSchema,
   createStaffSchema,
@@ -59,6 +62,8 @@ export {
   type CreateAdminBookingRequest,
   type CreateBookingRequest,
   type CreateInstance,
+  type CreateBox,
+  type PaymentBoxChange,
   type CreateMember,
   type CreatePayment,
   type CreateStaff,
@@ -135,6 +140,7 @@ export {
   memberHasOverlap,
 } from "./booking";
 export {
+  defaultBoxHours,
   openingIntervalsForDate,
   isOpenDuring,
   isWithinOpeningIntervals,

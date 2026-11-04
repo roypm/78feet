@@ -1,4 +1,5 @@
 import {
+  defaultBoxHours,
   horizonRange,
   instanceKey,
   localDateString,
@@ -33,7 +34,10 @@ export async function ensureInstances(
   });
   const templates = rows.map(toDomainTemplate);
   if (templates.length === 0) return 0;
-  const hours = await getBoxHours(db);
+  const hoursByBox = new Map<string, Awaited<ReturnType<typeof getBoxHours>>>();
+  for (const boxId of new Set(templates.map((template) => template.boxId))) {
+    hoursByBox.set(boxId, await getBoxHours(db, boxId));
+  }
 
   const existing = await db.classInstance.findMany({
     where: {
@@ -48,13 +52,19 @@ export async function ensureInstances(
     ),
   );
   const planned = planMaterializedInstances({ templates, existingKeys, from, to }).filter((instance) =>
-    isDateOpenDuring(hours, instance.date, clockAtBoxTime(instance.startAt), clockAtBoxTime(instance.endAt)),
+    isDateOpenDuring(
+      hoursByBox.get(instance.boxId) ?? defaultBoxHours(),
+      instance.date,
+      clockAtBoxTime(instance.startAt),
+      clockAtBoxTime(instance.endAt),
+    ),
   );
   let created = 0;
   for (const instance of planned) {
     try {
       await db.classInstance.create({
         data: {
+          boxId: instance.boxId,
           templateId: instance.templateId,
           date: isoDateToDb(instance.date),
           startAt: instance.startAt,

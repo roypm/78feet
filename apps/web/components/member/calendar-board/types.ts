@@ -2,6 +2,7 @@ import type { BoxHoursConfig } from "@78feet/domain";
 import type { CalendarClass } from "@/lib/box/calendar";
 import type { CalendarHours } from "@/lib/box/calendar-layout";
 import type { KindView } from "@/lib/box/day-groups";
+import type { BoxSummary } from "@/lib/box/boxes";
 
 export type CalendarView = KindView;
 
@@ -27,6 +28,8 @@ export type CalendarBoardCoreProps = {
   basePath: string;
   classHrefPrefix: string;
   classHrefSearch?: string;
+  boxes?: readonly BoxSummary[];
+  boxId?: string;
   emptyDirected: string;
   emptyOpen: string;
 };

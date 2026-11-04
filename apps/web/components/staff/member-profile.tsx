@@ -57,6 +57,8 @@ export type MemberProfileData = {
     billingPeriod: import("@78feet/domain").TariffBilling;
     priceCents: number;
   } | null;
+  paymentBoxId: string | null;
+  paymentBoxName: string | null;
 };
 
 function ProfileSection({
@@ -122,11 +124,13 @@ export function MemberProfile({
   member,
   summary,
   tariffs,
+  boxes,
   isAdmin,
 }: {
   member: MemberProfileData;
   summary: MemberSummary;
   tariffs: Tariff[];
+  boxes: { id: string; name: string }[];
   isAdmin: boolean;
 }) {
   const { router, pending, begin, setPending } = useActionFeedback();
@@ -468,6 +472,41 @@ export function MemberProfile({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <ProfileSection title="Box de pago">
+            <p className="text-sm text-muted-foreground">Cambiarlo no cancela reservas ni reescribe pagos ya hechos.</p>
+            <form
+              className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const paymentBoxId = String(new FormData(event.currentTarget).get("paymentBoxId"));
+                if (!begin()) return;
+                void api(`/api/v1/admin/members/${member.id}/payment-box`, {
+                  method: "POST",
+                  body: JSON.stringify({ paymentBoxId }),
+                })
+                  .then(() => {
+                    toast.success("Box de pago actualizado");
+                    router.refresh();
+                  })
+                  .catch((error: unknown) => {
+                    toast.error(error instanceof Error ? error.message : "No se pudo cambiar el box");
+                  })
+                  .finally(() => setPending(false));
+              }}
+            >
+              <FormSelect
+                label="Box"
+                name="paymentBoxId"
+                required
+                disabled={pending}
+                defaultValue={member.paymentBoxId ?? boxes[0]?.id ?? ""}
+                options={boxes.map((box) => ({ value: box.id, label: box.name }))}
+              />
+              <PendingButton type="submit" variant="outline" className="min-h-11" pending={pending} pendingLabel="Guardando…">
+                Guardar
+              </PendingButton>
+            </form>
+          </ProfileSection>
           <ProfileSection title="Tarifa" action={active ? changeTariffDialog : null}>
             {!tariff ? (
               <EmptyState compact title="Sin tarifa activa" description={active ? assignable.length > 0 ? "Asigná una tarifa desde el botón de esta sección." : "El admin tiene que crear o activar una tarifa para poder asignarla." : "La cuenta está dada de baja. La tarifa podrá asignarse al reactivarla."} />

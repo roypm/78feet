@@ -1,4 +1,4 @@
-# PRD — gestión de un box de CrossFit
+# PRD — gestión de los boxes de una empresa de CrossFit
 
 Qué se construye, para quién y qué debe hacer.
 
@@ -13,11 +13,16 @@ Cómo se construye (arquitectura, modelo de datos, API) está en [`trd.md`](./tr
 
 ## 1. Contexto
 
-- Un box de CrossFit, **una sola empresa y una sola sede**. Varias sedes: fuera de alcance v1.
-- Dos grillas en el calendario:
+- **Una sola empresa.** Un box es una sede de esa empresa y puede haber más de una. Lo que ya existía queda como el primer box, con el nombre Box 1 y el horario que tenía.
+- Tarifas, biblioteca, tipos de clase y equipo son de la empresa. El horario de apertura, los cierres y las pausas por fecha, la plantilla semanal y las clases son de cada box.
+- Dos grillas en el calendario de cada box:
   - **Dirigida**: clase con tipo, aforo e imagen opcional. El coach, si lo hay, es del hueco.
   - **Open**: la otra grilla. También es un tipo con aforo e imagen opcional, sin plan de entrenamiento. El coach del hueco sigue siendo opcional.
-- El box es lo bastante grande para **dos sesiones a la vez**: una en la grilla **Dirigida** y otra en **Open**. En cada grilla no puede haber dos huecos solapados; entre grillas sí pueden coincidir en hora.
+- Dentro de un box caben **dos sesiones a la vez**: una en la grilla **Dirigida** y otra en **Open**. En cada grilla no puede haber dos huecos solapados; entre grillas sí pueden coincidir en hora. Entre boxes, las clases pueden coincidir en hora. Una clase tiene que caer dentro del horario de su propio box.
+- El box elegido va en la dirección de la página. Semana, Plantilla, Hoy y Horario, si no traen box, abren el primero. El calendario del socio abre su box de preferencia. Elegir otro box en ese calendario lo guarda. Cambiar Dirigidas u Open no cambia la preferencia.
+- Cada socio tiene un box de pago y uno de preferencia. Nacen los dos con el box del alta; si no se cambia, es el primero. El staff ve y cambia el de pago en el alta y en la ficha. Eso no cancela reservas ni reescribe pagos. La preferencia la cambia el socio al elegir box en su calendario. El staff no la edita.
+- El cupo sigue siendo de la empresa: reservar en otro box gasta el mismo cupo. Una persona no puede tener dos reservas a la misma hora, aunque sean boxes distintos.
+- Excepciones lista las de todos los boxes y dice cuál es. Añadir una clase extra pide el box. Publicar la plantilla afecta solo al box que está en pantalla.
 
 ## 2. Personas y permisos
 
@@ -219,7 +224,7 @@ Un socio puede reservar una instancia si:
 
 ## 8. Lo que el sistema no hace (v1)
 
-Pagos online, notificaciones (email o push), control de asistencia o no-show, lista de espera, reportes con métricas o exportaciones, multi-sede, auto-registro, historial de asistencia, multi-idioma (solo español), reservas para terceros, búsqueda por el texto de la biblioteca, versiones o copia de un entrenamiento, cronómetro.
+Pagos online, notificaciones (email o push), control de asistencia o no-show, lista de espera, reportes con métricas o exportaciones, varias empresas, auto-registro, historial de asistencia, multi-idioma (solo español), reservas para terceros, búsqueda por el texto de la biblioteca, versiones o copia de un entrenamiento, cronómetro. Borrar un box.
 
 Consecuencias aceptadas:
 
@@ -235,14 +240,14 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 
 | # | Regla |
 |---|---|
-| 1 | Una sola empresa, una sola sede en v1. |
+| 1 | Una sola empresa. Puede haber más de un box. Tarifas, biblioteca, tipos de clase y equipo son de la empresa. Horario, cierres, plantilla y clases son de cada box. |
 | 2 | Una tarifa activa por socio, más un saldo de bono opcional. |
 | 3 | El cupo se cuenta por la fecha de la clase: semana natural para tarifa semanal y mes natural para tarifa mensual. |
 | 4 | Dirigidas y opens tienen contadores separados; cada uno puede ser número, cero o Ilimitadas. El cupo del periodo se consume antes que el saldo de bono. Un cupo ilimitado no bloquea la reserva. |
 | 5 | El cupo no se acumula; el saldo de bono no caduca. |
 | 6 | No hay ventana de reserva: todo lo del calendario a 4 semanas es reservable. |
-| 7 | No pueden solaparse dos sesiones de la **misma** grilla (dos dirigidas o dos opens). Una dirigida y un open sí pueden coincidir en hora. |
-| 8 | Un socio no puede tener dos reservas solapadas. |
+| 7 | Dentro de un box no pueden solaparse dos sesiones de la **misma** grilla (dos dirigidas o dos opens). Una dirigida y un open sí pueden coincidir en hora. Entre boxes, las clases pueden coincidir en hora. |
+| 8 | Un socio no puede tener dos reservas solapadas, aunque las clases sean de boxes distintos. El cupo sigue siendo de la empresa. |
 | 9 | Cancelación del socio hasta 2 h antes; después el botón se deshabilita. |
 | 10 | El staff puede cancelar siempre y decide si devuelve cupo. |
 | 11 | La membresía no vence; el estado de pago sigue el periodo de facturación configurado (mensual, trimestral, semestral o anual) y es informativo. |
@@ -256,7 +261,7 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 | 19 | El bloque del calendario, con foto, es la imagen del tipo y la ocupación `apuntados/aforo` sin el nombre. Sin foto, superficie neutra con el nombre del tipo y el aforo. |
 | 20 | Cambiar la imagen de un tipo no cancela reservas. Cambiar el tipo de un hueco sí. |
 | 21 | Un tipo con clases de hoy en adelante no se borra. |
-| 22 | El horario de apertura se define por día y puede tener varios tramos. Las excepciones por fecha sustituyen el horario de ese día. Los cambios rigen al guardar y se rechazan si dejan clases programadas fuera de apertura. |
+| 22 | El horario de apertura es de cada box: se define por día y puede tener varios tramos. Las excepciones por fecha sustituyen el horario de ese día en ese box. Los cambios rigen al guardar y se rechazan si dejan fuera la plantilla o las clases futuras de ese box. Otro box no entra en la comprobación. |
 | 23 | El historial del socio lista las reservas cuya clase ya empezó, agrupadas por mes. No registra asistencia. |
 | 24 | La biblioteca guarda entrenamientos reutilizables de tipos dirigidos, en fases y bloques de texto plano. Open no tiene. El nombre guardado es único; si se deja vacío, es la fecha del guardado. |
 | 25 | Editar un entrenamiento cambia el texto vivo en todas las clases que lo señalan. No hay versiones. |

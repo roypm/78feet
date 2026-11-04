@@ -26,6 +26,7 @@ export function TemplateSchedule({
   hours,
   openingHours,
   canWrite,
+  boxId,
 }: {
   view: KindView;
   templates: ScheduleTemplate[];
@@ -34,12 +35,13 @@ export function TemplateSchedule({
   hours: TemplateHours;
   openingHours: BoxHoursConfig;
   canWrite: boolean;
+  boxId: string;
 }) {
   const [mobileDay, setMobileDay] = useState(1);
   const {
     working, isDirty, draft, setDraft, applyOpen, setApplyOpen, applying,
     startCreate, startEdit: editSlot, cancelDraftChanges, commitSlot, removeSlot, applyTemplate,
-  } = useTemplateDraft({ templates, types, openingHours });
+  } = useTemplateDraft({ templates, types, openingHours, boxId });
   const activeKind = view === "open" ? "open" : "directed";
   const effectiveFrom = formatDay(nextMondayDate(localDateString(new Date())));
   const axis = templateAxis(working.filter((item) => item.kind === activeKind), hours);

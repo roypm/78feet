@@ -28,6 +28,7 @@ export type MemberListRow = {
     billingPeriod: import("@78feet/domain").TariffBilling;
   } | null;
   packBalance: number;
+  paymentBoxName: string | null;
 };
 
 function memberAriaLabel(member: MemberListRow): string {
@@ -37,6 +38,7 @@ function memberAriaLabel(member: MemberListRow): string {
     member.dni,
     member.phone,
     member.email,
+    member.paymentBoxName,
     member.membership?.tariffName ?? null,
     member.membership && usesPeriodicQuota(member.membership.consumptionModel) && member.packBalance > 0
       ? `Bono · ${member.packBalance}`
@@ -138,6 +140,7 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
             <TableHead className="hidden h-10 w-[14%] min-w-[6.5rem] px-3 sm:table-cell">Teléfono</TableHead>
             <TableHead className="hidden h-10 w-[26%] min-w-[10rem] px-3 md:table-cell">Email</TableHead>
             <TableHead className="hidden h-10 w-[10%] min-w-[5.5rem] px-3 lg:table-cell">DNI</TableHead>
+            <TableHead className="h-10 w-[16%] min-w-[6rem] px-3">Box</TableHead>
             <TableHead className="h-10 w-[30%] min-w-[9rem] px-3">Tarifa</TableHead>
           </TableRow>
         </TableHeader>
@@ -188,6 +191,9 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
                 </TableCell>
                 <TableCell className="hidden px-3 py-2.5 align-middle lg:table-cell">
                   <CellText value={dni} className="tabular-nums" title={member.dni ?? undefined} />
+                </TableCell>
+                <TableCell className="max-w-[8rem] px-3 py-2.5 align-middle">
+                  <CellText value={emptyField(member.paymentBoxName)} title={member.paymentBoxName ?? undefined} />
                 </TableCell>
                 <TableCell className="max-w-[14rem] px-3 py-2.5 align-middle">
                   <TariffLabels membership={member.membership} packBalance={member.packBalance} />

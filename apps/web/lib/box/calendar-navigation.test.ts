@@ -14,5 +14,9 @@ describe("calendar navigation", () => {
   it("keeps staff navigation in its own module with the same filters", () => {
     expect(calendarHref("/staff/semana", "2026-11-09", "open")).toBe("/staff/semana?semana=2026-11-09&tipo=open");
     expect(calendarHref("/staff/semana", undefined, "open")).toBe("/staff/semana?tipo=open");
+    expect(calendarHref("/staff/semana", "2026-11-09", "open", "box-2")).toBe(
+      "/staff/semana?box=box-2&semana=2026-11-09&tipo=open",
+    );
+    expect(calendarHref("/calendario", undefined, "dirigidas", "box-1")).toBe("/calendario?box=box-1");
   });
 });

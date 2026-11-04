@@ -13,6 +13,7 @@ import { POST as bookAsStaff } from "../../app/api/v1/admin/bookings/route";
 import { DELETE as cancelAsStaff } from "../../app/api/v1/admin/bookings/[id]/route";
 import { reserveForMember } from "./bookings";
 import { isoDateToDb } from "./time";
+import { primaryBoxId } from "./hours";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
 
@@ -163,6 +164,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     }
     const row = await prisma.classInstance.create({
       data: {
+        boxId: await primaryBoxId(prisma),
         date: isoDateToDb(input.date),
         startAt: input.startAt,
         endAt: input.endAt,

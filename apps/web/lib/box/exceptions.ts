@@ -21,6 +21,7 @@ export type ExceptionInstance = {
   coachName: string | null;
   coachProfileImageUrl: string | null;
   kinds: ExceptionKind[];
+  boxName: string;
 };
 
 export function exceptionKinds(row: {
@@ -57,6 +58,7 @@ export async function listExceptions(from: string, now = new Date()) {
     },
     include: {
       classType: true,
+      box: { select: { name: true } },
       coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
       bookings: { where: { status: "active" }, select: { id: true } },
     },
@@ -74,6 +76,7 @@ export async function listExceptions(from: string, now = new Date()) {
     status: row.status,
     capacity: row.capacity,
     bookedCount: row.bookings.length,
+    boxName: row.box.name,
     coachName: personName(row.coach),
     coachProfileImageUrl: row.coach ? profileImageUrl(row.coach.id, row.coach.profileImage?.updatedAt) : null,
     kinds: exceptionKinds({

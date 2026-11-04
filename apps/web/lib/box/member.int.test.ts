@@ -11,6 +11,7 @@ import { GET as summary } from "../../app/api/v1/me/summary/route";
 import { GET as myBookings } from "../../app/api/v1/me/bookings/route";
 import { POST as book } from "../../app/api/v1/bookings/route";
 import { isoDateToDb } from "./time";
+import { primaryBoxId } from "./hours";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
 
@@ -123,6 +124,7 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
     classTypeIds.push(classType.id);
     const row = await prisma.classInstance.create({
       data: {
+        boxId: await primaryBoxId(prisma),
         date: isoDateToDb(today),
         startAt,
         endAt: new Date(startAt.getTime() + 60 * 60 * 1000),

@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { BLOCK_INSET, calendarAxis, columnHeight } from "@/lib/box/calendar-layout";
 import { calendarHref } from "@/lib/box/calendar-navigation";
 import { KindTabs } from "@/components/member/kind-tabs";
+import { BoxTabs } from "@/components/member/box-tabs";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { CalendarGrid } from "./grid";
 import { WeekNav } from "./week-nav";
@@ -28,6 +29,8 @@ export function StaffCalendarBoard({
   basePath,
   classHrefPrefix,
   classHrefSearch,
+  boxes = [],
+  boxId,
   emptyDirected,
   emptyOpen,
   description,
@@ -44,11 +47,14 @@ export function StaffCalendarBoard({
         title={title}
         description={description}
         tabs={
-          <KindTabs
-            view={view}
-            directedHref={calendarHref(basePath, semana, "dirigidas")}
-            openHref={calendarHref(basePath, semana, "open")}
-          />
+          <div className="flex flex-col items-start gap-2">
+            <BoxTabs boxes={boxes} boxId={boxId ?? ""} hrefFor={(id) => calendarHref(basePath, semana, view, id)} />
+            <KindTabs
+              view={view}
+              directedHref={calendarHref(basePath, semana, "dirigidas", boxId)}
+              openHref={calendarHref(basePath, semana, "open", boxId)}
+            />
+          </div>
         }
       />
       <ModuleBody fill>
@@ -64,6 +70,7 @@ export function StaffCalendarBoard({
             <WeekNav
               basePath={basePath}
               view={view}
+              boxId={boxId}
               week={week}
               width="calendar"
             />

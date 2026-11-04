@@ -21,7 +21,7 @@ function newInterval(): Interval {
   return { openTime: "", closeTime: "" };
 }
 
-export function HoursForm({ initialConfig, today }: { initialConfig: BoxHoursConfig; today: string }) {
+export function HoursForm({ initialConfig, today, boxId }: { initialConfig: BoxHoursConfig; today: string; boxId: string }) {
   const { router, pending, begin, setPending } = useActionFeedback();
   const [config, setConfig] = useState(initialConfig);
 
@@ -63,7 +63,7 @@ export function HoursForm({ initialConfig, today }: { initialConfig: BoxHoursCon
     event.preventDefault();
     if (!begin()) return;
     try {
-      await api("/api/v1/admin/hours", {
+      await api(`/api/v1/admin/hours?box=${boxId}`, {
         method: "PATCH",
         body: JSON.stringify(config),
       });

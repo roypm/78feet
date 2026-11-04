@@ -174,6 +174,7 @@ export const createMemberSchema = z.object({
   phone: z.string().trim().min(1).nullable().optional(),
   email: z.string().trim().email("Email inválido").nullable().optional(),
   tariffId: z.string().uuid(),
+  paymentBoxId: z.string().uuid().optional(),
 });
 
 export const patchMemberSchema = z
@@ -215,6 +216,18 @@ export const memberListQuerySchema = z.object({
   status: z.enum(["active", "inactive", "all"]).default("active"),
 });
 
+export const boxNameSchema = z
+  .string()
+  .trim()
+  .min(1, "El nombre es obligatorio")
+  .max(40, "El nombre puede tener hasta 40 caracteres");
+
+export const createBoxSchema = z.object({ name: boxNameSchema });
+
+export const paymentBoxSchema = z.object({
+  paymentBoxId: z.string().uuid(),
+});
+
 export const templateWriteSchema = z.object({
   weekday: z.number().int().min(1).max(7),
   startTime: clockSchema,
@@ -222,9 +235,11 @@ export const templateWriteSchema = z.object({
   classTypeId: z.string().uuid(),
   coachId: z.string().uuid().nullable().optional(),
   defaultCapacity: z.number().int().positive("El aforo tiene que ser mayor que cero"),
+  boxId: z.string().uuid().optional(),
 });
 
 export const patchTemplateSchema = templateWriteSchema
+  .omit({ boxId: true })
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });
 
@@ -291,6 +306,7 @@ export const createInstanceSchema = z.object({
   classTypeId: z.string().uuid(),
   coachId: z.string().uuid().nullable().optional(),
   capacity: z.number().int().positive("El aforo tiene que ser mayor que cero"),
+  boxId: z.string().uuid().optional(),
 });
 
 const openingIntervalSchema = z
@@ -423,6 +439,8 @@ export type CreateAdminBookingRequest = z.infer<typeof createAdminBookingRequest
 export type ApiErrorBody = z.infer<typeof apiErrorSchema>;
 export type TariffWrite = z.infer<typeof tariffWriteSchema>;
 export type PatchTariff = z.infer<typeof patchTariffSchema>;
+export type CreateBox = z.infer<typeof createBoxSchema>;
+export type PaymentBoxChange = z.infer<typeof paymentBoxSchema>;
 export type CreateMember = z.infer<typeof createMemberSchema>;
 export type PatchMember = z.infer<typeof patchMemberSchema>;
 export type ChangeTariff = z.infer<typeof changeTariffSchema>;

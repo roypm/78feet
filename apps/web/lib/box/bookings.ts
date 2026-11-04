@@ -33,6 +33,7 @@ type InstanceRow = {
   trainingId: string | null;
   editedAt: Date | null;
   classType: { name: string };
+  box?: { name: string } | null;
 };
 
 type BookingRow = {
@@ -63,6 +64,7 @@ export type BookingView = {
     id: string;
     date: string;
     name: string;
+    boxName: string;
     kind: "directed" | "open";
     startAt: string;
     endAt: string;
@@ -87,6 +89,7 @@ function toView(row: BookingRow, instance: InstanceRow): BookingView {
       id: instance.id,
       date: isoDateFromDb(instance.date),
       name: instance.classType.name,
+      boxName: instance.box?.name ?? "",
       kind: instance.kind,
       startAt: instance.startAt.toISOString(),
       endAt: instance.endAt.toISOString(),
@@ -154,7 +157,7 @@ export async function reserveForMember(params: {
           userId: user.id,
           OR: [{ status: "active" }, { quotaReturned: false }],
         },
-        include: { instance: { include: { classType: { select: { name: true } } } } },
+        include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
       });
 
       const domainInstance = toDomainInstance(instance);
@@ -213,7 +216,7 @@ export async function cancelMemberBooking(
 ): Promise<BookingView> {
   const existing = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { instance: { include: { classType: { select: { name: true } } } } },
+    include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
   });
   if (!existing || existing.status !== "active" || existing.userId !== actorId) {
     throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
@@ -239,7 +242,7 @@ export async function cancelStaffBooking(
 ): Promise<BookingView> {
   const existing = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { instance: { include: { classType: { select: { name: true } } } } },
+    include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
   });
   if (!existing || existing.status !== "active") {
     throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
@@ -275,7 +278,7 @@ export async function listUpcomingBookings(userId: string, now = new Date()): Pr
         },
       ],
     },
-    include: { instance: { include: { classType: { select: { name: true } } } } },
+    include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
     orderBy: { instance: { startAt: "asc" } },
   });
   return rows.map((row) => ({
@@ -306,6 +309,7 @@ export async function listBookingHistory(userId: string, now = new Date()): Prom
       instance: {
         include: {
           classType: { select: { name: true } },
+          box: { select: { name: true } },
           coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
         },
       },

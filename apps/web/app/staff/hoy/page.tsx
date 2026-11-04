@@ -8,8 +8,10 @@ import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listDay } from "@/lib/box/staff-calendar";
+import { listBoxes, pickBox } from "@/lib/box/boxes";
 import { groupDayByKind, kindViewFromParam, viewKind } from "@/lib/box/day-groups";
 import { formatDay, formatTime, kindGroupLabel } from "@/lib/box/format";
+import { BoxTabs } from "@/components/member/box-tabs";
 import { KindTabs } from "@/components/member/kind-tabs";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
@@ -30,7 +32,7 @@ function todayClassMeta(item: {
     .join(" · ");
 }
 
-export default function Page({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+export default function Page({ searchParams }: { searchParams: Promise<{ tipo?: string; box?: string }> }) {
   return (
     <Suspense
       fallback={
@@ -47,13 +49,15 @@ export default function Page({ searchParams }: { searchParams: Promise<{ tipo?: 
   );
 }
 
-async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string; box?: string }> }) {
   await requireStaff();
   const query = await searchParams;
+  const boxes = await listBoxes();
+  const box = pickBox(boxes, query.box);
   const view = kindViewFromParam(query.tipo);
   const activeKind = viewKind(view);
   const today = localDateString(new Date());
-  const classes = await listDay(today);
+  const classes = await listDay(today, new Date(), box.id);
   const groups = groupDayByKind(classes);
 
   return (
@@ -62,12 +66,19 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string }
         title="Hoy"
         description={`Clases de ${formatDay(today)}. Tocá una para ver detalle y roster.`}
         tabs={
-          <KindTabs
-            view={view}
-            directedHref="/staff/hoy"
-            openHref="/staff/hoy?tipo=open"
-            className="xl:hidden"
-          />
+          <div className="flex flex-col items-start gap-2">
+            <BoxTabs
+              boxes={boxes}
+              boxId={box.id}
+              hrefFor={(id) => (view === "open" ? `/staff/hoy?box=${id}&tipo=open` : `/staff/hoy?box=${id}`)}
+            />
+            <KindTabs
+              view={view}
+              directedHref={`/staff/hoy?box=${box.id}`}
+              openHref={`/staff/hoy?box=${box.id}&tipo=open`}
+              className="xl:hidden"
+            />
+          </div>
         }
       />
       <ModuleBody width="full" inset="content">

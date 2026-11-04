@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { atBoxTime } from "./time";
 import {
+  defaultBoxHours,
   instanceConflicts,
   instanceKey,
   isOpenDuring,
@@ -20,6 +21,7 @@ beforeEach(() => {
 function fromPlanned(planned: ReturnType<typeof planMaterializedInstances>[number], id: string): ClassInstance {
   return {
     id,
+    boxId: planned.boxId,
     templateId: planned.templateId,
     date: planned.date,
     startAt: planned.startAt,
@@ -125,6 +127,46 @@ describe("schedule overlap", () => {
     });
     expect(instanceConflicts(second, [first])).toBe(true);
   });
+
+  it("allows the same kind at the same time when the templates belong to different boxes", () => {
+    const first = makeTemplate({
+      weekday: 1,
+      startTime: "18:00",
+      endTime: "19:00",
+      title: "WOD",
+      kind: "directed",
+      boxId: "box-a",
+    });
+    const second = makeTemplate({
+      weekday: 1,
+      startTime: "18:30",
+      endTime: "19:30",
+      title: "Fuerza",
+      kind: "directed",
+      boxId: "box-b",
+    });
+    expect(templateConflicts(second, [first])).toBe(false);
+  });
+
+  it("allows the same kind at the same time when the instances belong to different boxes", () => {
+    const first = makeInstance({
+      date: "2026-10-26",
+      kind: "directed",
+      title: "WOD",
+      boxId: "box-a",
+      startAt: atBoxTime("2026-10-26", "18:00"),
+      endAt: atBoxTime("2026-10-26", "19:00"),
+    });
+    const second = makeInstance({
+      date: "2026-10-26",
+      kind: "directed",
+      title: "Fuerza",
+      boxId: "box-b",
+      startAt: atBoxTime("2026-10-26", "18:45"),
+      endAt: atBoxTime("2026-10-26", "19:45"),
+    });
+    expect(instanceConflicts(second, [first])).toBe(false);
+  });
 });
 
 describe("box opening intervals", () => {
@@ -145,6 +187,19 @@ describe("box opening intervals", () => {
   it("uses the dated exception to close a normally open Sunday", () => {
     expect(isOpenDuring(config, "2026-10-25", "10:00", "11:00")).toBe(true);
     expect(isOpenDuring(config, "2026-11-01", "10:00", "11:00")).toBe(false);
+  });
+
+  it("keeps each box on its own hours", () => {
+    const open = defaultBoxHours();
+    const closed = {
+      weekly: open.weekly.map((day) => ({ ...day, intervals: [] })),
+      exceptions: [],
+    };
+    expect(isOpenDuring(open, "2026-11-02", "18:00", "19:00")).toBe(true);
+    expect(isOpenDuring(closed, "2026-11-02", "18:00", "19:00")).toBe(false);
+    expect(open.weekly).toHaveLength(7);
+    expect(open.weekly[0]?.intervals).toEqual([{ openTime: "07:00", closeTime: "21:00" }]);
+    expect(open.exceptions).toEqual([]);
   });
 });
 
@@ -168,6 +223,7 @@ describe("idempotent materialization", () => {
     const mondays = planned.map((instance) => instance.date);
     expect(mondays).toEqual(["2026-11-02", "2026-11-09", "2026-11-16", "2026-11-23"]);
     expect(planned[0]?.startAt).toEqual(atBoxTime("2026-11-02", "18:00"));
+    expect(planned.every((instance) => instance.boxId === template.boxId)).toBe(true);
   });
 
   it("does not create a second row for the same template and date", () => {
@@ -434,6 +490,61 @@ describe("template change from next Monday", () => {
     expect(result.bookings.map((booking) => booking.pool)).toEqual(["quota_directed", "pack"]);
     expect(result.summary.movedBookingCount).toBe(2);
     expect(result.summary.cancelledBookingCount).toBe(0);
+  });
+
+  it("does not move bookings onto the same slot in another box", () => {
+    const closing = makeTemplate({
+      id: "tpl-old",
+      boxId: "box-a",
+      weekday: 1,
+      startTime: "18:00",
+      endTime: "19:00",
+      title: "WOD",
+      kind: "directed",
+    });
+    const other = makeTemplate({
+      id: "tpl-other",
+      boxId: "box-b",
+      weekday: 1,
+      startTime: "18:00",
+      endTime: "19:00",
+      title: "WOD",
+      kind: "directed",
+    });
+    const oldInstance = makeInstance({
+      id: "inst-old",
+      boxId: "box-a",
+      templateId: closing.id,
+      date: "2026-11-02",
+      kind: "directed",
+      title: "WOD",
+      startAt: atBoxTime("2026-11-02", "18:00"),
+      endAt: atBoxTime("2026-11-02", "19:00"),
+    });
+    const elsewhere = fromPlanned(
+      planMaterializedInstances({
+        templates: [other],
+        existingKeys: new Set(),
+        from: "2026-11-02",
+        to: "2026-11-02",
+      })[0]!,
+      "inst-other",
+    );
+    const bookings = [makeBooking({ instanceId: oldInstance.id, userId: "a", pool: "quota_directed" })];
+    const result = propagateTemplateChange({
+      today: "2026-10-29",
+      templateId: closing.id,
+      change: { type: "delete" },
+      instances: [oldInstance, elsewhere],
+      bookings,
+    });
+    expect(result.summary.movedBookingCount).toBe(0);
+    expect(result.bookings[0]).toMatchObject({
+      instanceId: oldInstance.id,
+      status: "cancelled",
+      quotaReturned: true,
+    });
+    expect(result.instances.find((instance) => instance.id === elsewhere.id)?.status).toBe("scheduled");
   });
 
   it("does not overwrite an exception", () => {

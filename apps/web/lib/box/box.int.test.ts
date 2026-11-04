@@ -14,6 +14,7 @@ import { POST as deactivateMember } from "../../app/api/v1/admin/members/[id]/de
 import { GET as listTemplates, POST as createTemplate } from "../../app/api/v1/admin/templates/route";
 import { DELETE as deleteTemplate } from "../../app/api/v1/admin/templates/[id]/route";
 import { clockToDb } from "./time";
+import { primaryBoxId } from "./hours";
 import { POST as materialize } from "../../app/api/v1/cron/materialize/route";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
@@ -387,8 +388,10 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
       data: { name: `Propagación ${suffix}`, kind: "directed", imageKey: "placeholder.png" },
     });
     classTypeIds.push(classType.id);
+    const boxId = await primaryBoxId(prisma);
     const template = await prisma.classTemplate.create({
       data: {
+        boxId,
         weekday: 1,
         startTime: clockToDb("18:00"),
         endTime: clockToDb("19:00"),
@@ -402,6 +405,7 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     const instances = await Promise.all(
       dates.map((date) => prisma.classInstance.create({
         data: {
+          boxId,
           templateId: template.id,
           date: new Date(`${date}T00:00:00.000Z`),
           startAt: atBoxTime(date, "18:00"),

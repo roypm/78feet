@@ -46,7 +46,7 @@ async function Bookings() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{booking.instance.name}</p>
                   <p className="text-sm text-muted-foreground tabular-nums">
-                    {formatDay(booking.instance.date)} · {formatTime(new Date(booking.instance.startAt))}
+                    {booking.instance.boxName} · {formatDay(booking.instance.date)} · {formatTime(new Date(booking.instance.startAt))}
                   </p>
                 </div>
                 <Badge variant={booking.instance.kind === "directed" ? "default" : "secondary"}>
