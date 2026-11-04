@@ -19,6 +19,7 @@ export function CalendarGrid({
   dayColumnPx,
   timeColumn,
   classHrefPrefix,
+  classHrefSearch,
   blockWidth,
   minBlockHeight,
   textClass,
@@ -33,6 +34,7 @@ export function CalendarGrid({
   dayColumnPx: number;
   timeColumn: string;
   classHrefPrefix: string;
+  classHrefSearch?: string;
   blockWidth: number;
   minBlockHeight: number;
   textClass: string;
@@ -102,7 +104,7 @@ export function CalendarGrid({
                 <ClassBlock
                   key={item.id}
                   item={item}
-                  href={`${classHrefPrefix}/${item.id}`}
+                  href={`${classHrefPrefix}/${item.id}${classHrefSearch ?? ""}`}
                   text={textClass}
                   top={box.top + BLOCK_INSET}
                   height={Math.max(box.height - BLOCK_INSET * 2, minBlockHeight)}

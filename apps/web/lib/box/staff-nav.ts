@@ -1,17 +1,23 @@
-import { horizonRange, localDateString, weekStartDate } from "@78feet/domain";
+import { weekStartDate, localDateString } from "@78feet/domain";
+
+export const STAFF_CLASS_ORIGINS = ["hoy", "semana", "excepciones"] as const;
+export type StaffClassOrigin = (typeof STAFF_CLASS_ORIGINS)[number];
+
+export function parseStaffClassOrigin(desde: string | undefined): StaffClassOrigin {
+  if (desde === "hoy" || desde === "excepciones") return desde;
+  return "semana";
+}
 
 /** Enlace de vuelta al listado staff desde el detalle de una clase. */
-export function staffClassListBack(instanceDate: string, now = new Date()) {
+export function staffClassOriginBack(
+  origin: StaffClassOrigin,
+  instanceDate: string,
+  now = new Date(),
+): { href: string; label: "Hoy" | "Semana" | "Excepciones" } {
+  if (origin === "hoy") return { href: "/staff/hoy", label: "Hoy" };
+  if (origin === "excepciones") return { href: "/staff/excepciones", label: "Excepciones" };
   const today = localDateString(now);
-  if (instanceDate === today) {
-    return { href: "/staff/hoy" as const, label: "Hoy" };
-  }
-  const horizon = horizonRange(today);
-  if (instanceDate >= horizon.from && instanceDate <= horizon.to) {
-    const start = weekStartDate(instanceDate);
-    const href =
-      start === weekStartDate(today) ? "/staff/semana" : `/staff/semana?semana=${start}`;
-    return { href, label: "Semana" as const };
-  }
-  return { href: "/staff/excepciones" as const, label: "Excepciones" };
+  const start = weekStartDate(instanceDate);
+  const href = start === weekStartDate(today) ? "/staff/semana" : `/staff/semana?semana=${start}`;
+  return { href, label: "Semana" };
 }

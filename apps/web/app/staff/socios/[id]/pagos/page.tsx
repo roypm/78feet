@@ -2,7 +2,7 @@
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { StaffCrumbs } from "@/components/staff/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { listMemberPayments } from "@/lib/box/payments";
@@ -49,9 +49,13 @@ async function MemberPayments({ params }: { params: Promise<{ id: string }> }) {
         title="Historial de pagos"
         description={`${memberLabel} · ${memberIdLine}`}
         eyebrow={
-          <Link href={`/staff/socios/${data.member.id}`} className="text-sm text-primary">
-            Perfil de socio
-          </Link>
+          <StaffCrumbs
+            items={[
+              { href: "/staff/socios", label: "Socios" },
+              { href: `/staff/socios/${data.member.id}`, label: memberLabel },
+              { label: "Pagos" },
+            ]}
+          />
         }
       />
       <ModuleBody width="full" inset="content">

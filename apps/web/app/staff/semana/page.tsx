@@ -46,6 +46,7 @@ async function Week({ searchParams }: { searchParams: Promise<{ semana?: string;
       title="Semana"
       basePath="/staff/semana"
       classHrefPrefix="/staff/clases"
+      classHrefSearch="?desde=semana"
       semana={query.semana ? week.start : undefined}
       today={week.today}
       hours={calendarAxisRange(hours)}

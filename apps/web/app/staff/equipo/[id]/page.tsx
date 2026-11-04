@@ -1,6 +1,6 @@
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { StaffCrumbs } from "@/components/staff/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/current";
 import { getStaff } from "@/lib/box/staff-users";
@@ -42,9 +42,12 @@ async function StaffDetail({ params }: { params: Promise<{ id: string }> }) {
         title="Perfil de equipo"
         description={`${person.firstName} ${person.lastName}`}
         eyebrow={
-          <Link href="/staff/equipo" className="text-sm text-primary">
-            Equipo
-          </Link>
+          <StaffCrumbs
+            items={[
+              { href: "/staff/equipo", label: "Equipo" },
+              { label: `${person.firstName} ${person.lastName}` },
+            ]}
+          />
         }
       />
       <ModuleBody width="full" inset="content">

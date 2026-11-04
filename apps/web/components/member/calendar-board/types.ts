@@ -26,6 +26,7 @@ export type CalendarBoardCoreProps = {
   title: string;
   basePath: string;
   classHrefPrefix: string;
+  classHrefSearch?: string;
   emptyDirected: string;
   emptyOpen: string;
 };

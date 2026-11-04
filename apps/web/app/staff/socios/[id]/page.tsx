@@ -1,6 +1,6 @@
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { StaffCrumbs } from "@/components/staff/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { getMember } from "@/lib/box/members";
@@ -79,9 +79,12 @@ async function MemberDetail({ params }: { params: Promise<{ id: string }> }) {
           </span>
         }
         eyebrow={
-          <Link href="/staff/socios" className="text-sm text-primary">
-            Socios
-          </Link>
+          <StaffCrumbs
+            items={[
+              { href: "/staff/socios", label: "Socios" },
+              { label: memberFullName(member.firstName, member.lastName) },
+            ]}
+          />
         }
       />
       <ModuleBody width="full" inset="content">

@@ -1,6 +1,7 @@
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { StaffCrumbs } from "@/components/staff/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { getTraining } from "@/lib/box/trainings";
@@ -43,9 +44,12 @@ async function TrainingDetail({ params }: { params: Promise<{ id: string }> }) {
         title={training.name}
         description={training.classType.name}
         eyebrow={
-          <Link href="/staff/biblioteca" className="text-sm text-primary">
-            Biblioteca
-          </Link>
+          <StaffCrumbs
+            items={[
+              { href: "/staff/biblioteca", label: "Biblioteca" },
+              { label: training.name },
+            ]}
+          />
         }
       />
       <ModuleBody>

@@ -19,6 +19,7 @@ export function CalendarBoard({
   title = "Calendario",
   basePath = "/calendario",
   classHrefPrefix = "/clases",
+  classHrefSearch,
   emptyDirected = "No hay clases dirigidas esta semana.",
   emptyOpen = "No hay opens esta semana.",
   variant = "member",
@@ -35,6 +36,7 @@ export function CalendarBoard({
   title?: string;
   basePath?: string;
   classHrefPrefix?: string;
+  classHrefSearch?: string;
   emptyDirected?: string;
   emptyOpen?: string;
   variant?: "member" | "staff";
@@ -54,6 +56,7 @@ export function CalendarBoard({
         title={title}
         basePath={basePath}
         classHrefPrefix={classHrefPrefix}
+        classHrefSearch={classHrefSearch}
         emptyDirected={emptyDirected}
         emptyOpen={emptyOpen}
         description={description}

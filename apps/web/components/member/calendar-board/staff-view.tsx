@@ -27,6 +27,7 @@ export function StaffCalendarBoard({
   title,
   basePath,
   classHrefPrefix,
+  classHrefSearch,
   emptyDirected,
   emptyOpen,
   description,
@@ -78,6 +79,7 @@ export function StaffCalendarBoard({
                 dayColumnPx={STAFF_DAY_COLUMN_PX}
                 timeColumn="4rem"
                 classHrefPrefix={classHrefPrefix}
+                classHrefSearch={classHrefSearch}
                 blockWidth={blockWidth}
                 minBlockHeight={56}
                 textClass="text-xs"
