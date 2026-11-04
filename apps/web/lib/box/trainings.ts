@@ -3,6 +3,7 @@ import {
   assertDirectedClassType,
   assertTrainingContent,
   requireDetachConfirm,
+  resolveTrainingName,
   type TrainingPatch,
   type TrainingWrite,
 } from "@78feet/domain";
@@ -24,7 +25,7 @@ function trainingView(
     classTypeId: string;
     createdAt: Date;
     updatedAt: Date;
-    classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string };
+    classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
     phases: { id: string; name: string; position: number; blocks: { id: string; body: string; position: number }[] }[];
   },
 ) {
@@ -52,7 +53,7 @@ export function trainingCard(row: {
   id: string;
   name: string;
   updatedAt: Date;
-  classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string };
+  classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
 }) {
   return {
     id: row.id,
@@ -134,6 +135,14 @@ export async function getTraining(
   };
 }
 
+async function otherTrainingNames(excludeId?: string): Promise<string[]> {
+  const rows = await prisma.training.findMany({
+    where: excludeId ? { id: { not: excludeId } } : undefined,
+    select: { name: true },
+  });
+  return rows.map((row) => row.name);
+}
+
 async function replacePhases(db: Db, trainingId: string, phases: TrainingWrite["phases"]) {
   await db.training.update({
     where: { id: trainingId },
@@ -155,13 +164,14 @@ async function replacePhases(db: Db, trainingId: string, phases: TrainingWrite["
   });
 }
 
-export async function createTraining(input: TrainingWrite) {
+export async function createTraining(input: TrainingWrite, now = new Date()) {
   const classType = await requireClassType(input.classTypeId);
   assertDirectedClassType(classType.kind);
   assertTrainingContent(input.phases);
+  const name = resolveTrainingName(input.name, await otherTrainingNames(), now);
   const row = await prisma.$transaction(async (tx) => {
     const created = await tx.training.create({
-      data: { name: input.name, classTypeId: input.classTypeId },
+      data: { name, classTypeId: input.classTypeId },
     });
     await replacePhases(tx, created.id, input.phases);
     return tx.training.findUniqueOrThrow({ where: { id: created.id }, include: trainingInclude });
@@ -169,7 +179,7 @@ export async function createTraining(input: TrainingWrite) {
   return trainingView(row);
 }
 
-export async function updateTraining(id: string, patch: TrainingPatch) {
+export async function updateTraining(id: string, patch: TrainingPatch, now = new Date()) {
   const existing = await prisma.training.findUnique({
     where: { id },
     include: trainingInclude,
@@ -183,6 +193,10 @@ export async function updateTraining(id: string, patch: TrainingPatch) {
     blocks: phase.blocks.map((block) => ({ body: block.body })),
   }));
   assertTrainingContent(phases);
+  const name =
+    patch.name === undefined
+      ? existing.name
+      : resolveTrainingName(patch.name, await otherTrainingNames(id), now);
 
   const wouldDetach =
     nextTypeId !== existing.classTypeId
@@ -201,7 +215,7 @@ export async function updateTraining(id: string, patch: TrainingPatch) {
     }
     await tx.training.update({
       where: { id },
-      data: { name: patch.name ?? existing.name, classTypeId: nextTypeId },
+      data: { name, classTypeId: nextTypeId },
     });
     if (patch.phases) await replacePhases(tx, id, patch.phases);
     else {

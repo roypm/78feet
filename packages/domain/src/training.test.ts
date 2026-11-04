@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { DomainError } from "./errors";
-import { assertDirectedClassType, assertTrainingContent, requireDetachConfirm } from "./training";
+import { atBoxTime } from "./time";
+import {
+  TRAINING_NAME_TAKEN,
+  assertDirectedClassType,
+  assertTrainingContent,
+  datedTrainingName,
+  requireDetachConfirm,
+  resolveTrainingName,
+  uniqueDatedTrainingName,
+} from "./training";
 
 describe("training content", () => {
   it("rejects an empty list of phases", () => {
@@ -23,6 +32,28 @@ describe("training content", () => {
 
   it("rejects trainings on an open type", () => {
     expect(() => assertDirectedClassType("open")).toThrow(DomainError);
+  });
+});
+
+describe("training names", () => {
+  it("uses the Madrid date when the name is empty and suffixes if that date is taken", () => {
+    const at = atBoxTime("2026-11-03", "12:00");
+    expect(datedTrainingName(at)).toBe("3 nov 2026");
+    expect(resolveTrainingName("  ", [], at)).toBe("3 nov 2026");
+    expect(uniqueDatedTrainingName(["3 nov 2026", "3 nov 2026 · 2"], at)).toBe("3 nov 2026 · 3");
+    expect(uniqueDatedTrainingName(["3 NOV 2026"], at)).toBe("3 nov 2026 · 2");
+  });
+
+  it("rejects a typed name that matches another ignoring case and extra spaces", () => {
+    expect(() => resolveTrainingName("  WOD  extra ", ["wod extra"], atBoxTime("2026-11-03", "12:00"))).toThrow(
+      DomainError,
+    );
+    try {
+      resolveTrainingName("WOD extra", ["wod extra"], atBoxTime("2026-11-03", "12:00"));
+    } catch (error) {
+      expect((error as DomainError).message).toBe(TRAINING_NAME_TAKEN);
+    }
+    expect(resolveTrainingName("  Fuerza  ", ["WOD"], atBoxTime("2026-11-03", "12:00"))).toBe("Fuerza");
   });
 });
 

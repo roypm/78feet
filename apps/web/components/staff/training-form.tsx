@@ -7,14 +7,14 @@ import { useState, type FormEvent } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { TRAINING_NAME_TAKEN } from "@78feet/domain";
 import { api, ApiError } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Field } from "@/components/staff/field";
+import { FormInput, FormTextarea } from "@/components/staff/form-control";
 import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
+import { useNewTrainingVisit } from "@/components/staff/new-training-visit";
 import { TrainingRead } from "@/components/box/training-read";
 
 type Phase = { name: string; blocks: { body: string }[] };
@@ -88,10 +88,7 @@ function StructureActions({
   );
 }
 
-export function TrainingForm({
-  types,
-  training,
-}: {
+type TrainingFormProps = {
   types: { id: string; name: string }[];
   training?: {
     id: string;
@@ -100,11 +97,19 @@ export function TrainingForm({
     phases: { name: string; blocks: { body: string }[] }[];
     hasAssignedClasses: boolean;
   };
-}) {
+};
+
+export function TrainingForm(props: TrainingFormProps) {
+  const visit = useNewTrainingVisit();
+  return <TrainingEditor key={props.training?.id ?? `nuevo-${visit}`} {...props} />;
+}
+
+function TrainingEditor({ types, training }: TrainingFormProps) {
   const { router, pending, begin, setPending } = useActionFeedback();
   const [previewing, setPreviewing] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [name, setName] = useState(training?.name ?? "");
+  const [nameError, setNameError] = useState("");
   const [classTypeId, setClassTypeId] = useState(training?.classTypeId ?? "");
   const [phases, setPhases] = useState<Phase[]>(training?.phases ?? []);
   const hasChanges = training
@@ -130,6 +135,10 @@ export function TrainingForm({
     } catch (error) {
       if (error instanceof ApiError && error.code === "CONFIRM_REQUIRED") {
         setConfirmation({ mode: "detach", description: error.message });
+      } else if (error instanceof ApiError && error.message === TRAINING_NAME_TAKEN) {
+        setConfirmation(null);
+        setPreviewing(false);
+        setNameError(TRAINING_NAME_TAKEN);
       } else {
         toast.error(error instanceof Error ? error.message : "No se pudo guardar");
       }
@@ -140,24 +149,7 @@ export function TrainingForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!name.trim()) {
-      toast.error("Escribe el nombre del entrenamiento");
-      setPreviewing(false);
-      return;
-    }
-    if (!classTypeId) {
-      toast.error("Elige un tipo dirigido");
-      setPreviewing(false);
-      return;
-    }
     if (phases.length === 0) {
-      toast.error("Añade al menos una fase");
-      setPreviewing(false);
-      return;
-    }
-    const invalidPhase = phases.find((phase) => !phase.name.trim() || phase.blocks.length === 0 || phase.blocks.some((block) => !block.body.trim()));
-    if (invalidPhase) {
-      toast.error("Completa el nombre de cada fase y sus indicaciones");
       setPreviewing(false);
       return;
     }
@@ -198,9 +190,11 @@ export function TrainingForm({
   const selectedTypeName = types.find((type) => type.id === classTypeId)?.name;
 
   return (
-    <>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-6">
+            <div className="flex w-full max-w-2xl flex-col gap-4">
           <div role="tablist" aria-label="Modo del entrenamiento" className="flex w-fit rounded-md bg-muted p-0.5">
             <Button
               type="button"
@@ -226,9 +220,15 @@ export function TrainingForm({
 
           {!previewing ? (
             <div role="tabpanel" className="flex flex-col gap-6">
-              <Field label="Nombre del entrenamiento">
-                <Input value={name} onChange={(event) => setName(event.target.value)} required />
-              </Field>
+              <FormInput
+                label="Nombre del entrenamiento"
+                value={name}
+                error={nameError}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setNameError("");
+                }}
+              />
               <FormSelect label="Tipo de clase dirigida" value={classTypeId} onValueChange={setClassTypeId}
                 required disabled={pending}
                 options={[{ value: "", label: "Elegí un tipo de clase…" }, ...types.map((type) => ({ value: type.id, label: type.name }))]} />
@@ -271,67 +271,68 @@ export function TrainingForm({
                           label="fase"
                           canMoveUp={phaseIndex > 0}
                           canMoveDown={phaseIndex < phases.length - 1}
-                          canRemove={phases.length > 1}
+                          canRemove
                           onMoveUp={() => setPhases(moveItem(phases, phaseIndex, -1))}
                           onMoveDown={() => setPhases(moveItem(phases, phaseIndex, 1))}
                           onRemove={() => setPhases(phases.filter((_, index) => index !== phaseIndex))}
                         />
                       </div>
-                      <Field label="Nombre de la fase">
-                        <Input
-                          value={phase.name}
-                          placeholder="Ej.: Calentamiento, Fuerza, WOD"
-                          onChange={(event) => {
-                            const next = [...phases];
-                            next[phaseIndex] = { ...phase, name: event.target.value };
-                            setPhases(next);
-                          }}
-                          required
-                        />
-                      </Field>
+                      <FormInput
+                        label="Nombre de la fase"
+                        value={phase.name}
+                        placeholder="Ej.: Calentamiento, Fuerza, WOD"
+                        onChange={(event) => {
+                          const next = [...phases];
+                          next[phaseIndex] = { ...phase, name: event.target.value };
+                          setPhases(next);
+                        }}
+                        required
+                      />
                       <div className="flex flex-col gap-3">
                         {phase.blocks.map((block, blockIndex) => (
-                          <Field key={blockIndex} label={`Indicaciones · bloque ${blockIndex + 1}`}>
-                            <div className="mb-1 flex justify-end">
-                              <StructureActions
-                                label="bloque"
-                                canMoveUp={blockIndex > 0}
-                                canMoveDown={blockIndex < phase.blocks.length - 1}
-                                canRemove={phase.blocks.length > 1}
-                                onMoveUp={() => {
-                                  const next = [...phases];
-                                  next[phaseIndex] = { ...phase, blocks: moveItem(phase.blocks, blockIndex, -1) };
-                                  setPhases(next);
-                                }}
-                                onMoveDown={() => {
-                                  const next = [...phases];
-                                  next[phaseIndex] = { ...phase, blocks: moveItem(phase.blocks, blockIndex, 1) };
-                                  setPhases(next);
-                                }}
-                                onRemove={() => {
-                                  const next = [...phases];
-                                  next[phaseIndex] = {
-                                    ...phase,
-                                    blocks: phase.blocks.filter((_, index) => index !== blockIndex),
-                                  };
-                                  setPhases(next);
-                                }}
-                              />
-                            </div>
-                            <Textarea
-                              rows={4}
-                              value={block.body}
-                              placeholder={"Ej.: 4 rondas\n12 repeticiones\nDescanso 90 s"}
-                              onChange={(event) => {
-                                const next = [...phases];
-                                const blocks = [...phase.blocks];
-                                blocks[blockIndex] = { body: event.target.value };
-                                next[phaseIndex] = { ...phase, blocks };
-                                setPhases(next);
-                              }}
-                              required
-                            />
-                          </Field>
+                          <FormTextarea
+                            key={blockIndex}
+                            label={`Indicaciones · bloque ${blockIndex + 1}`}
+                            header={
+                              <div className="flex justify-end">
+                                <StructureActions
+                                  label="bloque"
+                                  canMoveUp={blockIndex > 0}
+                                  canMoveDown={blockIndex < phase.blocks.length - 1}
+                                  canRemove={phase.blocks.length > 1}
+                                  onMoveUp={() => {
+                                    const next = [...phases];
+                                    next[phaseIndex] = { ...phase, blocks: moveItem(phase.blocks, blockIndex, -1) };
+                                    setPhases(next);
+                                  }}
+                                  onMoveDown={() => {
+                                    const next = [...phases];
+                                    next[phaseIndex] = { ...phase, blocks: moveItem(phase.blocks, blockIndex, 1) };
+                                    setPhases(next);
+                                  }}
+                                  onRemove={() => {
+                                    const next = [...phases];
+                                    next[phaseIndex] = {
+                                      ...phase,
+                                      blocks: phase.blocks.filter((_, index) => index !== blockIndex),
+                                    };
+                                    setPhases(next);
+                                  }}
+                                />
+                              </div>
+                            }
+                            rows={4}
+                            value={block.body}
+                            placeholder={"Ej.: 4 rondas\n12 repeticiones\nDescanso 90 s"}
+                            onChange={(event) => {
+                              const next = [...phases];
+                              const blocks = [...phase.blocks];
+                              blocks[blockIndex] = { body: event.target.value };
+                              next[phaseIndex] = { ...phase, blocks };
+                              setPhases(next);
+                            }}
+                            required
+                          />
                         ))}
                       </div>
                       <Button
@@ -382,26 +383,30 @@ export function TrainingForm({
               )}
             </section>
           )}
+            </div>
+          </div>
 
-          <div className="sticky bottom-0 z-10 -mx-4 mt-2 flex flex-wrap items-center justify-between gap-2 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm md:-mx-6 md:px-6">
-            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={cancel}>
-              Cancelar
-            </Button>
-            {previewing ? (
-              <Button type="button" className="min-h-11" onClick={() => setPreviewing(false)}>
-                Volver a editar
+          <div className="shrink-0 border-t bg-background px-4 py-3 md:px-6">
+            <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center justify-between gap-2">
+              <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={cancel}>
+                Cancelar
               </Button>
-            ) : (
-              <PendingButton
-                type="submit"
-                className="min-h-11"
-                disabled={pending || types.length === 0 || phases.length === 0 || !hasChanges}
-                pending={pending}
-                pendingLabel={"Guardando…"}
-              >
-                {training ? "Guardar cambios" : "Guardar entrenamiento"}
-              </PendingButton>
-            )}
+              {previewing ? (
+                <Button type="button" className="min-h-11" onClick={() => setPreviewing(false)}>
+                  Volver a editar
+                </Button>
+              ) : (
+                <PendingButton
+                  type="submit"
+                  className="min-h-11"
+                  disabled={pending || types.length === 0 || phases.length === 0 || !hasChanges}
+                  pending={pending}
+                  pendingLabel={"Guardando…"}
+                >
+                  {training ? "Guardar cambios" : "Guardar entrenamiento"}
+                </PendingButton>
+              )}
+            </div>
           </div>
         </fieldset>
       </form>
@@ -424,6 +429,6 @@ export function TrainingForm({
           </PendingButton>
         </DialogFooter>
       </FormDialog>
-    </>
+    </div>
   );
 }

@@ -5,6 +5,8 @@ import {
   patchStaffSchema,
   tariffWriteSchema,
   templateWriteSchema,
+  trainingPatchSchema,
+  trainingWriteSchema,
   type BoxHoursConfig,
 } from "./schemas";
 
@@ -134,6 +136,23 @@ describe("boxHoursConfigSchema", () => {
     const duplicateWeekday = validBoxHours();
     duplicateWeekday.weekly[6]!.weekday = 6;
     expect(boxHoursConfigSchema.safeParse(duplicateWeekday).success).toBe(false);
+  });
+});
+
+describe("trainingWriteSchema", () => {
+  const classTypeId = "11111111-1111-4111-8111-111111111111";
+  const phases = [{ name: "WOD", blocks: [{ body: "AMRAP 12" }] }];
+
+  it("accepts an empty name and still requires at least one phase", () => {
+    expect(trainingWriteSchema.safeParse({ name: "", classTypeId, phases }).success).toBe(true);
+    expect(trainingWriteSchema.safeParse({ classTypeId, phases }).success).toBe(false);
+    expect(trainingWriteSchema.safeParse({ name: "", classTypeId, phases: [] }).success).toBe(false);
+  });
+});
+
+describe("trainingPatchSchema", () => {
+  it("accepts clearing the name so the save can assign the dated one", () => {
+    expect(trainingPatchSchema.safeParse({ name: "" }).success).toBe(true);
   });
 });
 

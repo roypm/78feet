@@ -10,7 +10,7 @@ import { DELETE as deleteTraining } from "../../app/api/v1/admin/trainings/[id]/
 import { GET as unpaid } from "../../app/api/v1/admin/unpaid/route";
 import { POST as pay } from "../../app/api/v1/admin/payments/route";
 import { POST as createMember } from "../../app/api/v1/admin/members/route";
-import type { BoxHoursConfig } from "@78feet/domain";
+import { TRAINING_NAME_TAKEN, type BoxHoursConfig } from "@78feet/domain";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
 const png = Buffer.from(
@@ -87,7 +87,7 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
       ? (await prisma.classType.findMany({
           where: { id: { in: classTypeIds } },
           select: { imageKey: true },
-        })).map((classType) => classType.imageKey)
+        })).map((classType) => classType.imageKey).filter((key): key is string => Boolean(key))
       : [];
     await prisma.booking.deleteMany({ where: { userId: { in: ids } } });
     if (trainingIds.length) await prisma.training.deleteMany({ where: { id: { in: trainingIds } } });
@@ -175,6 +175,37 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
     const trainingId = (training.json as { id: string }).id;
     trainingIds.push(trainingId);
 
+    const dated = await call(createTraining, "POST", "/api/v1/admin/trainings", coachToken, {
+      name: "",
+      classTypeId: typeId,
+      phases: [{ name: "WOD", blocks: [{ body: "AMRAP 12" }] }],
+    });
+    expect(dated.status).toBe(201);
+    const datedTraining = dated.json as { id: string; name: string };
+    trainingIds.push(datedTraining.id);
+    expect(datedTraining.name).toMatch(/^\d{1,2} [a-z]{3} \d{4}( · \d+)?$/);
+
+    const duplicate = await call(createTraining, "POST", "/api/v1/admin/trainings", coachToken, {
+      name: `  FUERZA ${suffix}  `,
+      classTypeId: typeId,
+      phases: [{ name: "WOD", blocks: [{ body: "AMRAP 12" }] }],
+    });
+    expect(duplicate.status).toBe(403);
+    expect(duplicate.json).toMatchObject({
+      error: { code: "FORBIDDEN", message: TRAINING_NAME_TAKEN },
+    });
+
+    const datedAgain = await call(createTraining, "POST", "/api/v1/admin/trainings", coachToken, {
+      name: "   ",
+      classTypeId: typeId,
+      phases: [{ name: "WOD", blocks: [{ body: "AMRAP 12" }] }],
+    });
+    expect(datedAgain.status).toBe(201);
+    const datedAgainTraining = datedAgain.json as { id: string; name: string };
+    trainingIds.push(datedAgainTraining.id);
+    expect(datedAgainTraining.name).not.toBe(datedTraining.name);
+    expect(datedAgainTraining.name).toMatch(/^\d{1,2} [a-z]{3} \d{4}( · \d+)?$/);
+
     const removed = await call(
       deleteTraining,
       "DELETE",
@@ -184,6 +215,16 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
       { id: trainingId },
     );
     expect(removed.status).toBe(200);
+  });
+
+  it("stores a class type without an image", async () => {
+    const withoutImage = new FormData();
+    withoutImage.set("name", `Sin foto ${suffix}`);
+    withoutImage.set("kind", "open");
+    const createdBare = await call(createType, "POST", "/api/v1/admin/class-types", adminToken, withoutImage);
+    expect(createdBare.status).toBe(201);
+    expect(createdBare.json).toMatchObject({ imageUrl: null, kind: "open" });
+    classTypeIds.push((createdBare.json as { id: string }).id);
   });
 
   it("lists unpaid monthly members and records the month payment", async () => {

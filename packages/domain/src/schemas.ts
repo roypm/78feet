@@ -247,7 +247,7 @@ export const trainingPhaseSchema = z.object({
 });
 
 export const trainingWriteSchema = z.object({
-  name: z.string().trim().min(1, "El nombre es obligatorio"),
+  name: z.string(),
   classTypeId: z.string().uuid(),
   phases: z.array(trainingPhaseSchema).min(1, "Un entrenamiento necesita al menos una fase"),
   confirmDetach: z.boolean().optional(),
@@ -255,7 +255,7 @@ export const trainingWriteSchema = z.object({
 
 export const trainingPatchSchema = z
   .object({
-    name: z.string().trim().min(1, "El nombre es obligatorio").optional(),
+    name: z.string().optional(),
     classTypeId: z.string().uuid().optional(),
     phases: z.array(trainingPhaseSchema).min(1, "Un entrenamiento necesita al menos una fase").optional(),
     confirmDetach: z.boolean().optional(),

@@ -1,6 +1,6 @@
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { StaffCrumbs } from "@/components/staff/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { listClassTypes } from "@/lib/box/class-types";
@@ -44,12 +44,16 @@ async function TrainingEdit({ params }: { params: Promise<{ id: string }> }) {
         title={`Editar · ${training.name}`}
         description={training.classType.name}
         eyebrow={
-          <Link href={`/staff/biblioteca/${training.id}`} className="text-sm text-primary">
-            Volver al entrenamiento
-          </Link>
+          <StaffCrumbs
+            items={[
+              { href: "/staff/biblioteca", label: "Biblioteca" },
+              { href: `/staff/biblioteca/${training.id}`, label: training.name },
+              { label: "Editar" },
+            ]}
+          />
         }
       />
-      <ModuleBody>
+      <ModuleBody fill>
         <TrainingForm
           types={types}
           training={{

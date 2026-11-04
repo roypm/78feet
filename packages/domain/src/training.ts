@@ -1,5 +1,43 @@
 import { DomainError } from "./errors";
+import { zonedParts } from "./time";
 import type { ClassKind, TrainingPhaseInput } from "./types";
+
+export const TRAINING_NAME_TAKEN = "Ya hay un entrenamiento con ese nombre.";
+
+const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"] as const;
+
+export function collapseTrainingName(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+export function trainingNameKey(value: string): string {
+  return collapseTrainingName(value).toLocaleLowerCase("es-ES");
+}
+
+export function datedTrainingName(at: Date): string {
+  const { day, month, year } = zonedParts(at);
+  return `${day} ${MONTHS_SHORT[month - 1]} ${year}`;
+}
+
+export function uniqueDatedTrainingName(existingNames: readonly string[], at: Date): string {
+  const taken = new Set(existingNames.map(trainingNameKey));
+  const base = datedTrainingName(at);
+  if (!taken.has(trainingNameKey(base))) return base;
+  for (let n = 2; n < 10_000; n += 1) {
+    const candidate = `${base} · ${n}`;
+    if (!taken.has(trainingNameKey(candidate))) return candidate;
+  }
+  return `${base} · ${at.getTime()}`;
+}
+
+export function resolveTrainingName(input: string, existingNames: readonly string[], at: Date): string {
+  const typed = collapseTrainingName(input);
+  if (!typed) return uniqueDatedTrainingName(existingNames, at);
+  if (existingNames.some((name) => trainingNameKey(name) === trainingNameKey(typed))) {
+    throw new DomainError("FORBIDDEN", TRAINING_NAME_TAKEN);
+  }
+  return typed;
+}
 
 export function assertDirectedClassType(kind: ClassKind): void {
   if (kind !== "directed") {

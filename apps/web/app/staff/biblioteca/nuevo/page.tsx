@@ -2,7 +2,7 @@
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { StaffCrumbs } from "@/components/staff/staff-crumbs";
 import { requireStaff } from "@/lib/auth/current";
 import { listClassTypes } from "@/lib/box/class-types";
 import { TrainingForm } from "@/components/staff/training-form";
@@ -35,18 +35,23 @@ async function NewTraining() {
         title="Nuevo entrenamiento"
         description="Fases y bloques de texto para un tipo dirigido."
         eyebrow={
-          <Link href="/staff/biblioteca" className="text-sm text-primary">
-            Biblioteca
-          </Link>
+          <StaffCrumbs
+            items={[
+              { href: "/staff/biblioteca", label: "Biblioteca" },
+              { label: "Nuevo entrenamiento" },
+            ]}
+          />
         }
       />
-      <ModuleBody>
-        {types.length === 0 ? (
+      {types.length === 0 ? (
+        <ModuleBody>
           <EmptyState title="Hace falta un tipo dirigido" description={user.role === "admin" ? "Creá un tipo de clase dirigido para asociar el entrenamiento." : "Pedile al admin que cree un tipo dirigido. Los tipos Open no tienen entrenamientos."} href={user.role === "admin" ? "/staff/tipos" : undefined} action="Crear tipo dirigido" />
-        ) : (
+        </ModuleBody>
+      ) : (
+        <ModuleBody fill>
           <TrainingForm types={types} />
-        )}
-      </ModuleBody>
+        </ModuleBody>
+      )}
     </ModulePage>
   );
 }

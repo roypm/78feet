@@ -149,9 +149,14 @@ export {
   templatesOverlap,
 } from "./schedule";
 export {
+  TRAINING_NAME_TAKEN,
   assertDirectedClassType,
   assertTrainingContent,
+  collapseTrainingName,
+  datedTrainingName,
   requireDetachConfirm,
+  resolveTrainingName,
+  uniqueDatedTrainingName,
 } from "./training";
 export {
   UNLIMITED_QUOTA_LABEL,
