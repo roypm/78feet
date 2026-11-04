@@ -5,12 +5,11 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { Spinner } from "@/components/ui/spinner";
-import { consumptionModelLabel } from "@78feet/domain";
-import { Badge } from "@/components/ui/badge";
+import { usesPeriodicQuota } from "@78feet/domain";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MemberListSearch } from "@/components/staff/member-list-search";
 import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
-import { memberFullName } from "@/lib/box/format";
+import { emptyField, memberFullName } from "@/lib/box/format";
 import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
 import { cn } from "cn";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
@@ -38,8 +37,10 @@ function memberAriaLabel(member: MemberListRow): string {
     member.dni,
     member.phone,
     member.email,
-    member.membership ? consumptionModelLabel(member.membership.consumptionModel) : null,
-    member.membership && member.packBalance > 0 ? `${member.packBalance} bono` : null,
+    member.membership?.tariffName ?? null,
+    member.membership && usesPeriodicQuota(member.membership.consumptionModel) && member.packBalance > 0
+      ? `Bono · ${member.packBalance}`
+      : null,
   ].filter((part): part is string => Boolean(part));
   return parts.join(", ");
 }
@@ -55,23 +56,17 @@ function TariffLabels({
     return <span className="text-sm text-muted-foreground">—</span>;
   }
 
-  if (membership.consumptionModel === "pack") {
-    return (
-      <Badge variant="outline" className="max-w-full truncate" title={membership.tariffName}>
-        {membership.tariffName}
-      </Badge>
-    );
-  }
+  const showPackLine = usesPeriodicQuota(membership.consumptionModel) && packBalance > 0;
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-      <Badge variant="secondary" className="shrink-0" title={membership.tariffName}>
-        {consumptionModelLabel(membership.consumptionModel)}
-      </Badge>
-      {packBalance > 0 ? (
-        <Badge variant="outline" className="shrink-0 tabular-nums" title="Saldo de bono">
-          {packBalance} bono
-        </Badge>
+    <div className="min-w-0">
+      <span className="block min-w-0 truncate text-sm" title={membership.tariffName}>
+        {membership.tariffName}
+      </span>
+      {showPackLine ? (
+        <span className="mt-0.5 block truncate text-sm tabular-nums text-muted-foreground">
+          Bono · {packBalance}
+        </span>
       ) : null}
     </div>
   );
@@ -149,9 +144,9 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
         <TableBody>
           {filtered.map((member) => {
             const fullName = memberFullName(member.firstName, member.lastName);
-            const phone = member.phone ?? "—";
-            const email = member.email ?? "—";
-            const dni = member.dni ?? "—";
+            const phone = emptyField(member.phone);
+            const email = emptyField(member.email);
+            const dni = emptyField(member.dni);
 
             return (
               <TableRow
