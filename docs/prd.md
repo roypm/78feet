@@ -15,8 +15,8 @@ Cómo se construye (arquitectura, modelo de datos, API) está en [`trd.md`](./tr
 
 - Un box de CrossFit, **una sola empresa y una sola sede**. Varias sedes: fuera de alcance v1.
 - Dos grillas en el calendario:
-  - **Dirigida**: clase con tipo, imagen y aforo. El coach, si lo hay, es del hueco.
-  - **Open**: la otra grilla. También es un tipo con imagen y aforo, sin plan de entrenamiento. El coach del hueco sigue siendo opcional.
+  - **Dirigida**: clase con tipo, aforo e imagen opcional. El coach, si lo hay, es del hueco.
+  - **Open**: la otra grilla. También es un tipo con aforo e imagen opcional, sin plan de entrenamiento. El coach del hueco sigue siendo opcional.
 - El box es lo bastante grande para **dos sesiones a la vez**: una en la grilla **Dirigida** y otra en **Open**. En cada grilla no puede haber dos huecos solapados; entre grillas sí pueden coincidir en hora.
 
 ## 2. Personas y permisos
@@ -42,7 +42,7 @@ Cómo se construye (arquitectura, modelo de datos, API) está en [`trd.md`](./tr
 | Cancelar / modificar una clase puntual (excepción) | — | sí | sí |
 | Catálogo de tarifas y precios | — | — | sí |
 | Plantilla semanal y aforos por defecto | — | — | sí |
-| Catálogo de tipos de clase (nombre, imagen, grilla) | — | — | sí |
+| Catálogo de tipos de clase (nombre, imagen opcional, grilla) | — | — | sí |
 | Definir horario semanal y excepciones de apertura | — | — | sí |
 | Consultar el perfil propio de staff | — | sí | sí |
 | Crear, activar/desactivar cuentas de staff, consultar perfiles ajenos y editar sus datos de contacto | — | — | sí |
@@ -72,18 +72,18 @@ Cada fila del catálogo combina **dos ejes** independientes:
 
 | Consumo | Facturación | Precio | Cupo | Comportamiento |
 |---|---|---|---|---|
-| **Cupo semanal** | mensual, trimestral, semestral o anual | € / periodo | N dirigidas + M opens por semana | El cupo se renueva solo cada semana. No vence. |
-| **Cupo mensual** | mensual, trimestral, semestral o anual | € / periodo | N dirigidas + M opens por mes natural | El cupo se renueva el día 1. No vence. |
+| **Cupo semanal** | mensual, trimestral, semestral o anual | € / periodo | N dirigidas + M opens por semana (número, cero o Ilimitadas, por separado) | El cupo se renueva solo cada semana. No vence. |
+| **Cupo mensual** | mensual, trimestral, semestral o anual | € / periodo | N dirigidas + M opens por mes natural (número, cero o Ilimitadas, por separado) | El cupo se renueva el día 1. No vence. |
 | **Cupo semanal o mensual** | sin cobro (`0 €`) | 0 € | ej. 3 dirigidas + 0 opens por periodo | Prueba: misma mecánica de reservas, sin estado de pago periódico. |
 | **Bono** | pago único | pago único | X clases | Saldo que se consume hasta agotarse. Sin caducidad. |
 
-El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (semana o mes natural) es independiente del ciclo de facturación. Coach y admin pueden ajustar por separado dirigidas y opens del periodo de consumo en curso.
+El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (semana o mes natural) es independiente del ciclo de facturación. Coach y admin pueden ajustar por separado dirigidas y opens del periodo de consumo en curso, solo en un cupo que tiene tope. Un cupo ilimitado no se ajusta. El bono no tiene opción de ilimitado.
 
 ### 4.2 Cupo semanal (tarifas mensuales)
 
 - La semana es **natural, de lunes a domingo** (zona `Europe/Madrid`).
 - El cupo se cuenta **contra la semana a la que pertenece la clase**, no contra la semana en que se reserva. Reservar el martes la clase del lunes siguiente consume cupo de la semana siguiente.
-- Dirigidas y opens son **contadores separados**.
+- Dirigidas y opens son **contadores separados**. Cada uno admite un número, cero o Ilimitadas. Cero significa que ese cupo no entra. Ilimitadas no pide número: quien reserva no choca con ese tope (siguen valiendo plazas, solape y el otro cupo si tiene tope).
 - El cupo **no se acumula**: lo que no se usa, se pierde.
 - Con el calendario abierto a 4 semanas, un socio puede comprometer su cupo de varias semanas a la vez. Es aceptado: quien reserva temprano gana.
 
@@ -91,7 +91,7 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 
 - El periodo es el **mes natural**, del día 1 al último día del mes, en la zona `Europe/Madrid`.
 - Se cuenta contra el **mes de la clase**, no el mes en que se hace la reserva.
-- Dirigidas y opens son contadores separados; el cupo no usado no pasa al mes siguiente.
+- Dirigidas y opens son contadores separados; el cupo no usado no pasa al mes siguiente. Cada uno admite un número, cero o Ilimitadas, con las mismas reglas que el cupo semanal.
 - Reservar con antelación una clase de otro mes compromete el cupo de ese mes.
 - Un alta o cambio a una tarifa mensual a mitad de mes da el cupo mensual completo, sin prorrateo. Las reservas con pool de cupo que ya cuenten en ese mes se consideran consumidas frente al nuevo límite; las reservas futuras se cancelan al cambiar de tarifa según §4.5.
 - Coach y admin pueden ajustar por separado el cupo de dirigidas y opens del mes en curso. Los ajustes no se trasladan al mes siguiente.
@@ -103,7 +103,7 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 - **Cualquier socio puede llevar saldo de bono**, no solo el que empezó con bono: es la misma mecánica para vender "5 clases extra" a un mensual.
 - El saldo **no caduca**.
 - El staff **recarga** el saldo cuando el socio paga.
-- En la ficha del socio, coach y admin pueden ajustar por separado el cupo de dirigidas y opens del periodo en curso.
+- En la ficha del socio, coach y admin pueden ajustar por separado el cupo de dirigidas y opens del periodo en curso, solo si ese cupo tiene tope. En Mi tarifa y en la ficha, un cupo ilimitado se lee con las usadas y la palabra Ilimitadas; uno que es cero se lee como cero.
 - Al cambiar de tarifa, **el saldo se conserva** y sigue funcionando como desborde.
 - Un socio **solo bono** no tiene límite periódico: puede gastar el saldo cuando quiera.
 - En su pantalla de tarifa, el socio ve tres números: `2 dirigidas + 2 opens + 4 bono`.
@@ -129,13 +129,14 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 
 ### 5.1 Tipos de clase
 
-- El admin crea un **tipo de clase** (Endurance, Sweet, Crossfit, Tone, Especial, los que hagan falta). Cada tipo tiene **nombre**, **imagen obligatoria** y **grilla**: dirigida u open. El coach no crea tipos ni sube imágenes.
-- La imagen llega ya encuadrada y no se recorta. Una clase de 2 h usa **la misma imagen**, más alta.
+- El admin crea un **tipo de clase** (Endurance, Sweet, Crossfit, Tone, Especial, los que hagan falta). Cada tipo tiene **nombre**, **grilla** (dirigida u open) e **imagen opcional**. El coach no crea tipos ni sube imágenes.
+- La imagen, si hay, llega ya encuadrada y no se recorta. Una clase de 2 h usa **la misma imagen**, más alta.
 - El tipo nace en una grilla y **no cambia de grilla**. Si hace falta la otra, se crea otro tipo.
-- El nombre escrito lo usan el staff, el detalle de la clase y Mis reservas. En el bloque del calendario no se pinta: ahí está la imagen.
+- El nombre escrito lo usan el staff, el detalle de la clase y Mis reservas. En el bloque del calendario, con foto no se pinta: ahí está la imagen. Sin foto, el bloque es una superficie neutra (sin foto de relleno) y enseña el nombre del tipo y el aforo.
 - Cambiar la **imagen** de un tipo no cancela reservas.
 - No se borra un tipo que tenga clases de hoy en adelante, ni uno que tenga entrenamientos en la biblioteca. Las instancias pasadas siguen apuntando al tipo, para conservar nombre e imagen.
-- El admin lo mantiene desde el panel de staff. El bloque del calendario es la imagen del tipo y la ocupación.
+- El admin lo mantiene desde el panel de staff. El bloque del calendario es la imagen del tipo y la ocupación, o el nombre y el aforo si no hay imagen.
+- En las cards de Tipos y de Excepciones, el hueco de la foto queda en un recuadro neutro si no hay imagen. El nombre sigue al lado.
 
 ### 5.2 Plantilla y semanas
 
@@ -149,8 +150,8 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 - Los cierres completos y las pausas entre tramos se distinguen con un tramado discreto y la etiqueta «Cerrado» cuando haya espacio. En Plantilla, la zona cerrada no permite añadir clases.
 - El eje de calendario es compartido entre Dirigidas y Open y entre semanas: parte de la apertura más temprana y el cierre más tardío de la configuración, y se extiende lo justo si una clase excepcional cae fuera.
 - **No hay ventana por socio**: si la clase está en el calendario y no empezó, se puede reservar. No hay límite de "solo 7 días vista".
-- El socio elige la grilla **Dirigidas** u **Open**. El bloque es la imagen del tipo. Centrado abajo, encima de la imagen, va la ocupación `apuntados/aforo`. Si está apuntado o la clase está cancelada, esa palabra va con el cupo, sin el nombre y sin hacer el bloque más alto. La hora la marca el eje, no el bloque.
-- En el detalle se ven la imagen, el nombre del tipo y el coach (si hay). Si la clase tiene entrenamiento, el plan va debajo (§5.5).
+- El socio elige la grilla **Dirigidas** u **Open**. Con foto, el bloque es la imagen del tipo y la ocupación `apuntados/aforo`, sin el nombre. Sin foto, el bloque es una superficie neutra con el nombre del tipo y el aforo. Si está apuntado o la clase está cancelada, esa palabra va con el cupo, sin hacer el bloque más alto. La hora la marca el eje, no el bloque.
+- En el detalle se ven el nombre del tipo, el coach (si hay) y la imagen si el tipo la tiene. Si la clase tiene entrenamiento, el plan va debajo (§5.5).
 - El roster de una clase es visible para cualquier socio logueado, con foto de perfil cuando existe y el formato **"Marta G."** (nombre + inicial del apellido). Sin foto se muestran las iniciales del nombre; la imagen fallida también vuelve a ese estado.
 - Socios, coaches y admins pueden subir, reemplazar o quitar su propia foto desde «Mi perfil». La foto es opcional. Se aceptan JPEG, PNG y WebP de hasta 5 MB; al mostrarse se recorta al centro en un avatar circular, sin modificar el original.
 - La foto de un coach asignado aparece junto a su nombre en el detalle de clase. El admin tiene foto de perfil como cualquier cuenta staff y su avatar aparece en Equipo; puede aparecer como coach si se lo asigna a una clase.
@@ -183,8 +184,9 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 
 ### 5.5 Biblioteca de entrenamientos
 
-- La **biblioteca** guarda entrenamientos reutilizables. Cada uno tiene **nombre** (obligatorio, puede repetirse) y un solo **tipo de clase dirigido**. Un tipo open no tiene entrenamientos.
-- El texto es una lista ordenada de **fases**. Cada fase tiene nombre (obligatorio, puede repetirse) y una lista ordenada de **bloques**. Un bloque es texto plano y conserva los saltos de línea: un movimiento por línea, y también se puede escribir «AMRAP 12» o «EMOM 10». No hay cronómetro, negrita, viñetas, fotos ni enlaces. No se guarda un entrenamiento sin fases, una fase sin bloques ni un bloque vacío.
+- La **biblioteca** guarda entrenamientos reutilizables. Cada uno tiene **nombre** y un solo **tipo de clase dirigido**. Un tipo open no tiene entrenamientos. El nombre se puede dejar vacío: al guardar queda la fecha de ese guardado en Europe/Madrid, día, mes corto y año (`3 nov 2026`). Si ese nombre ya existe, se añade ` · 2`, ` · 3`, y así. Quien quiera otro nombre lo escribe. Al editar, borrar el nombre y guardar vuelve a asignar la fecha de ese guardado.
+- Al guardar, otro entrenamiento no puede tener el mismo nombre, sin distinguir mayúsculas ni espacios de más. El aviso sale bajo el campo. Los repetidos que ya existan se quedan hasta que se editen.
+- El texto es una lista ordenada de **fases**. Cada fase tiene nombre (obligatorio, puede repetirse) y una lista ordenada de **bloques**. Un bloque es texto plano y conserva los saltos de línea: un movimiento por línea, y también se puede escribir «AMRAP 12» o «EMOM 10». No hay cronómetro, negrita, viñetas, fotos ni enlaces. No se guarda un entrenamiento sin fases, una fase sin bloques ni un bloque vacío. Se pueden quitar todas las fases: vuelven «Empezar en blanco» y «Usar estructura habitual»; el nombre y el tipo se conservan. Guardar sigue exigiendo al menos una fase con sus indicaciones.
 - No hay borrador, ni versiones, ni duplicar, ni búsqueda por el texto. Al guardar, el socio ve ese texto. Editarlo cambia lo que ven todas las clases que lo señalan, pasadas y futuras; si hay clases vinculadas, el staff confirma el impacto antes de guardar.
 - En el panel staff, el buscador de Biblioteca filtra por nombre o tipo dentro de la página cargada, sin buscar en el contenido de fases o bloques; conserva el filtro de tipo y la paginación.
 - Cualquier socio que haya entrado ve toda la biblioteca. No hace falta haber reservado. La lista va por el último editado, en una sola lista, sin páginas. El filtro abre en **Todos** y ofrece cada tipo dirigido que tenga al menos un entrenamiento. La ficha muestra nombre, tipo, fases y bloques. Sin imagen, sin fecha y sin autor.
@@ -236,7 +238,7 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 | 1 | Una sola empresa, una sola sede en v1. |
 | 2 | Una tarifa activa por socio, más un saldo de bono opcional. |
 | 3 | El cupo se cuenta por la fecha de la clase: semana natural para tarifa semanal y mes natural para tarifa mensual. |
-| 4 | Dirigidas y opens tienen contadores separados; el cupo del periodo se consume antes que el saldo de bono. |
+| 4 | Dirigidas y opens tienen contadores separados; cada uno puede ser número, cero o Ilimitadas. El cupo del periodo se consume antes que el saldo de bono. Un cupo ilimitado no bloquea la reserva. |
 | 5 | El cupo no se acumula; el saldo de bono no caduca. |
 | 6 | No hay ventana de reserva: todo lo del calendario a 4 semanas es reservable. |
 | 7 | No pueden solaparse dos sesiones de la **misma** grilla (dos dirigidas o dos opens). Una dirigida y un open sí pueden coincidir en hora. |
@@ -251,12 +253,12 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 | 16 | Cualquier cambio de tarifa cancela las reservas futuras del socio. |
 | 17 | Un cambio de plantilla rige desde el lunes siguiente; la semana en curso no se toca. |
 | 18 | El aforo nunca queda por debajo de las reservas: si se baja, se cancelan todas las reservas de esa clase. |
-| 19 | El bloque del calendario es la imagen del tipo y la ocupación `apuntados/aforo`. El nombre no se pinta en el bloque. |
+| 19 | El bloque del calendario, con foto, es la imagen del tipo y la ocupación `apuntados/aforo` sin el nombre. Sin foto, superficie neutra con el nombre del tipo y el aforo. |
 | 20 | Cambiar la imagen de un tipo no cancela reservas. Cambiar el tipo de un hueco sí. |
 | 21 | Un tipo con clases de hoy en adelante no se borra. |
 | 22 | El horario de apertura se define por día y puede tener varios tramos. Las excepciones por fecha sustituyen el horario de ese día. Los cambios rigen al guardar y se rechazan si dejan clases programadas fuera de apertura. |
 | 23 | El historial del socio lista las reservas cuya clase ya empezó, agrupadas por mes. No registra asistencia. |
-| 24 | La biblioteca guarda entrenamientos reutilizables de tipos dirigidos, en fases y bloques de texto plano. Open no tiene. |
+| 24 | La biblioteca guarda entrenamientos reutilizables de tipos dirigidos, en fases y bloques de texto plano. Open no tiene. El nombre guardado es único; si se deja vacío, es la fecha del guardado. |
 | 25 | Editar un entrenamiento cambia el texto vivo en todas las clases que lo señalan. No hay versiones. |
 | 26 | Asociar o borrar un entrenamiento no toca las reservas. |
 | 27 | Un tipo con entrenamientos en la biblioteca no se borra. |

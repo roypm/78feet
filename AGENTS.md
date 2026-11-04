@@ -18,6 +18,7 @@ antes de empezar a construir. Son el registro de origen.
 - `app-flow.md` — pantallas y flujos del usuario.
 - `design-system.md` — colores, tipografía, espaciado, componentes.
 - `hoja-de-ruta.md` — orden de las llescas hasta v1, no el producto.
+- `auditoria-web.md` — cambios cerrados sobre la web desplegada, antes de enseñar la v1. El corte y el orden están en la hoja de ruta (llescas 7–20), no aquí.
 
 Leer PRD y TRD antes de tocar dominio, API, modelo de datos o pantallas.
 Construir en el orden de la hoja de ruta; no saltar a pantallas si la llesca anterior no está hecha.

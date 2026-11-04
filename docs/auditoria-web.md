@@ -4,6 +4,8 @@ Revisión del 3 de noviembre de 2026 sobre la web ya desplegada. Recoge lo que h
 
 No sustituye al PRD ni al TRD. Esos se actualizan al construir esto. El registro del grilling original no se toca.
 
+Cómo cortarlo en llescas y en qué orden: [hoja de ruta](./hoja-de-ruta.md#auditoria-web). Una sección de este archivo es una llesca, no un único PR.
+
 ## Segundo box
 
 Hoy hay una empresa y una sede. No existe el box como dato: horario, plantilla, clases, socios, tarifas, biblioteca y equipo son únicos.

@@ -80,8 +80,8 @@ identificador de login es `login_id` y no el DNI.
 | `consumption_model` | enum | `weekly_quota` \| `monthly_quota` \| `pack` |
 | `billing_period` | enum | `monthly` \| `quarterly` \| `semiannual` \| `annual` \| `none` \| `one_time` |
 | `price_cents` | int | |
-| `quota_directed` | int | límite de dirigidas por el periodo de consumo de la tarifa |
-| `quota_open` | int | límite de opens por el periodo de consumo de la tarifa |
+| `quota_directed` | int, nullable | límite de dirigidas por el periodo de consumo. `null` = ilimitado. Cero = ese cupo no entra. Solo en cupo semanal o mensual; el bono va a 0. |
+| `quota_open` | int, nullable | límite de opens por el periodo de consumo. `null` = ilimitado. Cero = ese cupo no entra. Solo en cupo semanal o mensual; el bono va a 0. |
 | `pack_classes` | int, nullable | tamaño por defecto del bono, solo `pack` |
 | `active` | bool | las inactivas no se asignan pero se conservan |
 | `created_at` | timestamptz | |
@@ -161,11 +161,11 @@ Catálogo del admin. El panel de staff lo mantiene. Plantilla e instancia apunta
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid | |
-| `name` | text | "Crossfit", "Endurance". Staff, detalle y Mis reservas. El bloque del calendario no lo pinta. |
+| `name` | text | "Crossfit", "Endurance". Staff, detalle y Mis reservas. En el bloque, con foto no se pinta; sin foto sí. |
 | `kind` | enum | `directed` \| `open`. Se fija al crear el tipo y no se cambia. |
-| `image_key` | text | clave del archivo obligatorio, ya encuadrado. Las imágenes subidas se guardan como binario compartido en Postgres para que funcionen en todos los despliegues y dispositivos. Sustituirlo no cancela reservas. |
+| `image_key` | text, nullable | clave del archivo, ya encuadrado. `null` = sin imagen. Las imágenes subidas se guardan como binario compartido en Postgres para que funcionen en todos los despliegues y dispositivos. Sustituirlo no cancela reservas. |
 
-Invariantes: sin `image_key` no hay tipo. El coach no inserta filas. No se borra un tipo con alguna instancia `scheduled` de hoy en adelante ni con algún entrenamiento (`CLASS_TYPE_IN_USE`); las pasadas siguen apuntándolo. `class_type_image` guarda el binario (JPEG, PNG o WebP, máximo 5 MB) en Neon; una ruta autenticada sirve las imágenes en web y móvil, sin un servicio externo de almacenamiento ni recorte. Las claves antiguas siguen usando la ruta estática mientras el archivo exista.
+Invariantes: un tipo puede no tener `image_key`. El coach no inserta filas. No se borra un tipo con alguna instancia `scheduled` de hoy en adelante ni con algún entrenamiento (`CLASS_TYPE_IN_USE`); las pasadas siguen apuntándolo. `class_type_image` guarda el binario (JPEG, PNG o WebP, máximo 5 MB) en Neon; una ruta autenticada sirve las imágenes en web y móvil, sin un servicio externo de almacenamiento ni recorte. Las claves antiguas siguen usando la ruta estática mientras el archivo exista.
 
 ### `class_type_image`
 
@@ -216,7 +216,7 @@ Ficha reutilizable de la biblioteca. Solo tipos `directed`.
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid | |
-| `name` | text | obligatorio. Puede repetirse. |
+| `name` | text | siempre hay uno guardado. Si el staff lo deja vacío, se asigna la fecha de ese guardado en Europe/Madrid (`3 nov 2026`), con ` · 2` si ya existe. Al guardar, el nombre queda único en la biblioteca sin distinguir mayúsculas ni espacios de más; los repetidos viejos se quedan hasta que se editen. |
 | `class_type_id` | uuid | FK `class_type` con `kind = directed`. |
 | `created_at`, `updated_at` | timestamptz | la lista ordena por `updated_at` descendente. Cualquier guardado de nombre, tipo, fases o bloques lo actualiza. |
 
@@ -240,7 +240,7 @@ No hay autor, borrador ni versiones. Borrar pone `training_id` a `null` en las c
 | `body` | text | obligatorio, no vacío. Texto plano: se guardan los saltos de línea. Sin marcado. |
 | `position` | int | orden dentro de la fase, desde 0 |
 
-Invariante: un entrenamiento tiene al menos una fase y cada fase al menos un bloque. No se puede guardar a medias.
+Invariante: un entrenamiento guardado tiene al menos una fase y cada fase al menos un bloque. No se puede guardar a medias. En el formulario se pueden quitar todas las fases y volver a elegir cómo empezar; el guardado sigue exigiendo contenido.
 
 ### `booking`
 
@@ -377,7 +377,7 @@ reservar(u, instance):
   if membership.consumption_model in ('weekly_quota', 'monthly_quota'):
       period = week(instance) if weekly_quota else month(instance)
       limit = kind == 'directed' ? tariff.quota_directed : tariff.quota_open
-      if used(period, kind) < limit + adjustment(user, period, kind):
+      if limit is null or used(period, kind) < limit + adjustment(user, period, kind):
           pool = kind == 'directed' ? 'quota_directed' : 'quota_open'
       else if pack_balance(u) > 0:
           pool = 'pack'
@@ -443,6 +443,7 @@ Además, el horario habitual del box se configura en `box_settings.weekly_hours`
 ### 4.8 Biblioteca
 
 - Un entrenamiento pertenece a un tipo `directed`. Open no tiene filas.
+- El `name` guardado es único ignorando mayúsculas y espacios de más. Si llega vacío, se asigna la fecha de ese guardado en `Europe/Madrid` (`3 nov 2026`), con ` · 2` si hace falta. No hay índice único: los repetidos viejos se quedan hasta que se editen.
 - La clase lo ve en vivo: el detalle lee las fases y los bloques actuales, no una copia.
 - Asociar o quitar `training_id` no cancela reservas. Cambiar el `class_type_id` de la instancia sigue cancelándolas, y además suelta el entrenamiento si el tipo ya no coincide.
 - Una clase `cancelled` sigue exponiendo su `training_id`.
@@ -467,7 +468,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| GET | `/api/v1/calendar?from&to` | instancias con imagen del tipo, ocupación y si el socio está apuntado |
+| GET | `/api/v1/calendar?from&to` | instancias con imagen del tipo (`null` si no hay), ocupación y si el socio está apuntado |
 | GET | `/api/v1/instances/:id` | detalle (imagen, nombre, coach) + roster (`Nombre I.`) + entrenamiento asociado, si hay |
 | GET | `/api/v1/trainings?classTypeId` | biblioteca de socio: nombre y tipo, del último editado al más antiguo. Sin `classTypeId`, todos |
 | GET | `/api/v1/trainings/:id` | ficha: fases y bloques en orden |
@@ -475,7 +476,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | DELETE | `/api/v1/bookings/:id` | cancelar (regla de 2 h) |
 | GET | `/api/v1/me/bookings` | próximas reservas |
 | GET | `/api/v1/me/bookings/history` | reservas cuya clase ya empezó, de la más reciente a la más antigua |
-| GET | `/api/v1/me/summary` | tarifa, cupos usados/límite, saldo de bono, estado del mes |
+| GET | `/api/v1/me/summary` | tarifa, cupos usados/límite (`null` = ilimitado), saldo de bono, estado del mes |
 | GET/PATCH | `/api/v1/me/preferences` | consultar o guardar el tema propio (`{ theme: "system" \| "light" \| "dark" }`); todos los roles con sesión activa; rechaza campos extra |
 | POST/DELETE | `/api/v1/me/profile-image` | subir/reemplazar o quitar la foto propia (multipart `image`) | sesión activa |
 
@@ -489,7 +490,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | GET | `/api/v1/admin/coaches` | opciones de coach para asignar a clases | coach, admin |
 | GET/PATCH | `/api/v1/admin/hours` | horario semanal y excepciones; guardar valida la disponibilidad antes de aplicar | GET coach/admin, PATCH admin |
 | GET | `/api/v1/admin/class-types` | ver catálogo para colocarlo en el plano | coach, admin |
-| POST | `/api/v1/admin/class-types` | crear tipo con imagen obligatoria | admin |
+| POST | `/api/v1/admin/class-types` | crear tipo; la imagen es opcional | admin |
 | PATCH/DELETE | `/api/v1/admin/class-types/:id` | editar nombre/imagen o borrar si no está en uso | admin |
 | GET | `/api/v1/class-type-images/:key` | servir una imagen compartida | sesión activa |
 | GET | `/api/v1/profile-images/:userId` | servir una foto con sesión; socio: fotos presentes en rosters y coaches asignados; staff: cuentas que puede consultar | sesión activa |
@@ -505,11 +506,11 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | GET | `/api/v1/admin/members/:id` | ficha: membresía, pagos, créditos, reservas | coach, admin |
 | POST | `/api/v1/admin/members/:id/tariff` | cambiar tarifa | coach, admin |
 | POST | `/api/v1/admin/members/:id/credits` | cargar saldo de bono | coach, admin |
-| POST | `/api/v1/admin/members/:id/quota-adjustments` | ajustar dirigidas u opens del periodo de consumo en curso (semana o mes natural) | coach, admin |
+| POST | `/api/v1/admin/members/:id/quota-adjustments` | ajustar dirigidas u opens del periodo de consumo en curso (semana o mes natural); rechaza un cupo ilimitado | coach, admin |
 | POST | `/api/v1/admin/members/:id/reset-password` | resetear clave | coach, admin |
 | POST | `/api/v1/admin/members/:id/deactivate` | dar de baja | admin |
 | POST | `/api/v1/admin/members/:id/reactivate` | reactivar socio | admin |
-| GET | `/api/v1/admin/tariffs` | ver catálogo | coach, admin |
+| GET | `/api/v1/admin/tariffs` | ver catálogo (`quotaDirected`/`quotaOpen` `null` = ilimitado) | coach, admin |
 | POST/PATCH | `/api/v1/admin/tariffs` | crear y editar tarifas | admin |
 | GET/POST | `/api/v1/admin/staff` | listar y crear cuentas de staff con DNI obligatorio y teléfono/email opcionales | admin |
 | GET/PATCH | `/api/v1/admin/staff/:id` | consultar perfil y editar nombre, teléfono y email | admin |
@@ -540,7 +541,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
   `POST/DELETE /api/v1/admin/bookings`. `/staff/reservas` redirige a Semana.
 - **App móvil** (`apps/mobile`, pendiente): solo socios. La hoja de ruta reserva para esta llesca Expo Router
   con seis pestañas: Calendario, Mis reservas, Historial, Biblioteca, Mi tarifa y Cuenta; consumirá la misma API.
-- Sin estado offline, sin push, sin cámara. La imagen del tipo es un archivo que sube el admin, ya encuadrado; nadie la saca desde la app.
+- Sin estado offline, sin push, sin cámara. La imagen del tipo, si hay, es un archivo que sube el admin, ya encuadrado; nadie la saca desde la app.
 
 ## 8. Tiempo
 
