@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import {
   billingPeriodKindLabel,
   consumptionModelLabel,
+  formatPeriodicQuotaIncludes,
+  formatQuotaLimit,
   quotaPeriodForConsumption,
   usesPeriodicQuota,
   type TariffBilling,
@@ -21,7 +23,7 @@ import { formatPrice } from "@/lib/box/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { FormInput } from "@/components/staff/form-control";
 import { MoneyField, QuantityField } from "@/components/staff/numeric-field";
 import { parseEuroCents } from "@/lib/ui/numbers";
 import { Switch } from "@/components/ui/switch";
@@ -35,6 +37,52 @@ import { ModulePrimaryAction } from "@/components/member/module-page";
 import { cn } from "cn";
 
 const SUBSCRIPTION_BILLING: TariffBilling[] = ["monthly", "quarterly", "semiannual", "annual", "none"];
+
+function parseQuotaLimit(form: FormData, name: string): number | null {
+  const raw = String(form.get(name) ?? "");
+  if (raw === "unlimited") return null;
+  return Number(raw);
+}
+
+function QuotaLimitField({
+  label,
+  name,
+  defaultValue,
+  disabled,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: number | null;
+  disabled?: boolean;
+}) {
+  const [unlimited, setUnlimited] = useState(defaultValue === null);
+  return (
+    <div className="flex flex-col gap-2">
+      <FormSelect
+        label={label}
+        disabled={disabled}
+        value={unlimited ? "unlimited" : "number"}
+        onValueChange={(value) => setUnlimited(value === "unlimited")}
+        options={[
+          { value: "number", label: "Número" },
+          { value: "unlimited", label: "Ilimitadas" },
+        ]}
+      />
+      {unlimited ? (
+        <input type="hidden" name={name} value="unlimited" />
+      ) : (
+        <QuantityField
+          label={`Cuántas ${label.split(" / ")[0]!.toLowerCase()}`}
+          name={name}
+          min={0}
+          required
+          defaultValue={defaultValue ?? undefined}
+          disabled={disabled}
+        />
+      )}
+    </div>
+  );
+}
 
 function TariffDialogForm({
   tariff,
@@ -60,30 +108,20 @@ function TariffDialogForm({
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const priceCents = parseEuroCents(String(form.get("price") ?? ""));
-    if (priceCents === null) {
-      toast.error("Precio no válido");
-      return;
-    }
+    if (priceCents === null) return;
 
     const effectiveConsumption = editing ? tariff.consumptionModel : consumptionModel;
     const effectiveBilling = editing ? tariff.billingPeriod : billingPeriod;
-    if (!effectiveConsumption) {
-      toast.error("Elegí un tipo de consumo");
-      return;
-    }
-    if (effectiveConsumption !== "pack" && !effectiveBilling) {
-      toast.error("Elegí un periodo de facturación");
-      return;
-    }
+    if (!effectiveConsumption) return;
+    if (effectiveConsumption !== "pack" && !effectiveBilling) return;
 
     const body = {
       name: String(form.get("name")),
       consumptionModel: effectiveConsumption,
       billingPeriod: effectiveBilling,
       priceCents,
-      quotaDirected:
-        usesPeriodicQuota(effectiveConsumption) ? Number(form.get("quotaDirected")) : 0,
-      quotaOpen: usesPeriodicQuota(effectiveConsumption) ? Number(form.get("quotaOpen")) : 0,
+      quotaDirected: usesPeriodicQuota(effectiveConsumption) ? parseQuotaLimit(form, "quotaDirected") : 0,
+      quotaOpen: usesPeriodicQuota(effectiveConsumption) ? parseQuotaLimit(form, "quotaOpen") : 0,
       packClasses: effectiveConsumption === "pack" ? Number(form.get("packClasses")) : null,
     };
 
@@ -133,9 +171,7 @@ function TariffDialogForm({
     >
       <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Nombre">
-            <Input name="name" required defaultValue={tariff?.name ?? ""} />
-          </Field>
+          <FormInput label="Nombre" name="name" required defaultValue={tariff?.name ?? ""} />
           {editing ? (
             <Field label="Consumo">
               <p className="text-sm text-muted-foreground">{consumptionModelLabel(tariff.consumptionModel)}</p>
@@ -144,6 +180,7 @@ function TariffDialogForm({
             <FormSelect
               label="Consumo"
               name="consumptionModel"
+              required
               disabled={pending}
               value={consumptionModel}
               onValueChange={(value) => {
@@ -162,8 +199,18 @@ function TariffDialogForm({
           )}
           {hasPeriodicConsumption ? (
             <>
-              <QuantityField label={`Dirigidas / ${quotaPeriodForConsumption(effectiveConsumption as TariffConsumption) === "month" ? "mes" : "semana"}`} name="quotaDirected" min={0} required defaultValue={tariff?.quotaDirected} disabled={pending} />
-              <QuantityField label={`Opens / ${quotaPeriodForConsumption(effectiveConsumption as TariffConsumption) === "month" ? "mes" : "semana"}`} name="quotaOpen" min={0} required defaultValue={tariff?.quotaOpen} disabled={pending} />
+              <QuotaLimitField
+                label={`Dirigidas / ${quotaPeriodForConsumption(effectiveConsumption as TariffConsumption) === "month" ? "mes" : "semana"}`}
+                name="quotaDirected"
+                defaultValue={tariff?.quotaDirected}
+                disabled={pending}
+              />
+              <QuotaLimitField
+                label={`Opens / ${quotaPeriodForConsumption(effectiveConsumption as TariffConsumption) === "month" ? "mes" : "semana"}`}
+                name="quotaOpen"
+                defaultValue={tariff?.quotaOpen}
+                disabled={pending}
+              />
             </>
           ) : effectiveConsumption === "pack" ? (
             <QuantityField label="Clases del bono" name="packClasses" min={1} required defaultValue={tariff?.packClasses ?? undefined} disabled={pending} />
@@ -180,6 +227,7 @@ function TariffDialogForm({
             <FormSelect
               label="Facturación"
               name="billingPeriod"
+              required
               disabled={pending}
               value={billingPeriod}
               onValueChange={(value) => setBillingPeriod(value as TariffBilling | "")}
@@ -302,14 +350,14 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
                     className="whitespace-nowrap px-3 py-2.5 align-middle text-sm tabular-nums text-muted-foreground"
                     title={
                       usesPeriodicQuota(tariff.consumptionModel)
-                        ? `${tariff.quotaDirected} dirigidas · ${tariff.quotaOpen} opens / ${quotaPeriodForConsumption(tariff.consumptionModel) === "month" ? "mes" : "semana"}`
+                        ? `${formatPeriodicQuotaIncludes(tariff.quotaDirected, tariff.quotaOpen)} / ${quotaPeriodForConsumption(tariff.consumptionModel) === "month" ? "mes" : "semana"}`
                         : `${tariff.packClasses ?? 0} clases en el pack`
                     }
                   >
                     {usesPeriodicQuota(tariff.consumptionModel) ? (
                       <>
-                        <span className="text-foreground">{tariff.quotaDirected}</span> dir. ·{" "}
-                        <span className="text-foreground">{tariff.quotaOpen}</span> open
+                        <span className="text-foreground">{formatQuotaLimit(tariff.quotaDirected)}</span> dir. ·{" "}
+                        <span className="text-foreground">{formatQuotaLimit(tariff.quotaOpen)}</span> open
                       </>
                     ) : (
                       <>

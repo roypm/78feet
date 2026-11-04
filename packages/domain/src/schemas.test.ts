@@ -38,6 +38,28 @@ describe("tariffWriteSchema", () => {
     });
   });
 
+  it("accepts unlimited periodic quotas and rejects them on a pack", () => {
+    const parsed = tariffWriteSchema.parse({
+      name: "Ilimitadas dirigidas",
+      consumptionModel: "weekly_quota",
+      billingPeriod: "monthly",
+      priceCents: 9000,
+      quotaDirected: null,
+      quotaOpen: 0,
+    });
+    expect(parsed).toMatchObject({ quotaDirected: null, quotaOpen: 0, packClasses: null });
+    expect(
+      tariffWriteSchema.safeParse({
+        name: "Bono",
+        consumptionModel: "pack",
+        billingPeriod: "one_time",
+        priceCents: 5000,
+        packClasses: 10,
+        quotaDirected: null,
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects a pack without a class count and a monthly with one", () => {
     expect(
       tariffWriteSchema.safeParse({

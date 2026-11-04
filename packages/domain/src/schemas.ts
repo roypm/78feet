@@ -93,14 +93,14 @@ export const tariffWriteSchema = z
     consumptionModel: tariffConsumptionSchema,
     billingPeriod: tariffBillingSchema,
     priceCents: z.number().int().min(0, "El precio no puede ser negativo"),
-    quotaDirected: z.number().int().min(0).optional(),
-    quotaOpen: z.number().int().min(0).optional(),
+    quotaDirected: z.number().int().min(0).nullable().optional(),
+    quotaOpen: z.number().int().min(0).nullable().optional(),
     packClasses: z.number().int().positive().nullable().optional(),
     active: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
-    const quotaDirected = value.quotaDirected ?? 0;
-    const quotaOpen = value.quotaOpen ?? 0;
+    const quotaDirected = value.quotaDirected === undefined ? 0 : value.quotaDirected;
+    const quotaOpen = value.quotaOpen === undefined ? 0 : value.quotaOpen;
     const packClasses = value.packClasses ?? null;
     if (usesPeriodicQuota(value.consumptionModel) && packClasses !== null) {
       ctx.addIssue({
@@ -143,8 +143,12 @@ export const tariffWriteSchema = z
     consumptionModel: value.consumptionModel,
     billingPeriod: value.billingPeriod,
     priceCents: value.priceCents,
-    quotaDirected: usesPeriodicQuota(value.consumptionModel) ? (value.quotaDirected ?? 0) : 0,
-    quotaOpen: usesPeriodicQuota(value.consumptionModel) ? (value.quotaOpen ?? 0) : 0,
+    quotaDirected: usesPeriodicQuota(value.consumptionModel)
+      ? (value.quotaDirected === undefined ? 0 : value.quotaDirected)
+      : 0,
+    quotaOpen: usesPeriodicQuota(value.consumptionModel)
+      ? (value.quotaOpen === undefined ? 0 : value.quotaOpen)
+      : 0,
     packClasses: value.consumptionModel === "pack" ? (value.packClasses ?? null) : null,
     active: value.active ?? true,
   }));
@@ -155,8 +159,8 @@ export const patchTariffSchema = z
     consumptionModel: tariffConsumptionSchema.optional(),
     billingPeriod: tariffBillingSchema.optional(),
     priceCents: z.number().int().min(0, "El precio no puede ser negativo").optional(),
-    quotaDirected: z.number().int().min(0).optional(),
-    quotaOpen: z.number().int().min(0).optional(),
+    quotaDirected: z.number().int().min(0).nullable().optional(),
+    quotaOpen: z.number().int().min(0).nullable().optional(),
     packClasses: z.number().int().positive().nullable().optional(),
     active: z.boolean().optional(),
   })

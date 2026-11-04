@@ -139,6 +139,18 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     const tariff = created.json as { id: string; consumptionModel: string };
     tariffIds.push(tariff.id);
 
+    const unlimited = await call(createTariff, "POST", "/api/v1/admin/tariffs", adminToken, {
+      name: `Ilimitada ${suffix}`,
+      consumptionModel: "weekly_quota",
+      billingPeriod: "monthly",
+      priceCents: 9000,
+      quotaDirected: null,
+      quotaOpen: 2,
+    });
+    expect(unlimited.status).toBe(201);
+    expect(unlimited.json).toMatchObject({ quotaDirected: null, quotaOpen: 2 });
+    tariffIds.push((unlimited.json as { id: string }).id);
+
     const invalid = await call(createTariff, "POST", "/api/v1/admin/tariffs", adminToken, {
       name: `Rota ${suffix}`,
       consumptionModel: "pack",

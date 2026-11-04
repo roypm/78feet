@@ -9,14 +9,20 @@ import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import type { MemberSummary } from "@/lib/box/summary";
-import { billingPeriodKindLabel, quotaPeriodForConsumption, usesPeriodicQuota } from "@78feet/domain";
-import { formatPrice, memberFullName } from "@/lib/box/format";
+import {
+  billingPeriodKindLabel,
+  formatPeriodicQuotaIncludes,
+  formatQuotaUsedLimit,
+  isUnlimitedQuota,
+  quotaPeriodForConsumption,
+  usesPeriodicQuota,
+} from "@78feet/domain";
+import { emptyField, formatPrice, memberFullName } from "@/lib/box/format";
 import { MarkPaidButton } from "@/components/staff/mark-paid-button";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/staff/field";
+import { FormInput } from "@/components/staff/form-control";
 import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 import { ConfirmDialog } from "@/components/staff/confirm-dialog";
@@ -86,15 +92,28 @@ function FieldRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function ConsumoRow({ label, available, total }: { label: string; available: number; total: number }) {
-  const value =
-    total === 0 ? (
-      "—"
-    ) : (
-      <span className="tabular-nums">
-        {available} de {total} clase{total === 1 ? "" : "s"} disponible{available === 1 ? "" : "s"}
-      </span>
-    );
+function ConsumoRow({
+  label,
+  used,
+  limit,
+  adjustment,
+}: {
+  label: string;
+  used: number;
+  limit: number | null;
+  adjustment: number;
+}) {
+  let text: string;
+  if (isUnlimitedQuota(limit)) {
+    text = formatQuotaUsedLimit(used, limit);
+  } else {
+    const total = Math.max(0, limit + adjustment);
+    const available = Math.max(0, limit - used + adjustment);
+    text = total === 0
+      ? "0 clases disponibles"
+      : `${available} de ${total} clase${total === 1 ? "" : "s"} disponible${available === 1 ? "" : "s"}`;
+  }
+  const value = <span className="tabular-nums">{text}</span>;
 
   return <FieldRow label={label} value={value} />;
 }
@@ -123,13 +142,10 @@ export function MemberProfile({
     .sort((left, right) => (left.packClasses ?? 0) - (right.packClasses ?? 0));
   const active = member.status === "active";
   const { tariff, quota } = summary;
-  const directedAvailable = Math.max(
-    0,
-    quota.directedLimit - quota.directedUsed + (quota.directedAdjustment ?? 0),
-  );
-  const openAvailable = Math.max(0, quota.openLimit - quota.openUsed + (quota.openAdjustment ?? 0));
-  const directedTotal = Math.max(0, quota.directedLimit + (quota.directedAdjustment ?? 0));
-  const openTotal = Math.max(0, quota.openLimit + (quota.openAdjustment ?? 0));
+  const directedAdjustment = quota.directedAdjustment ?? 0;
+  const openAdjustment = quota.openAdjustment ?? 0;
+  const canAdjustQuota =
+    !isUnlimitedQuota(quota.directedLimit) || !isUnlimitedQuota(quota.openLimit);
   const periodText = quota.period === "month" ? "Este mes" : "Esta semana";
   const periodLabel = quota.periodLabel ?? "";
   const showBonoSection =
@@ -259,21 +275,11 @@ export function MemberProfile({
     >
       <form onSubmit={(event) => void saveProfile(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Nombre">
-            <Input name="firstName" required defaultValue={member.firstName} autoComplete="given-name" />
-          </Field>
-          <Field label="Apellidos">
-            <Input name="lastName" required defaultValue={member.lastName} autoComplete="family-name" />
-          </Field>
-          <Field label="DNI">
-            <Input name="dni" required defaultValue={member.dni ?? member.loginId} />
-          </Field>
-          <Field label="Teléfono">
-            <Input name="phone" type="tel" defaultValue={member.phone ?? ""} autoComplete="tel" />
-          </Field>
-          <Field label="Email">
-            <Input name="email" type="email" defaultValue={member.email ?? ""} autoComplete="email" />
-          </Field>
+          <FormInput label="Nombre" name="firstName" required defaultValue={member.firstName} autoComplete="given-name" />
+          <FormInput label="Apellidos" name="lastName" required defaultValue={member.lastName} autoComplete="family-name" />
+          <FormInput label="DNI" name="dni" required defaultValue={member.dni ?? member.loginId} />
+          <FormInput label="Teléfono" name="phone" type="tel" defaultValue={member.phone ?? ""} autoComplete="tel" />
+          <FormInput label="Email" name="email" type="email" defaultValue={member.email ?? ""} autoComplete="email" />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
               Cancelar
@@ -302,9 +308,7 @@ export function MemberProfile({
     >
       <form onSubmit={(event) => void resetPassword(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Nueva contraseña">
-            <Input name="password" type="password" required minLength={8} autoComplete="new-password" />
-          </Field>
+          <FormInput label="Nueva contraseña" name="password" type="password" required minLength={8} autoComplete="new-password" />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpenAction(null)}>
               Cancelar
@@ -417,9 +421,9 @@ export function MemberProfile({
             </div>
             <dl className="flex flex-col gap-3">
               <FieldRow label="Nombre" value={memberFullName(member.firstName, member.lastName)} />
-              <FieldRow label="DNI" value={member.dni ?? "—"} />
-              <FieldRow label="Teléfono" value={member.phone ?? "—"} />
-              <FieldRow label="Email" value={member.email ?? "—"} />
+              <FieldRow label="DNI" value={emptyField(member.dni)} />
+              <FieldRow label="Teléfono" value={emptyField(member.phone)} />
+              <FieldRow label="Email" value={emptyField(member.email)} />
               <FieldRow label="Usuario" value={member.loginId} />
             </dl>
           </ProfileSection>
@@ -428,14 +432,16 @@ export function MemberProfile({
             <ProfileSection
               title="Consumo"
               action={
-                active ? (
+                active && canAdjustQuota ? (
                   <ConsumoGestionDialog
                     memberId={member.id}
                     disabled={false}
-                    directedAvailable={directedAvailable}
-                    directedTotal={directedTotal}
-                    openAvailable={openAvailable}
-                    openTotal={openTotal}
+                    directedUsed={quota.directedUsed}
+                    directedLimit={quota.directedLimit}
+                    directedAdjustment={directedAdjustment}
+                    openUsed={quota.openUsed}
+                    openLimit={quota.openLimit}
+                    openAdjustment={openAdjustment}
                     periodText={periodText}
                     periodLabel={periodLabel}
                   />
@@ -443,8 +449,18 @@ export function MemberProfile({
               }
             >
               <dl className="flex flex-col gap-3">
-                <ConsumoRow label="Dirigidas" available={directedAvailable} total={directedTotal} />
-                <ConsumoRow label="Opens" available={openAvailable} total={openTotal} />
+                <ConsumoRow
+                  label="Dirigidas"
+                  used={quota.directedUsed}
+                  limit={quota.directedLimit}
+                  adjustment={directedAdjustment}
+                />
+                <ConsumoRow
+                  label="Opens"
+                  used={quota.openUsed}
+                  limit={quota.openLimit}
+                  adjustment={openAdjustment}
+                />
               </dl>
               <p className="text-xs tabular-nums text-muted-foreground">{periodText} · {periodLabel}</p>
             </ProfileSection>
@@ -473,8 +489,7 @@ export function MemberProfile({
                         label={`Incluye cada ${quotaPeriodForConsumption(tariff.consumptionModel) === "month" ? "mes" : "semana"}`}
                         value={
                           <span className="tabular-nums">
-                            {tariff.quotaDirected} dirigida{tariff.quotaDirected === 1 ? "" : "s"} · {tariff.quotaOpen}{" "}
-                            open{tariff.quotaOpen === 1 ? "" : "s"}
+                            {formatPeriodicQuotaIncludes(tariff.quotaDirected, tariff.quotaOpen)}
                           </span>
                         }
                       />

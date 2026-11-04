@@ -204,4 +204,43 @@ describe("pack overflow and returned quota", () => {
       }),
     ).toBe("pack");
   });
+
+  it("does not exhaust an unlimited directed quota even after many uses", () => {
+    expect(
+      assignPool({
+        consumptionModel: "weekly_quota",
+        classKind: "directed",
+        quotaDirected: null,
+        quotaOpen: 2,
+        usedDirected: 40,
+        usedOpen: 0,
+        packBalance: 0,
+      }),
+    ).toBe("quota_directed");
+  });
+
+  it("still caps the other counter when only one quota is unlimited", () => {
+    expect(() =>
+      assignPool({
+        consumptionModel: "weekly_quota",
+        classKind: "open",
+        quotaDirected: null,
+        quotaOpen: 1,
+        usedDirected: 0,
+        usedOpen: 1,
+        packBalance: 0,
+      }),
+    ).toThrow(DomainError);
+    expect(
+      assignPool({
+        consumptionModel: "weekly_quota",
+        classKind: "open",
+        quotaDirected: null,
+        quotaOpen: 1,
+        usedDirected: 0,
+        usedOpen: 1,
+        packBalance: 2,
+      }),
+    ).toBe("pack");
+  });
 });

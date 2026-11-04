@@ -1,4 +1,24 @@
-import type { QuotaPeriod, TariffBilling, TariffConsumption } from "./types";
+import type { QuotaLimit, QuotaPeriod, TariffBilling, TariffConsumption } from "./types";
+
+export const UNLIMITED_QUOTA_LABEL = "Ilimitadas";
+
+export function formatQuotaLimit(limit: QuotaLimit): string {
+  return limit === null ? UNLIMITED_QUOTA_LABEL : String(limit);
+}
+
+export function formatQuotaUsedLimit(used: number, limit: QuotaLimit, adjustment = 0): string {
+  if (limit === null) return `${used}/${UNLIMITED_QUOTA_LABEL}`;
+  return `${used}/${limit + adjustment}`;
+}
+
+export function formatQuotaShare(limit: QuotaLimit, singular: string, plural: string): string {
+  const noun = limit === 1 ? singular : plural;
+  return `${formatQuotaLimit(limit)} ${noun}`;
+}
+
+export function formatPeriodicQuotaIncludes(directed: QuotaLimit, open: QuotaLimit): string {
+  return `${formatQuotaShare(directed, "dirigida", "dirigidas")} · ${formatQuotaShare(open, "open", "opens")}`;
+}
 
 export type SubscriptionBilling = Exclude<TariffBilling, "none" | "one_time">;
 

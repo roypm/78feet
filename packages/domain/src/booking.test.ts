@@ -153,7 +153,27 @@ describe("evaluateBooking", () => {
     expect(result.pool).toBe("quota_open");
   });
 
-  it("rejects a full class", () => {
+  it("assigns quota_directed when that counter is unlimited, even if many are already used", () => {
+    const first = makeInstance({ date: "2026-10-26", kind: "directed", title: "WOD", templateId: "tpl-a" });
+    const second = makeInstance({ date: "2026-10-27", kind: "directed", title: "WOD", templateId: "tpl-b" });
+    const target = makeInstance({ date: "2026-10-28", kind: "directed", title: "WOD", templateId: "tpl-c" });
+    const result = evaluateBooking({
+      now: atBoxTime("2026-10-26", "09:00"),
+      instance: target,
+      membership,
+      tariff: { ...monthly, quotaDirected: null },
+      userId,
+      bookings: [
+        makeBooking({ instanceId: first.id, userId, pool: "quota_directed" }),
+        makeBooking({ instanceId: second.id, userId, pool: "quota_directed" }),
+      ],
+      instancesById: instanceMap([first, second, target]),
+      grants: [],
+    });
+    expect(result.pool).toBe("quota_directed");
+  });
+
+  it("still rejects a full class when the member has unlimited quota", () => {
     const instance = makeInstance({
       date: "2026-10-27",
       kind: "directed",
@@ -167,7 +187,7 @@ describe("evaluateBooking", () => {
           now: atBoxTime("2026-10-26", "09:00"),
           instance,
           membership,
-          tariff: monthly,
+          tariff: { ...monthly, quotaDirected: null, quotaOpen: null },
           userId,
           bookings,
           instancesById: instanceMap([instance]),

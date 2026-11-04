@@ -6,6 +6,7 @@ import type {
   ClassInstance,
   ClassKind,
   CreditGrant,
+  QuotaLimit,
   QuotaPeriod,
   TariffConsumption,
   TariffBilling,
@@ -103,11 +104,20 @@ export function quotaAdjustmentTotal(
   return total;
 }
 
+export function isUnlimitedQuota(limit: QuotaLimit): limit is null {
+  return limit === null;
+}
+
+export function quotaHasRoom(used: number, limit: QuotaLimit, adjustment = 0): boolean {
+  if (limit === null) return true;
+  return used < limit + adjustment;
+}
+
 export function assignPool(params: {
   consumptionModel: TariffConsumption;
   classKind: ClassKind;
-  quotaDirected: number;
-  quotaOpen: number;
+  quotaDirected: QuotaLimit;
+  quotaOpen: QuotaLimit;
   directedAdjustment?: number;
   openAdjustment?: number;
   usedDirected: number;
@@ -121,11 +131,10 @@ export function assignPool(params: {
     return "pack";
   }
 
-  const directedLimit = params.quotaDirected + (params.directedAdjustment ?? 0);
-  const openLimit = params.quotaOpen + (params.openAdjustment ?? 0);
   const used = params.classKind === "directed" ? params.usedDirected : params.usedOpen;
-  const limit = params.classKind === "directed" ? directedLimit : openLimit;
-  if (used < limit) {
+  const limit = params.classKind === "directed" ? params.quotaDirected : params.quotaOpen;
+  const adjustment = params.classKind === "directed" ? (params.directedAdjustment ?? 0) : (params.openAdjustment ?? 0);
+  if (quotaHasRoom(used, limit, adjustment)) {
     return params.classKind === "directed" ? "quota_directed" : "quota_open";
   }
   if (params.packBalance > 0) {

@@ -471,6 +471,9 @@ export async function adjustMemberQuota(
     kind: input.kind,
   });
   const limit = input.kind === "directed" ? membership.tariff.quotaDirected : membership.tariff.quotaOpen;
+  if (limit === null) {
+    throw new BoxError(403, "FORBIDDEN", "Un cupo ilimitado no se ajusta");
+  }
   const adjustment = quotaAdjustmentTotal(existing, input.kind) + input.delta;
   const available = limit - used + adjustment;
   if (available < 0) {

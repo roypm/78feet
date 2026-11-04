@@ -17,8 +17,8 @@ export type TariffView = {
   consumptionModel: TariffConsumption;
   billingPeriod: TariffBilling;
   priceCents: number;
-  quotaDirected: number;
-  quotaOpen: number;
+  quotaDirected: number | null;
+  quotaOpen: number | null;
   packClasses: number | null;
   active: boolean;
   createdAt: string;
@@ -30,8 +30,8 @@ function toView(row: {
   consumptionModel: TariffConsumption;
   billingPeriod: TariffBilling;
   priceCents: number;
-  quotaDirected: number;
-  quotaOpen: number;
+  quotaDirected: number | null;
+  quotaOpen: number | null;
   packClasses: number | null;
   active: boolean;
   createdAt: Date;
@@ -70,8 +70,8 @@ export async function updateTariff(id: string, patch: PatchTariff): Promise<Tari
     consumptionModel: patch.consumptionModel ?? existing.consumptionModel,
     billingPeriod: patch.billingPeriod ?? existing.billingPeriod,
     priceCents: patch.priceCents ?? existing.priceCents,
-    quotaDirected: patch.quotaDirected ?? existing.quotaDirected,
-    quotaOpen: patch.quotaOpen ?? existing.quotaOpen,
+    quotaDirected: patch.quotaDirected !== undefined ? patch.quotaDirected : existing.quotaDirected,
+    quotaOpen: patch.quotaOpen !== undefined ? patch.quotaOpen : existing.quotaOpen,
     packClasses: patch.packClasses === undefined ? existing.packClasses : patch.packClasses,
     active: patch.active ?? existing.active,
   });

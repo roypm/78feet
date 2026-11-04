@@ -117,8 +117,10 @@ export {
 export {
   assignPool,
   bookingCountsTowardQuota,
+  isUnlimitedQuota,
   packBalance,
   quotaAdjustmentTotal,
+  quotaHasRoom,
   quotaUsed,
   monthlyUsed,
   weeklyUsed,
@@ -152,8 +154,13 @@ export {
   requireDetachConfirm,
 } from "./training";
 export {
+  UNLIMITED_QUOTA_LABEL,
   billingPeriodKindLabel,
   consumptionModelLabel,
+  formatPeriodicQuotaIncludes,
+  formatQuotaLimit,
+  formatQuotaShare,
+  formatQuotaUsedLimit,
   isSubscriptionBilling,
   periodStartForDate,
   subscriptionPeriodLabel,
@@ -185,6 +192,7 @@ export type {
   MembershipSnapshot,
   PaymentBilling,
   PlannedInstance,
+  QuotaLimit,
   PropagationResult,
   PropagationSummary,
   Role,

@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
-import type { ClassKind } from "@78feet/domain";
+import { formatQuotaUsedLimit, isUnlimitedQuota, type ClassKind, type QuotaLimit } from "@78feet/domain";
 import { api } from "@/lib/box/api";
 import { formatPrice } from "@/lib/box/format";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,10 @@ function GestionActualBox({ children, className }: { children: ReactNode; classN
   );
 }
 
-function consumoLine(available: number, total: number): string {
+function consumoLine(used: number, limit: QuotaLimit, adjustment: number): string {
+  if (isUnlimitedQuota(limit)) return formatQuotaUsedLimit(used, limit);
+  const total = Math.max(0, limit + adjustment);
+  const available = Math.max(0, limit - used + adjustment);
   if (total === 0) return "0 clases disponibles";
   return `${available} de ${total} clase${total === 1 ? "" : "s"} disponible${available === 1 ? "" : "s"}`;
 }
@@ -101,25 +104,31 @@ function KindAdjustRow({
 export function ConsumoGestionDialog({
   memberId,
   disabled,
-  directedAvailable,
-  directedTotal,
-  openAvailable,
-  openTotal,
+  directedUsed,
+  directedLimit,
+  directedAdjustment,
+  openUsed,
+  openLimit,
+  openAdjustment,
   periodText,
   periodLabel,
 }: {
   memberId: string;
   disabled: boolean;
-  directedAvailable: number;
-  directedTotal: number;
-  openAvailable: number;
-  openTotal: number;
+  directedUsed: number;
+  directedLimit: QuotaLimit;
+  directedAdjustment: number;
+  openUsed: number;
+  openLimit: QuotaLimit;
+  openAdjustment: number;
   periodText: string;
   periodLabel: string;
 }) {
   const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
   const [activeAdjustment, setActiveAdjustment] = useState<{ kind: ClassKind; delta: number } | null>(null);
+  const canAdjustDirected = !isUnlimitedQuota(directedLimit);
+  const canAdjustOpen = !isUnlimitedQuota(openLimit);
 
   function beginAdjustment(kind: ClassKind, delta: number) {
     if (!begin()) return false;
@@ -145,26 +154,39 @@ export function ConsumoGestionDialog({
           <dl className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">Dirigidas</dt>
-              <dd className="tabular-nums font-medium">{consumoLine(directedAvailable, directedTotal)}</dd>
+              <dd className="tabular-nums font-medium">{consumoLine(directedUsed, directedLimit, directedAdjustment)}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">Opens</dt>
-              <dd className="tabular-nums font-medium">{consumoLine(openAvailable, openTotal)}</dd>
+              <dd className="tabular-nums font-medium">{consumoLine(openUsed, openLimit, openAdjustment)}</dd>
             </div>
           </dl>
           <p className="mt-2 text-xs tabular-nums text-muted-foreground">{periodText} · {periodLabel}</p>
         </GestionActualBox>
-        <KindAdjustRow
-          label="Dirigidas"
-          kind="directed"
-          memberId={memberId}
-          pending={pending}
-          onPending={setPending}
-          onBegin={beginAdjustment}
-          activeDelta={activeAdjustment?.kind === "directed" ? activeAdjustment.delta : undefined}
-          onDone={refresh}
-        />
-        <KindAdjustRow label="Opens" kind="open" memberId={memberId} pending={pending} onPending={setPending} onBegin={beginAdjustment} activeDelta={activeAdjustment?.kind === "open" ? activeAdjustment.delta : undefined} onDone={refresh} />
+        {canAdjustDirected ? (
+          <KindAdjustRow
+            label="Dirigidas"
+            kind="directed"
+            memberId={memberId}
+            pending={pending}
+            onPending={setPending}
+            onBegin={beginAdjustment}
+            activeDelta={activeAdjustment?.kind === "directed" ? activeAdjustment.delta : undefined}
+            onDone={refresh}
+          />
+        ) : null}
+        {canAdjustOpen ? (
+          <KindAdjustRow
+            label="Opens"
+            kind="open"
+            memberId={memberId}
+            pending={pending}
+            onPending={setPending}
+            onBegin={beginAdjustment}
+            activeDelta={activeAdjustment?.kind === "open" ? activeAdjustment.delta : undefined}
+            onDone={refresh}
+          />
+        ) : null}
         <DialogFooter>
           <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
             Cerrar
@@ -214,10 +236,7 @@ export function BonoGestionDialog({
     event.preventDefault();
     const packTariffId = String(new FormData(event.currentTarget).get("packTariffId"));
     const pack = bonoPacks.find((item) => item.id === packTariffId);
-    if (!pack?.packClasses) {
-      toast.error("Elegí un pack");
-      return;
-    }
+    if (!pack?.packClasses) return;
     await adjustCredits(pack.packClasses, pack.name, true);
   }
 

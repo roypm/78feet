@@ -120,8 +120,8 @@ model Tariff {
   consumptionModel TariffConsumption @map("consumption_model")
   billingPeriod    TariffBilling     @map("billing_period")
   priceCents       Int               @map("price_cents")
-  quotaDirected    Int               @default(0) @map("quota_directed")
-  quotaOpen        Int               @default(0) @map("quota_open")
+  quotaDirected    Int?              @default(0) @map("quota_directed")
+  quotaOpen        Int?              @default(0) @map("quota_open")
   packClasses      Int?              @map("pack_classes")
   active           Boolean           @default(true)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz

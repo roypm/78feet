@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
-import { billingPeriodKindLabel, consumptionModelLabel, usesPeriodicQuota } from "@78feet/domain";
+import { billingPeriodKindLabel, consumptionModelLabel, formatQuotaUsedLimit, usesPeriodicQuota } from "@78feet/domain";
 import { formatPrice } from "@/lib/box/format";
 import { getMemberSummary } from "@/lib/box/summary";
 import { Badge } from "@/components/ui/badge";
@@ -60,10 +60,10 @@ async function Tariff() {
                   {summary.quota.periodLabel ? ` · ${summary.quota.periodLabel}` : ""}
                 </p>
                 <p className="tabular-nums">
-                  Dirigidas {summary.quota.directedUsed}/{summary.quota.directedLimit + summary.quota.directedAdjustment}
+                  Dirigidas {formatQuotaUsedLimit(summary.quota.directedUsed, summary.quota.directedLimit, summary.quota.directedAdjustment)}
                 </p>
                 <p className="tabular-nums">
-                  Opens {summary.quota.openUsed}/{summary.quota.openLimit + summary.quota.openAdjustment}
+                  Opens {formatQuotaUsedLimit(summary.quota.openUsed, summary.quota.openLimit, summary.quota.openAdjustment)}
                 </p>
               </>
             ) : null}

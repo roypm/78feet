@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { consumptionModelLabel, periodStartForDate, subscriptionPeriodLabel } from "./billing-period";
+import {
+  consumptionModelLabel,
+  formatPeriodicQuotaIncludes,
+  formatQuotaUsedLimit,
+  periodStartForDate,
+  subscriptionPeriodLabel,
+} from "./billing-period";
 
 describe("periodStartForDate", () => {
   it("uses calendar month, quarter, semester and year", () => {
@@ -17,6 +23,16 @@ describe("consumptionModelLabel", () => {
     expect(consumptionModelLabel("weekly_quota")).toBe("Cupo semanal");
     expect(consumptionModelLabel("monthly_quota")).toBe("Cupo mensual");
     expect(consumptionModelLabel("pack")).toBe("Bono");
+  });
+});
+
+describe("formatQuotaUsedLimit", () => {
+  it("keeps a zero cap as zero and spells out unlimited", () => {
+    expect(formatQuotaUsedLimit(0, 0)).toBe("0/0");
+    expect(formatQuotaUsedLimit(3, 4)).toBe("3/4");
+    expect(formatQuotaUsedLimit(3, null)).toBe("3/Ilimitadas");
+    expect(formatPeriodicQuotaIncludes(null, 2)).toBe("Ilimitadas dirigidas · 2 opens");
+    expect(formatPeriodicQuotaIncludes(1, 0)).toBe("1 dirigida · 0 opens");
   });
 });
 

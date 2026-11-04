@@ -12,11 +12,14 @@ export type BookingPool = "quota_directed" | "quota_open" | "pack";
 export type BookingStatus = "active" | "cancelled";
 export type EndedReason = "change" | "cancelled";
 
+/** `null` = cupo ilimitado. Cero sigue significando que ese cupo no entra. */
+export type QuotaLimit = number | null;
+
 export type TariffSnapshot = {
   id: string;
   consumptionModel: TariffConsumption;
-  quotaDirected: number;
-  quotaOpen: number;
+  quotaDirected: QuotaLimit;
+  quotaOpen: QuotaLimit;
 };
 
 export type ClassTemplate = {

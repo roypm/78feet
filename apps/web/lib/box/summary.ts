@@ -23,8 +23,8 @@ export type MemberSummary = {
     consumptionModel: import("@78feet/domain").TariffConsumption;
     billingPeriod: import("@78feet/domain").TariffBilling;
     priceCents: number;
-    quotaDirected: number;
-    quotaOpen: number;
+    quotaDirected: number | null;
+    quotaOpen: number | null;
   } | null;
   quota: {
     period: import("@78feet/domain").QuotaPeriod | null;
@@ -32,10 +32,10 @@ export type MemberSummary = {
     periodEnd: string | null;
     periodLabel: string | null;
     directedUsed: number;
-    directedLimit: number;
+    directedLimit: number | null;
     directedAdjustment: number;
     openUsed: number;
-    openLimit: number;
+    openLimit: number | null;
     openAdjustment: number;
     packBalance: number;
   };
@@ -114,7 +114,7 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
       period,
       kind: "directed",
     }) : 0,
-    directedLimit: tariff?.quotaDirected ?? 0,
+    directedLimit: tariff?.quotaDirected ?? null,
     directedAdjustment,
     openUsed: period ? quotaUsed({
       bookings: domainBookings,
@@ -124,7 +124,7 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
       period,
       kind: "open",
     }) : 0,
-    openLimit: tariff?.quotaOpen ?? 0,
+    openLimit: tariff?.quotaOpen ?? null,
     openAdjustment,
     packBalance: packBalance({ grants, bookings: domainBookings, userId }),
   };
