@@ -5,8 +5,7 @@ import { PendingButton } from "@/components/feedback/pending-button";
 import { useState, type FormEvent } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { useTheme, type Theme } from "@/components/theme-provider";
-import { Field } from "@/components/staff/field";
-import { Input } from "@/components/ui/input";
+import { FormInput } from "@/components/staff/form-control";
 
 export function LoginForm() {
   const { applyTheme } = useTheme();
@@ -50,25 +49,23 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <fieldset disabled={pending} aria-busy={pending} className="contents">
-        <Field label="Usuario o DNI" htmlFor="loginId">
-          <Input
-            id="loginId"
-            name="loginId"
-            autoComplete="username"
-            required
-            className="h-11 px-3"
-          />
-        </Field>
-        <Field label="Contraseña" htmlFor="password">
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            className="h-11 px-3"
-          />
-        </Field>
+        <FormInput
+          label="Usuario o DNI"
+          id="loginId"
+          name="loginId"
+          autoComplete="username"
+          required
+          className="h-11 px-3"
+        />
+        <FormInput
+          label="Contraseña"
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          className="h-11 px-3"
+        />
         {error ? (
           <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive" role="alert">
             {error}

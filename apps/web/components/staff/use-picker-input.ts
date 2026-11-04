@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type InvalidEvent, type RefObject } from "react";
+import { REQUIRED_FIELD_MESSAGE, suppressNativeInvalid } from "@/lib/ui/field-validity";
 
 export type PickerInputProps = {
   label: string;
@@ -37,7 +38,7 @@ export function usePickerInput({
   const text = draft ?? format(value);
   const parsed = parse(text);
   const error = !text
-    ? required ? "Este campo es obligatorio." : ""
+    ? required ? REQUIRED_FIELD_MESSAGE : ""
     : !parsed ? invalidMessage : validate?.(parsed) ?? "";
 
   useEffect(() => { inputRef.current?.setCustomValidity(error); }, [error, inputRef]);
@@ -77,10 +78,8 @@ export function usePickerInput({
       if (!error) setDraft(null);
     },
     onInvalid(event: InvalidEvent<HTMLInputElement>) {
-      event.preventDefault();
       setShowError(true);
-      const input = event.currentTarget;
-      if (input.form?.querySelector("input:invalid") === input) input.focus();
+      if (suppressNativeInvalid(event)) event.currentTarget.focus();
     },
   };
 }

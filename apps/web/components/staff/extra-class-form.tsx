@@ -42,7 +42,7 @@ export function ExtraClassForm({
       });
       toast.success("Clase extra creada");
       setOpen(false);
-      router.push(`/staff/clases/${created.id}`);
+      router.push(`/staff/clases/${created.id}?desde=excepciones`);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo crear");

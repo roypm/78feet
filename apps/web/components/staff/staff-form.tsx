@@ -8,8 +8,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/staff/field";
+import { FormInput } from "@/components/staff/form-control";
 import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 
@@ -58,29 +57,15 @@ export function StaffForm() {
     >
         <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Nombre">
-            <Input name="firstName" required />
-          </Field>
-          <Field label="Apellidos">
-            <Input name="lastName" required />
-          </Field>
-          <Field label="Usuario">
-            <Input name="loginId" required autoComplete="off" />
-          </Field>
-          <Field label="Contraseña">
-            <Input name="password" type="password" required minLength={8} />
-          </Field>
+          <FormInput label="Nombre" name="firstName" required />
+          <FormInput label="Apellidos" name="lastName" required />
+          <FormInput label="Usuario" name="loginId" required autoComplete="off" />
+          <FormInput label="Contraseña" name="password" type="password" required minLength={8} />
           <FormSelect label="Rol" name="role" required defaultValue="" disabled={pending}
             options={[{ value: "", label: "Elegí un rol…" }, { value: "coach", label: "Coach" }, { value: "admin", label: "Admin" }]} />
-          <Field label="DNI">
-            <Input name="dni" required autoComplete="off" />
-          </Field>
-          <Field label="Teléfono (opcional)">
-            <Input name="phone" type="tel" autoComplete="tel" />
-          </Field>
-          <Field label="Correo (opcional)">
-            <Input name="email" type="email" autoComplete="email" />
-          </Field>
+          <FormInput label="DNI" name="dni" required autoComplete="off" />
+          <FormInput label="Teléfono (opcional)" name="phone" type="tel" autoComplete="tel" />
+          <FormInput label="Correo (opcional)" name="email" type="email" autoComplete="email" />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
               Cancelar

@@ -28,7 +28,7 @@ export function DatePicker({ min, ...props }: PickerInputProps & { min?: string 
   const minimum = min ? dateFromValue(min) : undefined;
 
   return (
-    <Field label={props.label} htmlFor={id}>
+    <Field label={props.label} htmlFor={id} invalid={Boolean(field.error)} disabled={props.disabled} error={field.error} errorId={`${id}-error`}>
       <input type="hidden" name={props.name} value={field.value} disabled={props.disabled} />
       <Popover open={open && !props.disabled} onOpenChange={(next) => {
         if (next) setMonth(selected ?? minimum ?? dateFromValue(localDateString(new Date())));
@@ -58,7 +58,6 @@ export function DatePicker({ min, ...props }: PickerInputProps & { min?: string 
           />
         </PopoverContent>
       </Popover>
-      {field.error && <p id={`${id}-error`} className="text-sm text-destructive" role="alert">{field.error}</p>}
     </Field>
   );
 }

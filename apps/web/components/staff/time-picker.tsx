@@ -28,7 +28,7 @@ export function TimePicker(props: PickerInputProps) {
   }
 
   return (
-    <Field label={props.label} htmlFor={id}>
+    <Field label={props.label} htmlFor={id} invalid={Boolean(field.error)} disabled={props.disabled} error={field.error} errorId={`${id}-error`}>
       <input type="hidden" name={props.name} value={field.value} disabled={props.disabled} />
       <Popover open={open && !props.disabled} onOpenChange={openPicker}>
         <InputGroup className="h-11 sm:h-8">
@@ -54,7 +54,6 @@ export function TimePicker(props: PickerInputProps) {
           <Button type="button" className="min-h-11 sm:min-h-8" disabled={props.disabled} onClick={() => { field.choose(`${hour}:${minute}`); setOpen(false); }}>Aplicar hora</Button>
         </PopoverContent>
       </Popover>
-      {field.error && <p id={`${id}-error`} className="text-sm text-destructive" role="alert">{field.error}</p>}
     </Field>
   );
 }

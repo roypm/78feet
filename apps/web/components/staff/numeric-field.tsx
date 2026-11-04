@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type InvalidEvent } from "react";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { Field } from "@/components/staff/field";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
+import { REQUIRED_FIELD_MESSAGE, suppressNativeInvalid } from "@/lib/ui/field-validity";
 import { formatEuroCents, parseEuroCents, parseQuantity } from "@/lib/ui/numbers";
 
 type CommonProps = {
@@ -33,7 +34,7 @@ function NumericField({ label, name, required = false, disabled = false, kind, m
   const quantity = kind === "quantity";
   const parsed = quantity ? parseQuantity(text) : parseEuroCents(text);
   const error = !text.trim()
-    ? required ? "Este campo es obligatorio." : ""
+    ? required ? REQUIRED_FIELD_MESSAGE : ""
     : parsed === null
       ? quantity ? "Escribí un número entero válido." : "Escribí un importe válido con hasta dos decimales."
       : parsed < min ? `El mínimo es ${min}.` : "";
@@ -64,14 +65,12 @@ function NumericField({ label, name, required = false, disabled = false, kind, m
   }
 
   function onInvalid(event: InvalidEvent<HTMLInputElement>) {
-    event.preventDefault();
     setShowError(true);
-    const input = event.currentTarget;
-    if (input.form?.querySelector("input:invalid") === input) input.focus();
+    if (suppressNativeInvalid(event)) event.currentTarget.focus();
   }
 
   return (
-    <Field label={label} htmlFor={id} invalid={invalid} disabled={disabled}>
+    <Field label={label} htmlFor={id} invalid={invalid} disabled={disabled} error={invalid ? error : undefined} errorId={`${id}-error`}>
       <input type="hidden" name={name} value={serialized} disabled={disabled} />
       <InputGroup className="h-11 sm:h-8">
         {quantity && (
@@ -107,7 +106,6 @@ function NumericField({ label, name, required = false, disabled = false, kind, m
           ) : <InputGroupText aria-hidden="true">€</InputGroupText>}
         </InputGroupAddon>
       </InputGroup>
-      {invalid && <p id={`${id}-error`} className="text-sm text-destructive" role="alert">{error}</p>}
     </Field>
   );
 }

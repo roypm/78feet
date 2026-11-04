@@ -45,15 +45,9 @@ export function MarkPaidButton({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const parsed = parseEuroCents(String(form.get("amountEuros") ?? ""));
-    if (parsed === null) {
-      toast.error("Importe no válido");
-      return;
-    }
+    if (parsed === null) return;
     const method = String(form.get("method") ?? "").trim();
-    if (!method) {
-      toast.error("Elegí un método de pago");
-      return;
-    }
+    if (!method) return;
 
     if (!begin()) return;
     try {

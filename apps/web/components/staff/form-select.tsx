@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type InvalidEvent, type ReactNode } from "react";
 import { Field } from "@/components/staff/field";
+import { REQUIRED_FIELD_MESSAGE, suppressNativeInvalid } from "@/lib/ui/field-validity";
 import {
   Select,
   SelectContent,
@@ -37,41 +38,90 @@ export function FormSelect({
   children?: ReactNode;
 }) {
   const id = useId();
+  const errorId = `${id}-error`;
+  const hiddenRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState("");
   // Native single selects fall back to their first option when no default matches.
   const initialValue = options.some((option) => option.value === defaultValue)
     ? defaultValue
-    : options[0]?.value ?? null;
+    : options[0]?.value ?? "";
+  const [uncontrolled, setUncontrolled] = useState(initialValue ?? "");
+  const current = value ?? uncontrolled;
+  const validityError = required && !current ? REQUIRED_FIELD_MESSAGE : "";
+
+  useEffect(() => {
+    hiddenRef.current?.setCustomValidity(validityError);
+  }, [validityError]);
+
+  useEffect(() => {
+    const form = hiddenRef.current?.form;
+    function reset() {
+      setUncontrolled(initialValue ?? "");
+      setError("");
+    }
+    form?.addEventListener("reset", reset);
+    return () => form?.removeEventListener("reset", reset);
+  }, [initialValue]);
+
+  function choose(next: string) {
+    if (value === undefined) setUncontrolled(next);
+    onValueChange?.(next);
+    setError("");
+  }
+
+  function onInvalid(event: InvalidEvent<HTMLInputElement>) {
+    const first = suppressNativeInvalid(event);
+    setError(validityError || REQUIRED_FIELD_MESSAGE);
+    if (first) document.getElementById(id)?.focus();
+  }
 
   return (
-    <Field label={label} htmlFor={id}>
-      <Select
-        items={options}
-        name={name}
-        value={value}
-        defaultValue={initialValue}
-        onValueChange={(next) => { if (next !== null) onValueChange?.(next); }}
-        required={required}
-        disabled={disabled}
-      >
-        <SelectTrigger id={id} className="min-h-11 w-full min-w-0 sm:min-h-8">
-          <SelectValue>
-            {(selected) => (
-              <span className="min-w-0 truncate">
-                {options.find((option) => option.value === selected)?.label ?? placeholder}
-              </span>
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent align="start" alignItemWithTrigger={false}>
-          <SelectGroup>
-            {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+    <Field label={label} htmlFor={id} invalid={Boolean(error)} disabled={disabled} error={error} errorId={errorId}>
+      <div className="relative">
+        <input
+          ref={hiddenRef}
+          tabIndex={-1}
+          className="pointer-events-none absolute inset-0 opacity-0"
+          value={current}
+          required={required}
+          disabled={disabled}
+          aria-hidden="true"
+          onChange={() => undefined}
+          onInvalid={onInvalid}
+        />
+        <Select
+          items={options}
+          name={name}
+          value={value}
+          defaultValue={initialValue}
+          onValueChange={(next) => { if (next !== null) choose(next); }}
+          disabled={disabled}
+        >
+          <SelectTrigger
+            id={id}
+            className="min-h-11 w-full min-w-0 sm:min-h-8"
+            aria-invalid={Boolean(error) || undefined}
+            aria-describedby={error ? errorId : undefined}
+          >
+            <SelectValue>
+              {(selected) => (
+                <span className="min-w-0 truncate">
+                  {options.find((option) => option.value === selected)?.label ?? placeholder}
+                </span>
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent align="start" alignItemWithTrigger={false}>
+            <SelectGroup>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
       {children}
     </Field>
   );

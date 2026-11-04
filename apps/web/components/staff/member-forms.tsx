@@ -9,8 +9,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/staff/field";
+import { FormInput } from "@/components/staff/form-control";
 import { FormSelect } from "@/components/staff/form-select";
 import { FormDialog } from "@/components/staff/form-dialog";
 
@@ -112,24 +111,12 @@ export function CreateMemberForm({
   return (
     <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
         <fieldset disabled={busy} aria-busy={busy} className="contents">
-          <Field label="Nombre">
-            <Input name="firstName" required autoComplete="given-name" />
-          </Field>
-          <Field label="Apellidos">
-            <Input name="lastName" required autoComplete="family-name" />
-          </Field>
-          <Field label="DNI">
-            <Input name="dni" required />
-          </Field>
-          <Field label="Contraseña">
-            <Input name="password" type="password" required minLength={8} autoComplete="new-password" />
-          </Field>
-          <Field label="Teléfono">
-            <Input name="phone" type="tel" autoComplete="tel" />
-          </Field>
-          <Field label="Email">
-            <Input name="email" type="email" autoComplete="email" />
-          </Field>
+          <FormInput label="Nombre" name="firstName" required autoComplete="given-name" />
+          <FormInput label="Apellidos" name="lastName" required autoComplete="family-name" />
+          <FormInput label="DNI" name="dni" required />
+          <FormInput label="Contraseña" name="password" type="password" required minLength={8} autoComplete="new-password" />
+          <FormInput label="Teléfono" name="phone" type="tel" autoComplete="tel" />
+          <FormInput label="Email" name="email" type="email" autoComplete="email" />
           <FormSelect label="Tarifa" name="tariffId" required defaultValue="" disabled={busy}
             options={[{ value: "", label: "Elegí una tarifa…" }, ...assignable.map((tariff) => ({ value: tariff.id, label: tariff.name }))]} />
           {inDialog ? (
