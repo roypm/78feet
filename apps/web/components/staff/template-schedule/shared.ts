@@ -5,7 +5,7 @@ export type TemplateKind = "directed" | "open";
 export const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 export const SHORT_DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-export type ClassType = { id: string; name: string; kind: "directed" | "open"; imageUrl: string };
+export type ClassType = { id: string; name: string; kind: "directed" | "open"; imageUrl: string | null };
 export type Coach = { id: string; name: string };
 export type Draft = {
   key: number;

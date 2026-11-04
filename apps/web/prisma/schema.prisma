@@ -200,7 +200,7 @@ model ClassType {
   id        String          @id @default(uuid()) @db.Uuid
   name      String
   kind      ClassKind
-  imageKey  String          @map("image_key")
+  imageKey  String?         @map("image_key")
   templates ClassTemplate[]
   instances ClassInstance[]
   trainings Training[]

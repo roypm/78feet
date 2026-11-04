@@ -77,7 +77,9 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             </div>
           </div>
         ) : null}
-        <ResourceImage src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
+        {detail.imageUrl ? (
+          <ResourceImage src={detail.imageUrl} alt="" className="h-40 w-full rounded-md object-cover" />
+        ) : null}
         <section className="flex flex-col gap-3 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
           <h2 className="text-sm font-medium">Roster</h2>
           {detail.roster.length === 0 ? (

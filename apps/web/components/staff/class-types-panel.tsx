@@ -1,7 +1,7 @@
 "use client";
 
 import { PendingButton } from "@/components/feedback/pending-button";
-import { ResourceImage } from "@/components/feedback/resource-image";
+import { ClassTypeThumb } from "@/components/class-type-thumb";
 
 import { EmptyState } from "@/components/feedback/empty-state";
 
@@ -10,6 +10,7 @@ import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { Field } from "@/components/staff/field";
+import { FormInput } from "@/components/staff/form-control";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,11 +24,10 @@ import {
 } from "@/components/ui/dialog";
 import { FormSelect } from "@/components/staff/form-select";
 import { ImageUploadField } from "@/components/staff/image-upload-field";
-import { Input } from "@/components/ui/input";
 import { ModulePrimaryAction } from "@/components/member/module-page";
 import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 
-type ClassType = { id: string; name: string; kind: "directed" | "open"; imageUrl: string };
+type ClassType = { id: string; name: string; kind: "directed" | "open"; imageUrl: string | null };
 
 function kindName(kind: ClassType["kind"]): string {
   return kind === "directed" ? "Dirigida" : "Open";
@@ -110,15 +110,13 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
               <DialogTitle>{editing ? "Editar tipo de clase" : "Crear tipo de clase"}</DialogTitle>
               <DialogDescription>
                 {editing
-                  ? "Podés cambiar el nombre y la imagen. La grilla no se cambia."
-                  : "Elegí el nombre, la grilla y la imagen que se verá en el calendario."}
+                  ? "Podés cambiar el nombre y la imagen. La grilla no se cambia. La imagen no es obligatoria."
+                  : "Elegí el nombre y la grilla. La imagen es opcional; sin foto, el bloque muestra el nombre del tipo."}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Nombre">
-            <Input name="name" required defaultValue={editing?.name ?? ""} />
-          </Field>
+          <FormInput label="Nombre" name="name" required defaultValue={editing?.name ?? ""} />
           {editing ? (
             <Field label="Grilla">
               <p className="text-sm text-muted-foreground">{kindName(editing.kind)} · no se cambia</p>
@@ -129,7 +127,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
               options={[{ value: "", label: "Elegí una grilla…" }, { value: "directed", label: "Dirigida" }, { value: "open", label: "Open" }]}
             />
           )}
-          <ImageUploadField key={editing?.id ?? "new"} currentImageUrl={editing?.imageUrl} required={!editing} disabled={pending} />
+          <ImageUploadField key={editing?.id ?? "new"} currentImageUrl={editing?.imageUrl ?? undefined} disabled={pending} />
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" className="min-h-11" disabled={pending} />}>
               Cancelar
@@ -144,7 +142,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
         </Dialog>
       </ModulePrimaryAction>
       {types.length === 0 ? (
-        <EmptyState title="Todavía no hay tipos de clase" description="Creá un tipo con su nombre, imagen y grilla para empezar a programar clases."><Button type="button" className="min-h-11" onClick={openCreate}>Crear tipo</Button></EmptyState>
+        <EmptyState title="Todavía no hay tipos de clase" description="Creá un tipo con su nombre y grilla para empezar a programar clases. La imagen es opcional."><Button type="button" className="min-h-11" onClick={openCreate}>Crear tipo</Button></EmptyState>
       ) : (
         <ul className="grid gap-3 lg:grid-cols-2">
           {types.map((type) => (
@@ -158,10 +156,9 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
                 aria-label={`Editar ${type.name}`}
                 className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:ring-1 [@media(hover:hover)_and_(pointer:fine)]:hover:ring-foreground/25"
               />
-                            <ResourceImage
-                src={type.imageUrl}
-                alt=""
-                className="pointer-events-none relative size-12 shrink-0 rounded-md object-cover"
+              <ClassTypeThumb
+                imageUrl={type.imageUrl}
+                className="pointer-events-none relative size-12 shrink-0 rounded-md"
               />
               <span className="pointer-events-none relative min-w-0 flex-1">
                 <span className="block truncate font-medium">{type.name}</span>

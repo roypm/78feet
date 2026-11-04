@@ -13,7 +13,7 @@ export type ExceptionInstance = {
   startAt: string;
   endAt: string;
   name: string;
-  imageUrl: string;
+  imageUrl: string | null;
   kind: "directed" | "open";
   status: "scheduled" | "cancelled";
   capacity: number;

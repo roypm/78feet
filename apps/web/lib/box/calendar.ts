@@ -21,7 +21,7 @@ export type CalendarClass = {
   endAt: string;
   name: string;
   classTypeId: string;
-  imageUrl: string;
+  imageUrl: string | null;
   kind: "directed" | "open";
   status: "scheduled" | "cancelled";
   capacity: number;
@@ -62,7 +62,7 @@ function toCalendarClass(
     kind: "directed" | "open";
     status: "scheduled" | "cancelled";
     capacity: number;
-    classType: { name: string; imageKey: string };
+    classType: { name: string; imageKey: string | null };
     coach: { firstName: string; lastName: string } | null;
     bookings: { userId: string }[];
     templateId: string | null;

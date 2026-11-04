@@ -32,7 +32,7 @@ export type TemplateView = {
   classTypeId: string;
   kind: "directed" | "open";
   classTypeName: string;
-  imageUrl: string;
+  imageUrl: string | null;
   coachId: string | null;
   defaultCapacity: number;
   active: boolean;
@@ -50,7 +50,7 @@ function toView(row: {
   startTime: Date;
   endTime: Date;
   classTypeId: string;
-  classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string };
+  classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
   coachId: string | null;
   defaultCapacity: number;
   active: boolean;

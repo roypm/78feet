@@ -252,12 +252,26 @@ function DayTrack({
           left: BLOCK_INSET,
           right: BLOCK_INSET,
         };
+        const hasImage = Boolean(template.imageUrl);
         const contents = (
           <>
-                        <ResourceImage src={template.imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
-            <span className="absolute inset-x-0 bottom-0 flex justify-center px-1 pb-0.5 text-center leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.85)]">
+            {hasImage ? (
+              <ResourceImage src={template.imageUrl!} alt="" className="absolute inset-0 size-full object-cover" />
+            ) : (
+              <span className="absolute inset-0 bg-muted" aria-hidden />
+            )}
+            <span
+              className={
+                hasImage
+                  ? "absolute inset-x-0 bottom-0 flex flex-col items-center px-1 pb-0.5 text-center leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.85)]"
+                  : "absolute inset-x-0 bottom-0 flex flex-col items-center px-1 pb-0.5 text-center leading-tight text-foreground"
+              }
+            >
+              {hasImage ? null : (
+                <span className="min-w-0 max-w-full truncate text-xs font-medium">{template.classTypeName}</span>
+              )}
               <span className="truncate text-xs font-medium tabular-nums">
-                {template.defaultCapacity} plazas{coach ? ` · ${coach}` : ""}
+                {template.defaultCapacity} plazas
               </span>
             </span>
           </>

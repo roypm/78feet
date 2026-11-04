@@ -1,5 +1,5 @@
 
-import { ResourceImage } from "@/components/feedback/resource-image";
+import { ClassTypeThumb } from "@/components/class-type-thumb";
 
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
@@ -102,19 +102,18 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string }
                           }
                         >
                           <Link
-                            href={`/staff/clases/${item.id}`}
+                            href={`/staff/clases/${item.id}?desde=hoy`}
                             prefetch={true}
                             aria-label={`${item.name}, ${meta}${item.coachName ? `, coach ${item.coachName}` : ""}`}
                             className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/40"
                           />
                           <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
-                                                        <ResourceImage
-                              src={item.imageUrl}
-                              alt=""
+                            <ClassTypeThumb
+                              imageUrl={item.imageUrl}
                               className={
                                 cancelled
-                                  ? "pointer-events-none size-full object-cover opacity-40 saturate-50"
-                                  : "pointer-events-none size-full object-cover"
+                                  ? "pointer-events-none size-full opacity-40 saturate-50"
+                                  : "pointer-events-none size-full"
                               }
                             />
                             {cancelled ? (

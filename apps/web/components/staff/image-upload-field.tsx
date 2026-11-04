@@ -6,6 +6,7 @@ import { ResourceImage } from "@/components/feedback/resource-image";
 import { Field } from "@/components/staff/field";
 import { Button } from "@/components/ui/button";
 import { CLASS_IMAGE_ACCEPT, classImageFileError } from "@/lib/box/image-upload";
+import { suppressNativeInvalid } from "@/lib/ui/field-validity";
 
 type Selection = {
   file: File;
@@ -77,13 +78,12 @@ export function ImageUploadField({ label = "Imagen", name = "image", currentImag
   }
 
   function onInvalid(event: InvalidEvent<HTMLInputElement>) {
-    event.preventDefault();
     setShowError(true);
-    if (event.currentTarget.form?.querySelector("input:invalid") === event.currentTarget) triggerRef.current?.focus();
+    if (suppressNativeInvalid(event)) triggerRef.current?.focus();
   }
 
   return (
-    <Field label={label} htmlFor={id} invalid={Boolean(error)} disabled={disabled}>
+    <Field label={label} htmlFor={id} invalid={Boolean(error)} disabled={disabled} error={error} errorId={`${id}-error`}>
       <input
         ref={inputRef} id={id} type="file" name={name} accept={CLASS_IMAGE_ACCEPT} required={required} disabled={disabled}
         tabIndex={-1} className="sr-only" aria-describedby={`${id}-hint${error ? ` ${id}-error` : ""}`}
@@ -123,9 +123,8 @@ export function ImageUploadField({ label = "Imagen", name = "image", currentImag
         </div>
       </div>
       <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-        JPEG, PNG o WebP. Máximo 5 MB.{required ? " Obligatoria para crear el tipo." : ""}{currentImageUrl ? " Sin otra selección se conserva la imagen actual." : ""}
+        JPEG, PNG o WebP. Máximo 5 MB.{required ? " Obligatoria." : " Opcional."}{currentImageUrl ? " Sin otra selección se conserva la imagen actual." : ""}
       </p>
-      {error && <p id={`${id}-error`} className="text-sm text-destructive" role="alert">{error}</p>}
     </Field>
   );
 }

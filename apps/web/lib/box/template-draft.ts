@@ -8,7 +8,7 @@ export type ScheduleTemplate = {
   classTypeId: string;
   kind: "directed" | "open";
   classTypeName: string;
-  imageUrl: string;
+  imageUrl: string | null;
   defaultCapacity: number;
   coachId: string | null;
 };

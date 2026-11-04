@@ -1,14 +1,14 @@
 
-import { ResourceImage } from "@/components/feedback/resource-image";
+import { ClassTypeThumb } from "@/components/class-type-thumb";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { notFound } from "next/navigation";
 import { instanceHasStarted } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { getStaffInstance } from "@/lib/box/staff-calendar";
 import { listMembers } from "@/lib/box/members";
-import { staffClassListBack } from "@/lib/box/staff-nav";
+import { parseStaffClassOrigin, staffClassOriginBack } from "@/lib/box/staff-nav";
+import { StaffCrumbs } from "@/components/staff/staff-crumbs";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listTrainings } from "@/lib/box/trainings";
 import { listCoaches } from "@/lib/box/staff-users";
@@ -69,21 +69,14 @@ async function ClassDetail({
   const query = await searchParams;
   const now = new Date();
   const startAt = new Date(instance.startAt);
-  const back =
-    query.desde === "excepciones"
-      ? ({ href: "/staff/excepciones" as const, label: "Excepciones" as const })
-      : staffClassListBack(instance.date, now);
+  const back = staffClassOriginBack(parseStaffClassOrigin(query.desde), instance.date, now);
   const canAddMember = instance.status === "scheduled" && !instanceHasStarted(now, startAt);
   const canRemoveMember = instance.status === "scheduled" && instance.roster.length > 0;
 
   return (
     <ModulePage>
       <ModuleHeader
-        eyebrow={
-          <Link href={back.href} className="text-sm text-primary">
-            {back.label}
-          </Link>
-        }
+        eyebrow={<StaffCrumbs items={[{ href: back.href, label: back.label }, { label: instance.name }]} />}
         title={instance.name}
         description={`${formatDay(instance.date)} · ${formatTime(new Date(instance.startAt))}–${formatTime(new Date(instance.endAt))}`}
         action={
@@ -106,7 +99,7 @@ async function ClassDetail({
       />
       <ModuleBody>
         <section className="flex items-start gap-4 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
-                    <ResourceImage src={instance.imageUrl} alt="" className="size-16 shrink-0 rounded-md object-cover" />
+                    <ClassTypeThumb imageUrl={instance.imageUrl} className="size-16 shrink-0 rounded-md" />
           <div className="min-w-0 flex-1">
             {instance.coachName ? (
               <div className="flex min-w-0 items-center gap-2">

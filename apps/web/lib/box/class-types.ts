@@ -20,7 +20,7 @@ export async function getClassType(id: string): Promise<ClassTypeView> {
 export async function createClassType(input: {
   name: string;
   kind: "directed" | "open";
-  imageKey: string;
+  imageKey: string | null;
 }): Promise<ClassTypeView> {
   const row = await prisma.classType.create({
     data: { name: input.name, kind: input.kind, imageKey: input.imageKey },
@@ -30,7 +30,7 @@ export async function createClassType(input: {
 
 export async function updateClassType(
   id: string,
-  patch: ClassTypePatch & { imageKey?: string },
+  patch: ClassTypePatch & { imageKey?: string | null },
 ): Promise<ClassTypeView> {
   const existing = await prisma.classType.findUnique({ where: { id } });
   if (!existing) throw new BoxError(404, "FORBIDDEN", "El tipo no existe");

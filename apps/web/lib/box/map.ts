@@ -83,7 +83,7 @@ export function toDomainBooking(row: {
   };
 }
 
-export function typeView(row: { id: string; name: string; kind: "directed" | "open"; imageKey: string }) {
+export function typeView(row: { id: string; name: string; kind: "directed" | "open"; imageKey: string | null }) {
   return {
     id: row.id,
     name: row.name,
