@@ -123,3 +123,10 @@ export function kindGroupLabel(kind: "directed" | "open"): string {
 export function memberFullName(firstName: string, lastName: string): string {
   return `${firstName} ${lastName}`.trim();
 }
+
+export const EMPTY_FIELD = "—";
+
+export function emptyField(value: string | null | undefined): string {
+  const text = value?.trim() ?? "";
+  return text || EMPTY_FIELD;
+}

@@ -9,6 +9,7 @@ import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
+import { emptyField } from "@/lib/box/format";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -60,10 +61,7 @@ export function ClassRosterPanel({
 
   async function book(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedAvailableUserId) {
-      toast.error("Elegí un socio");
-      return;
-    }
+    if (!selectedAvailableUserId) return;
     if (!begin()) return;
     try {
       await api("/api/v1/admin/bookings", {
@@ -132,6 +130,7 @@ export function ClassRosterPanel({
             value={selectedAvailableUserId}
             onChange={setSelectedUserId}
             disabled={pending}
+            required
           />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>
@@ -190,7 +189,7 @@ export function ClassRosterPanel({
                     </Link>
                   </TableCell>
                   <TableCell className="px-3 py-2.5 align-middle text-sm text-muted-foreground">
-                    {person.phone ?? "—"}
+                    {emptyField(person.phone)}
                   </TableCell>
                   {canRemoveMember ? (
                     <TableCell className="w-0 whitespace-nowrap px-3 py-2.5 align-middle text-right">

@@ -9,9 +9,9 @@ import { api } from "@/lib/box/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/staff/field";
+import { FormInput } from "@/components/staff/form-control";
 import { FormDialog } from "@/components/staff/form-dialog";
+import { emptyField } from "@/lib/box/format";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 export type StaffProfileData = {
@@ -81,18 +81,10 @@ export function StaffProfile({ person }: { person: StaffProfileData }) {
     >
       <form onSubmit={(event) => void saveProfile(event)} className="flex flex-col gap-4">
         <fieldset disabled={pending} aria-busy={pending} className="contents">
-          <Field label="Nombre">
-            <Input name="firstName" required defaultValue={person.firstName} autoComplete="given-name" />
-          </Field>
-          <Field label="Apellidos">
-            <Input name="lastName" required defaultValue={person.lastName} autoComplete="family-name" />
-          </Field>
-          <Field label="Teléfono">
-            <Input name="phone" type="tel" defaultValue={person.phone ?? ""} autoComplete="tel" />
-          </Field>
-          <Field label="Correo">
-            <Input name="email" type="email" defaultValue={person.email ?? ""} autoComplete="email" />
-          </Field>
+          <FormInput label="Nombre" name="firstName" required defaultValue={person.firstName} autoComplete="given-name" />
+          <FormInput label="Apellidos" name="lastName" required defaultValue={person.lastName} autoComplete="family-name" />
+          <FormInput label="Teléfono" name="phone" type="tel" defaultValue={person.phone ?? ""} autoComplete="tel" />
+          <FormInput label="Correo" name="email" type="email" defaultValue={person.email ?? ""} autoComplete="email" />
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setEditing(false)}>
               Cancelar
@@ -123,9 +115,9 @@ export function StaffProfile({ person }: { person: StaffProfileData }) {
           <h2 className="mb-3 text-sm font-medium">Datos personales y contacto</h2>
           <dl className="flex flex-col gap-3">
             <ProfileField label="Nombre" value={`${person.firstName} ${person.lastName}`} />
-            <ProfileField label="DNI" value={person.dni ?? "—"} />
-            <ProfileField label="Teléfono" value={person.phone ?? "—"} />
-            <ProfileField label="Correo" value={person.email ?? "—"} />
+            <ProfileField label="DNI" value={emptyField(person.dni)} />
+            <ProfileField label="Teléfono" value={emptyField(person.phone)} />
+            <ProfileField label="Correo" value={emptyField(person.email)} />
           </dl>
         </div>
         <div>

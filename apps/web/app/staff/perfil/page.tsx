@@ -5,6 +5,7 @@ import { requireStaff } from "@/lib/auth/current";
 import { Badge } from "@/components/ui/badge";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { ProfilePhotoEditor } from "@/components/member/profile-photo-editor";
+import { emptyField } from "@/lib/box/format";
 import { getProfileImageUrlForUser } from "@/lib/box/profile-images";
 
 export default function Page() {
@@ -41,7 +42,7 @@ async function OwnStaffProfile() {
             {rows.map((row) => (
               <div key={row.label} className="min-w-0">
                 <dt className="text-sm text-muted-foreground">{row.label}</dt>
-                <dd className="wrap-break-word">{row.value || "Sin indicar"}</dd>
+                <dd className="wrap-break-word">{emptyField(row.value)}</dd>
               </div>
             ))}
           </dl>
