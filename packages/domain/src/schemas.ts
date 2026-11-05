@@ -8,7 +8,15 @@ export const isoDateSchema = z
 export const roleSchema = z.enum(["member", "coach", "admin"]);
 export const userStatusSchema = z.enum(["active", "inactive"]);
 export const userThemeSchema = z.enum(["system", "light", "dark"]);
-export const ownPreferencesSchema = z.object({ theme: userThemeSchema }).strict();
+export const ownPreferencesSchema = z
+  .object({
+    theme: userThemeSchema.optional(),
+    preferenceBoxId: z.string().uuid().nullable().optional(),
+  })
+  .strict()
+  .refine((body) => body.theme !== undefined || body.preferenceBoxId !== undefined, {
+    message: "Indicá al menos una preferencia",
+  });
 export const tariffConsumptionSchema = z.enum(["weekly_quota", "monthly_quota", "pack"]);
 export const tariffBillingSchema = z.enum([
   "monthly",

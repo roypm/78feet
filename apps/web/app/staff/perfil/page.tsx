@@ -1,7 +1,9 @@
 import { ThemePreferencePanel } from "@/components/member/theme-preference-panel";
+import { BoxPreferencePanel } from "@/components/member/box-preference-panel";
 import { Suspense } from "react";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { requireStaff } from "@/lib/auth/current";
+import { listBoxes, orderBoxes } from "@/lib/box/boxes";
 import { Badge } from "@/components/ui/badge";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { ProfilePhotoEditor } from "@/components/member/profile-photo-editor";
@@ -19,6 +21,7 @@ export default function Page() {
 async function OwnStaffProfile() {
   const user = await requireStaff();
   const imageUrl = await getProfileImageUrlForUser(user.id);
+  const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
   const rows = [
     { label: "Nombre", value: `${user.firstName} ${user.lastName}`.trim() },
     { label: "DNI", value: user.dni },
@@ -34,6 +37,7 @@ async function OwnStaffProfile() {
       <ModuleBody>
         <ProfilePhotoEditor name={`${user.firstName} ${user.lastName}`.trim()} imageUrl={imageUrl} />
         <ThemePreferencePanel />
+        <BoxPreferencePanel boxes={boxes} preferenceBoxId={user.preferenceBoxId} />
         <section className="rounded-lg bg-card p-4 ring-1 ring-foreground/10 md:p-6">
           <div className="mb-5">
             <Badge variant="secondary">{user.role === "admin" ? "Admin" : "Coach"}</Badge>

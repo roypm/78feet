@@ -1,8 +1,10 @@
 import { ThemePreferencePanel } from "@/components/member/theme-preference-panel";
+import { BoxPreferencePanel } from "@/components/member/box-preference-panel";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
+import { listBoxes, orderBoxes } from "@/lib/box/boxes";
 import { emptyField, displayPhone } from "@/lib/box/format";
 import { getOwnProfile } from "@/lib/box/summary";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
@@ -28,6 +30,7 @@ export default function Page() {
 async function Account() {
   const user = await requireMember();
   const profile = await getOwnProfile(user.id);
+  const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
   if (!profile) {
     return (
       <ModulePage>
@@ -52,6 +55,7 @@ async function Account() {
       <ModuleBody>
         <ProfilePhotoEditor name={`${profile.firstName} ${profile.lastName}`.trim()} imageUrl={profile.profileImageUrl} />
         <ThemePreferencePanel />
+        <BoxPreferencePanel boxes={boxes} preferenceBoxId={user.preferenceBoxId} />
         <div className="flex flex-col gap-4 rounded-lg bg-card p-4 ring-1 ring-foreground/10">
           <dl className="flex flex-col gap-4">
             {rows.map((row) => (

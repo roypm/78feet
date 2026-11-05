@@ -4,7 +4,7 @@ import { requireStaff } from "@/lib/auth/current";
 import { kindViewFromParam } from "@/lib/box/day-groups";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listTemplates } from "@/lib/box/templates";
-import { listBoxes, pickBox } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { listCoaches } from "@/lib/box/staff-users";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { calendarHref } from "@/lib/box/calendar-navigation";
@@ -38,7 +38,8 @@ async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: stri
   const user = await requireStaff();
   const query = await searchParams;
   const boxes = await listBoxes();
-  const box = pickBox(boxes, query.box);
+  const ordered = orderBoxes(boxes, user.preferenceBoxId);
+  const box = pickBox(ordered, query.box, user.preferenceBoxId);
   const view = kindViewFromParam(query.tipo);
   const canWrite = user.role === "admin";
   const [types, templates, coaches, hours] = await Promise.all([
@@ -55,7 +56,7 @@ async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: stri
         description="Horario recurrente. Editá la grilla y aplicá cuando esté listo; rige desde el lunes siguiente."
         tabs={
           <div className="flex flex-col items-start gap-2">
-            <BoxTabs boxes={boxes} boxId={box.id} hrefFor={(id) => calendarHref("/staff/plantilla", undefined, view, id)} />
+            <BoxTabs boxes={ordered} boxId={box.id} hrefFor={(id) => calendarHref("/staff/plantilla", undefined, view, id)} />
             <KindTabs
               view={view}
               directedHref={calendarHref("/staff/plantilla", undefined, "dirigidas", box.id)}

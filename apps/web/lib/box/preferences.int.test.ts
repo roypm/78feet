@@ -40,15 +40,20 @@ describe.skipIf(!hasDatabase)("preferencias propias", () => {
   it("empieza siguiendo el sistema para todos los roles y exige sesión", async () => {
     expect((await GET(request(), context)).status).toBe(401);
     expect((await PATCH(request(undefined, { theme: "dark" }), context)).status).toBe(401);
-    for (const user of users) expect(await (await GET(request(user.token), context)).json()).toEqual({ theme: "system" });
+    for (const user of users) {
+      expect(await (await GET(request(user.token), context)).json()).toEqual({
+        theme: "system",
+        preferenceBoxId: null,
+      });
+    }
   });
 
   it("guarda el tema de cada rol y lo devuelve al consultar de nuevo", async () => {
     for (const user of users) {
       const response = await PATCH(request(user.token, { theme: "dark" }), context);
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ theme: "dark" });
-      expect(await (await GET(request(user.token), context)).json()).toEqual({ theme: "dark" });
+      expect(await response.json()).toMatchObject({ theme: "dark" });
+      expect(await (await GET(request(user.token), context)).json()).toMatchObject({ theme: "dark" });
     }
   });
 

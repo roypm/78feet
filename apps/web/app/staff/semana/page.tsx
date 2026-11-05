@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { eachDate } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listWeek } from "@/lib/box/staff-calendar";
-import { listBoxes, pickBox } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
 import { CalendarBoard } from "@/components/member/calendar-board";
@@ -31,10 +31,10 @@ export default function Page({
 }
 
 async function Week({ searchParams }: { searchParams: Promise<{ semana?: string; tipo?: string; box?: string }> }) {
-  await requireStaff();
+  const user = await requireStaff();
   const query = await searchParams;
-  const boxes = await listBoxes();
-  const box = pickBox(boxes, query.box);
+  const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
+  const box = pickBox(boxes, query.box, user.preferenceBoxId);
   const now = new Date();
   const week = memberWeek(now, query.semana);
   const view = query.tipo === "open" ? "open" : "dirigidas";

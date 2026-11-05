@@ -8,7 +8,7 @@ import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listDay } from "@/lib/box/staff-calendar";
-import { listBoxes, pickBox } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { groupDayByKind, kindViewFromParam, viewKind } from "@/lib/box/day-groups";
 import { formatDay, formatTime, kindGroupLabel } from "@/lib/box/format";
 import { BoxTabs } from "@/components/member/box-tabs";
@@ -50,10 +50,10 @@ export default function Page({ searchParams }: { searchParams: Promise<{ tipo?: 
 }
 
 async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string; box?: string }> }) {
-  await requireStaff();
+  const user = await requireStaff();
   const query = await searchParams;
-  const boxes = await listBoxes();
-  const box = pickBox(boxes, query.box);
+  const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
+  const box = pickBox(boxes, query.box, user.preferenceBoxId);
   const view = kindViewFromParam(query.tipo);
   const activeKind = viewKind(view);
   const today = localDateString(new Date());

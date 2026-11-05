@@ -16,11 +16,28 @@ export async function listBoxes(): Promise<BoxSummary[]> {
   });
 }
 
-export function pickBox(boxes: readonly BoxSummary[], requested: string | undefined): BoxSummary {
+export function orderBoxes(boxes: readonly BoxSummary[], preferenceBoxId: string | null | undefined): BoxSummary[] {
+  if (!preferenceBoxId) return [...boxes];
+  const index = boxes.findIndex((box) => box.id === preferenceBoxId);
+  if (index <= 0) return [...boxes];
+  const preferred = boxes[index]!;
+  return [preferred, ...boxes.filter((box) => box.id !== preferenceBoxId)];
+}
+
+export function pickBox(
+  boxes: readonly BoxSummary[],
+  requested: string | undefined,
+  preferenceBoxId?: string | null,
+): BoxSummary {
   const match = requested ? boxes.find((box) => box.id === requested) : undefined;
-  const box = match ?? boxes[0];
+  const preferred = preferenceBoxId ? boxes.find((box) => box.id === preferenceBoxId) : undefined;
+  const box = match ?? preferred ?? boxes[0];
   if (!box) throw new BoxError(500, "FORBIDDEN", "No hay ningún box");
   return box;
+}
+
+export async function boxesForUser(preferenceBoxId: string | null | undefined): Promise<BoxSummary[]> {
+  return orderBoxes(await listBoxes(), preferenceBoxId);
 }
 
 async function assertUniqueName(name: string, exceptId?: string): Promise<void> {
@@ -80,8 +97,8 @@ export async function memberBoxes(userId: string): Promise<{ paymentBoxId: strin
   return { paymentBoxId: user?.paymentBoxId ?? null, preferenceBoxId: user?.preferenceBoxId ?? null };
 }
 
-export async function rememberPreference(userId: string, boxId: string): Promise<void> {
-  await requireBox(boxId);
+export async function setPreferenceBox(userId: string, boxId: string | null): Promise<void> {
+  if (boxId !== null) await requireBox(boxId);
   await prisma.user.update({ where: { id: userId }, data: { preferenceBoxId: boxId } });
 }
 

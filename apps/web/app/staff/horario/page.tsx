@@ -1,7 +1,7 @@
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/current";
-import { listBoxes, pickBox } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { getBoxHours } from "@/lib/box/hours";
 import { BoxTabs } from "@/components/member/box-tabs";
 import { HoursForm } from "@/components/staff/hours-form";
@@ -26,10 +26,10 @@ export default function Page({ searchParams }: { searchParams: Promise<{ box?: s
 }
 
 async function Hours({ searchParams }: { searchParams: Promise<{ box?: string }> }) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const query = await searchParams;
-  const boxes = await listBoxes();
-  const box = pickBox(boxes, query.box);
+  const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
+  const box = pickBox(boxes, query.box, user.preferenceBoxId);
   const hours = await getBoxHours(undefined, box.id);
 
   return (

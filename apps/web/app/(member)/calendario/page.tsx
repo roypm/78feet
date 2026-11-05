@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { eachDate } from "@78feet/domain";
 import { requireMember } from "@/lib/auth/current";
 import { listCalendar } from "@/lib/box/calendar";
-import { listBoxes, memberBoxes, pickBox, rememberPreference } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
 import { CalendarBoard } from "@/components/member/calendar-board";
@@ -34,13 +34,8 @@ async function Calendar({ searchParams }: { searchParams: Promise<{ semana?: str
   const user = await requireMember();
   const query = await searchParams;
   const now = new Date();
-  const [boxes, prefs] = await Promise.all([listBoxes(), memberBoxes(user.id)]);
-  const preferred = boxes.find((box) => box.id === prefs.preferenceBoxId);
-  const requested = query.box ? boxes.find((box) => box.id === query.box) : undefined;
-  const box = requested ?? preferred ?? pickBox(boxes, undefined);
-  if (requested && requested.id !== prefs.preferenceBoxId) {
-    await rememberPreference(user.id, requested.id);
-  }
+  const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
+  const box = pickBox(boxes, query.box, user.preferenceBoxId);
   const week = memberWeek(now, query.semana);
   const view = query.tipo === "open" ? "open" : "dirigidas";
   const [listed, hours] = await Promise.all([
