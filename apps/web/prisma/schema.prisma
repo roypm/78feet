@@ -186,6 +186,7 @@ model QuotaAdjustment {
 model Payment {
   id            String         @id @default(uuid()) @db.Uuid
   userId        String         @map("user_id") @db.Uuid
+  paymentBoxId  String         @map("payment_box_id") @db.Uuid
   billingPeriod PaymentBilling @map("billing_period")
   periodStart   DateTime?      @map("period_start") @db.Date
   amountCents   Int            @map("amount_cents")
@@ -193,10 +194,12 @@ model Payment {
   recordedBy    String         @map("recorded_by") @db.Uuid
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
   user          User           @relation("PaymentMember", fields: [userId], references: [id])
+  paymentBox    Box            @relation(fields: [paymentBoxId], references: [id])
   recorder      User           @relation("PaymentAuthor", fields: [recordedBy], references: [id])
   creditGrants  CreditGrant[]
 
   @@index([userId, periodStart])
+  @@index([paymentBoxId, createdAt(sort: Desc)])
   /// Unique subscription payment: SQL index payment_one_period
   @@map("payment")
 }
@@ -242,6 +245,7 @@ model Box {
   instances         ClassInstance[]
   payingMembers     User[]          @relation("PaymentBox")
   preferringMembers User[]          @relation("PreferenceBox")
+  payments          Payment[]
 
   @@map("box")
 }

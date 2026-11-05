@@ -1,31 +1,13 @@
-import type { PaymentBilling } from "@78feet/domain";
+import type { PatchPayment } from "@78feet/domain";
 import { prisma } from "../db";
 import { BoxError } from "./errors";
 import { isoDateFromDb } from "./time";
 import { memberFullName } from "./format";
+import type { MemberPaymentRow } from "./payments-view";
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  cash: "Efectivo",
-  bizum: "Bizum",
-  transfer: "Transferencia",
-  card: "TPV / tarjeta",
-  other: "Otro",
-};
-
-export function paymentMethodLabel(method: string | null | undefined): string {
-  if (!method?.trim()) return "—";
-  return PAYMENT_METHOD_LABELS[method] ?? method;
-}
-
-export type MemberPaymentRow = {
-  id: string;
-  billingPeriod: PaymentBilling;
-  periodStart: string | null;
-  amountCents: number;
-  method: string | null;
-  createdAt: string;
-  recordedByName: string;
-};
+export type { MemberPaymentRow, RegisteredPaymentRow } from "./payments-view";
+export { paymentMethodLabel, paymentConceptLabel } from "./payments-view";
+export { listRegisteredPaymentsPage } from "./registered-payments";
 
 export async function listMemberPayments(memberId: string) {
   const user = await prisma.user.findUnique({
@@ -69,4 +51,57 @@ export async function listMemberPayments(memberId: string) {
       recordedByName: memberFullName(payment.recorder.firstName, payment.recorder.lastName),
     })) satisfies MemberPaymentRow[],
   };
+}
+
+function paymentView(
+  payment: {
+    id: string;
+    billingPeriod: MemberPaymentRow["billingPeriod"];
+    periodStart: Date | null;
+    amountCents: number;
+    method: string | null;
+    createdAt: Date;
+  },
+  recordedByName: string,
+): MemberPaymentRow {
+  return {
+    id: payment.id,
+    billingPeriod: payment.billingPeriod,
+    periodStart: payment.periodStart ? isoDateFromDb(payment.periodStart) : null,
+    amountCents: payment.amountCents,
+    method: payment.method,
+    createdAt: payment.createdAt.toISOString(),
+    recordedByName,
+  };
+}
+
+export async function patchPayment(paymentId: string, input: PatchPayment) {
+  const existing = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: { recorder: { select: { firstName: true, lastName: true } } },
+  });
+  if (!existing) throw new BoxError(404, "FORBIDDEN", "El pago no existe");
+
+  const payment = await prisma.payment.update({
+    where: { id: paymentId },
+    data: {
+      ...(input.amountCents !== undefined ? { amountCents: input.amountCents } : {}),
+      ...(input.method !== undefined ? { method: input.method } : {}),
+    },
+    include: { recorder: { select: { firstName: true, lastName: true } } },
+  });
+
+  return paymentView(
+    payment,
+    memberFullName(payment.recorder.firstName, payment.recorder.lastName),
+  );
+}
+
+export async function deletePayment(paymentId: string) {
+  const existing = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    select: { id: true },
+  });
+  if (!existing) throw new BoxError(404, "FORBIDDEN", "El pago no existe");
+  await prisma.payment.delete({ where: { id: paymentId } });
 }

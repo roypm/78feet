@@ -9,6 +9,7 @@ import { POST as createTraining } from "../../app/api/v1/admin/trainings/route";
 import { DELETE as deleteTraining } from "../../app/api/v1/admin/trainings/[id]/route";
 import { GET as unpaid } from "../../app/api/v1/admin/unpaid/route";
 import { POST as pay } from "../../app/api/v1/admin/payments/route";
+import { PATCH as patchPay, DELETE as deletePay } from "../../app/api/v1/admin/payments/[id]/route";
 import { POST as createMember } from "../../app/api/v1/admin/members/route";
 import { TRAINING_NAME_TAKEN, type BoxHoursConfig } from "@78feet/domain";
 import { primaryBoxId } from "./hours";
@@ -251,5 +252,39 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
       amountCents: 7000,
     });
     expect(recorded.status).toBe(201);
+    const paymentId = (recorded.json as { id: string }).id;
+
+    const stored = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      select: { paymentBoxId: true, createdAt: true },
+    });
+    expect(stored?.paymentBoxId).toBeTruthy();
+    expect(stored?.createdAt).toBeInstanceOf(Date);
+
+    const corrected = await call(
+      patchPay,
+      "PATCH",
+      `/api/v1/admin/payments/${paymentId}`,
+      coachToken,
+      { amountCents: 7500, method: "bizum" },
+      { id: paymentId },
+    );
+    expect(corrected.status).toBe(200);
+    expect(corrected.json).toMatchObject({ amountCents: 7500, method: "bizum" });
+
+    const removed = await call(
+      deletePay,
+      "DELETE",
+      `/api/v1/admin/payments/${paymentId}`,
+      coachToken,
+      undefined,
+      { id: paymentId },
+    );
+    expect(removed.status).toBe(200);
+
+    const listedAgain = await call(unpaid, "GET", "/api/v1/admin/unpaid", coachToken);
+    expect(listedAgain.status).toBe(200);
+    const againRows = (listedAgain.json as { members: { id: string }[] }).members;
+    expect(againRows.some((item) => item.id === memberId)).toBe(true);
   });
 });

@@ -146,12 +146,13 @@ Ajustes puntuales por socio, periodo de consumo y grilla, aplicados a la semana 
 |---|---|---|
 | `id` | uuid | |
 | `user_id` | uuid | |
+| `payment_box_id` | uuid | FK `box`. Box de pago del socio **en el momento del alta** del cobro; no cambia si luego se mueve el socio de sede. |
 | `billing_period` | enum | `monthly` \| `quarterly` \| `semiannual` \| `annual` \| `one_time` |
 | `period_start` | date, nullable | inicio del periodo cubierto; null en `one_time` |
 | `amount_cents` | int | |
 | `method` | text, nullable | `cash` \| `bizum` \| `transfer` \| `card` \| otro |
 | `recorded_by` | uuid | FK `user` (staff) |
-| `created_at` | timestamptz | |
+| `created_at` | timestamptz | fecha y hora en que el staff registró el cobro en el sistema |
 
 Invariante: único `(user_id, billing_period, period_start)` cuando el periodo no es `one_time`.
 "Impago" = socio con tarifa de suscripción vigente sin fila de pago para el periodo en curso (según `billing_period` de la tarifa).
@@ -542,6 +543,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | GET/PATCH | `/api/v1/admin/staff/:id` | consultar perfil y editar nombre, teléfono y email | admin |
 | GET | `/api/v1/admin/unpaid?date` | socios con periodo de facturación pendiente a esa fecha (por defecto hoy) | coach, admin |
 | POST | `/api/v1/admin/payments` | registrar pago | coach, admin |
+| PATCH/DELETE | `/api/v1/admin/payments/:id` | corregir importe o método, o eliminar un pago mal registrado | coach, admin |
 | POST | `/api/v1/admin/bookings` | reservar a nombre de un socio | coach, admin |
 | DELETE | `/api/v1/admin/bookings/:id?returnQuota=` | cancelar a nombre de un socio | coach, admin |
 | POST | `/api/v1/cron/materialize` | cron diario (protegido por secreto) | sistema |

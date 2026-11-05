@@ -67,9 +67,12 @@ function normalizePeriodStart(billingPeriod: CreatePayment["billingPeriod"], per
 }
 
 export async function recordPayment(input: CreatePayment, actorId: string) {
-  const user = await prisma.user.findUnique({ where: { id: input.userId } });
+  const user = await prisma.user.findUnique({ where: { id: input.userId }, select: { role: true, paymentBoxId: true } });
   if (!user || user.role !== "member") {
     throw new BoxError(404, "FORBIDDEN", "El socio no existe");
+  }
+  if (!user.paymentBoxId) {
+    throw new BoxError(400, "FORBIDDEN", "Asigná un box de pago al socio antes de registrar el cobro");
   }
   const periodStart = normalizePeriodStart(input.billingPeriod, input.periodStart);
   if (input.billingPeriod !== "one_time" && !periodStart) {
@@ -87,6 +90,7 @@ export async function recordPayment(input: CreatePayment, actorId: string) {
         amountCents: input.amountCents,
         method: input.method ?? null,
         recordedBy: actorId,
+        paymentBoxId: user.paymentBoxId,
       },
     });
     return {

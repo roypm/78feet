@@ -400,6 +400,18 @@ export function MemberProfile({
   );
 
 
+  const paymentsHistoryLink = (
+    <Link
+      href={`/staff/socios/${member.id}/pagos`}
+      className={cn(
+        buttonVariants({ variant: "outline", size: "sm" }),
+        "inline-flex h-8 shrink-0 items-center justify-center px-2.5",
+      )}
+    >
+      Pagos registrados
+    </Link>
+  );
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-3">
@@ -409,12 +421,6 @@ export function MemberProfile({
             action={
               <>
                 {editProfileDialog}
-                <Link
-                  href={`/staff/socios/${member.id}/pagos`}
-                  className={cn(buttonVariants({ variant: "outline" }), "min-h-11 inline-flex items-center justify-center px-2.5")}
-                >
-                  Historial
-                </Link>
                 {active ? resetPasswordDialog : null}
               </>
             }
@@ -495,7 +501,8 @@ export function MemberProfile({
               }}
             >
               <FormSelect
-                label="Box"
+                label="Box de pago"
+                labelClassName="sr-only"
                 name="paymentBoxId"
                 required
                 disabled={pending}
@@ -507,6 +514,32 @@ export function MemberProfile({
               </PendingButton>
             </form>
           </ProfileSection>
+
+          <ProfileSection title="Pagos" action={paymentsHistoryLink}>
+            {summary.payment ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground">{summary.payment.periodLabel}</span>
+                {summary.payment.status === "paid" ? (
+                  <Badge className="bg-success text-white">Pagado</Badge>
+                ) : active ? (
+                  <MarkPaidButton
+                    userId={member.id}
+                    billingPeriod={summary.payment.billingPeriod}
+                    periodStart={summary.payment.periodStart}
+                    periodLabel={summary.payment.periodLabel}
+                    amountCents={tariff?.priceCents ?? 0}
+                  />
+                ) : (
+                  <Badge variant="outline">Pendiente</Badge>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Cobros del socio: periodo en curso (si aplica), pagos únicos y bonos. Desde el historial podés corregir un importe o eliminar un registro erróneo.
+              </p>
+            )}
+          </ProfileSection>
+
           <ProfileSection title="Tarifa" action={active ? changeTariffDialog : null}>
             {!tariff ? (
               <EmptyState compact title="Sin tarifa activa" description={active ? assignable.length > 0 ? "Asigná una tarifa desde el botón de esta sección." : "El admin tiene que crear o activar una tarifa para poder asignarla." : "La cuenta está dada de baja. La tarifa podrá asignarse al reactivarla."} />
@@ -537,24 +570,6 @@ export function MemberProfile({
                         value={billingPeriodKindLabel(tariff.billingPeriod)}
                       />
                     </dl>
-                    {summary.payment ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-muted-foreground">{summary.payment.periodLabel}</span>
-                        {summary.payment.status === "paid" ? (
-                          <Badge className="bg-success text-white">Pagado</Badge>
-                        ) : active ? (
-                          <MarkPaidButton
-                            userId={member.id}
-                            billingPeriod={summary.payment.billingPeriod}
-                            periodStart={summary.payment.periodStart}
-                            periodLabel={summary.payment.periodLabel}
-                            amountCents={tariff.priceCents}
-                          />
-                        ) : (
-                          <Badge variant="outline">Pendiente</Badge>
-                        )}
-                      </div>
-                    ) : null}
                   </>
                 )}
               </div>

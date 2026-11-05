@@ -439,6 +439,19 @@ export const createPaymentSchema = z
     }
   });
 
+export const patchPaymentSchema = z
+  .object({
+    amountCents: z.number().int().min(0).optional(),
+    method: z.string().trim().min(1).nullable().optional(),
+  })
+  .refine((value) => value.amountCents !== undefined || value.method !== undefined, {
+    message: "Nada para actualizar",
+  });
+
+export const adminPaymentsQuerySchema = z.object({
+  box: z.string().uuid().optional(),
+});
+
 export const adminDayQuerySchema = z.object({
   date: isoDateSchema,
 });
@@ -478,3 +491,4 @@ export type BoxHoursConfig = z.infer<typeof boxHoursConfigSchema>;
 export type CreateStaff = z.infer<typeof createStaffSchema>;
 export type PatchStaff = z.infer<typeof patchStaffSchema>;
 export type CreatePayment = z.infer<typeof createPaymentSchema>;
+export type PatchPayment = z.infer<typeof patchPaymentSchema>;

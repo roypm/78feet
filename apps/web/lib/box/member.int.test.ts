@@ -187,9 +187,11 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
     expect(bookings.some((item) => item.instanceId === row.id && item.canCancel)).toBe(true);
 
     const admin = await prisma.user.findFirstOrThrow({ where: { loginId: `admin-${suffix}` } });
+    const paymentBoxId = await primaryBoxId(prisma);
     await prisma.payment.create({
       data: {
         userId: memberId,
+        paymentBoxId,
         billingPeriod: "monthly",
         periodStart: isoDateToDb(`${today.slice(0, 7)}-01`),
         amountCents: 7000,

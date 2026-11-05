@@ -47,7 +47,7 @@ async function MemberPayments({ params }: { params: Promise<{ id: string }> }) {
     <ModulePage>
       <ModuleHeader
         title="Historial de pagos"
-        description={`${memberLabel} · ${memberIdLine}`}
+        description={`${memberLabel} · ${memberIdLine}. Columna «Registrado el»: cuándo el staff dio de alta el cobro.`}
         eyebrow={
           <StaffCrumbs
             items={[
