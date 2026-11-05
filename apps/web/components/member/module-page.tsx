@@ -94,6 +94,11 @@ export function ModuleHeaderToolbar({
   );
 }
 
+/** Dos filas de pestañas en el header (sede + tipo, cobros + sede, etc.). */
+export function ModuleHeaderTabStack({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("flex flex-col items-start gap-2", className)}>{children}</div>;
+}
+
 export function ModuleBody({
   children,
   width = "reading",

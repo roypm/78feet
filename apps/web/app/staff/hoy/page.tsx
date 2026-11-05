@@ -14,7 +14,7 @@ import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/
 import { formatDay, formatTime, kindGroupLabel } from "@/lib/box/format";
 import { BoxTabs } from "@/components/member/box-tabs";
 import { KindTabs } from "@/components/member/kind-tabs";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/member/module-page";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 function todayClassMeta(item: {
@@ -71,7 +71,7 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string; 
         title="Hoy"
         description={`Clases de ${formatDay(today)}. Tocá una para ver detalle y roster.`}
         tabs={
-          <div className="flex flex-col items-start gap-2">
+          <ModuleHeaderTabStack>
             <BoxTabs
               boxes={boxes}
               boxId={box.id}
@@ -83,7 +83,7 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string; 
               openHref={`/staff/hoy?box=${box.id}&tipo=open`}
               className="xl:hidden"
             />
-          </div>
+          </ModuleHeaderTabStack>
         }
       />
       <ModuleBody width="full" inset="content">

@@ -12,7 +12,7 @@ import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { TemplateSchedule } from "@/components/staff/template-schedule";
 import { BoxTabs } from "@/components/member/box-tabs";
 import { KindTabs } from "@/components/member/kind-tabs";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/member/module-page";
 
 export default function Page({
   searchParams,
@@ -60,14 +60,14 @@ async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: stri
         title="Plantilla"
         description="Horario recurrente. Editá la grilla y aplicá cuando esté listo; rige desde el lunes siguiente."
         tabs={
-          <div className="flex flex-col items-start gap-2">
+          <ModuleHeaderTabStack>
             <BoxTabs boxes={ordered} boxId={box.id} hrefFor={(id) => calendarHref("/staff/plantilla", undefined, view, id)} />
             <KindTabs
               view={view}
               directedHref={calendarHref("/staff/plantilla", undefined, "dirigidas", box.id)}
               openHref={calendarHref("/staff/plantilla", undefined, "open", box.id)}
             />
-          </div>
+          </ModuleHeaderTabStack>
         }
       />
       <ModuleBody width="full" fill>

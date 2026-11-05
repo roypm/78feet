@@ -7,9 +7,10 @@ import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
 import { listUnpaidPage } from "@/lib/box/unpaid";
 import { listBoxes } from "@/lib/box/boxes";
-import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
+import { BoxTabs } from "@/components/member/box-tabs";
+import { CobrosNavTabs, paymentBoxListHref } from "@/components/staff/cobros-tabs";
 import { UnpaidMembersTable } from "@/components/staff/unpaid-members-table";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/member/module-page";
 
 export default function Page({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string }> }) {
   return (
@@ -41,21 +42,25 @@ async function Unpaid({ searchParams }: { searchParams: Promise<{ pagina?: strin
         title="Impagos"
         description="Socios con el periodo de cobro de su tarifa sin registrar pago."
         tabs={
-          <FilterTabs aria-label="Box de pago">
-            <FilterTabLink href="/staff/impagos" active={!paymentBoxId}>
-              Todos
-            </FilterTabLink>
-            {boxes.map((box) => (
-              <FilterTabLink key={box.id} href={`/staff/impagos?box=${box.id}`} active={paymentBoxId === box.id}>
-                {box.name}
-              </FilterTabLink>
-            ))}
-          </FilterTabs>
+          <ModuleHeaderTabStack>
+            <CobrosNavTabs active="pending" />
+            <BoxTabs
+              boxes={boxes}
+              boxId={paymentBoxId}
+              includeAll
+              allHref="/staff/impagos"
+              ariaLabel="Box de pago"
+              hrefFor={(id) => paymentBoxListHref("/staff/impagos", id)}
+            />
+          </ModuleHeaderTabStack>
         }
       />
       <ModuleBody width="full" inset="content">
         {unpaid.items.length === 0 ? (
-          <EmptyState title="No hay pagos pendientes" description="No hay socios con un pago periódico pendiente de registrar en su periodo en curso." />
+            <EmptyState
+              title="No hay pagos pendientes"
+              description="No hay socios con un pago periódico pendiente de registrar en su periodo en curso."
+            />
         ) : (
           <UnpaidMembersTable members={unpaid.items} />
         )}
