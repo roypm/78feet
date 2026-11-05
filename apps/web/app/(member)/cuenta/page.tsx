@@ -3,7 +3,7 @@ import { LoadingState } from "@/components/feedback/loading-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
-import { emptyField } from "@/lib/box/format";
+import { emptyField, displayPhone } from "@/lib/box/format";
 import { getOwnProfile } from "@/lib/box/summary";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { ProfilePhotoEditor } from "@/components/member/profile-photo-editor";
@@ -42,7 +42,7 @@ async function Account() {
   const rows = [
     { label: "Nombre", value: `${profile.firstName} ${profile.lastName}`.trim() },
     { label: "DNI", value: profile.dni },
-    { label: "Teléfono", value: profile.phone },
+    { label: "Teléfono", value: displayPhone(profile.phone) },
     { label: "Email", value: profile.email },
   ];
 

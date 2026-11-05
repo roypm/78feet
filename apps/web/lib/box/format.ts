@@ -130,3 +130,20 @@ export function emptyField(value: string | null | undefined): string {
   const text = value?.trim() ?? "";
   return text || EMPTY_FIELD;
 }
+
+/** Solo lectura: agrupa móviles españoles de 9 cifras como `666 66 66 66` (o `+34 …`). */
+export function displayPhone(value: string | null | undefined): string {
+  const raw = value?.trim() ?? "";
+  if (!raw) return EMPTY_FIELD;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 0) return raw;
+
+  const hasCountry = digits.startsWith("34") && digits.length >= 11;
+  const national = hasCountry ? digits.slice(2, 11) : digits.length === 9 ? digits : null;
+  if (national?.length === 9) {
+    const grouped = `${national.slice(0, 3)} ${national.slice(3, 5)} ${national.slice(5, 7)} ${national.slice(7, 9)}`;
+    return hasCountry ? `+34 ${grouped}` : grouped;
+  }
+
+  return raw;
+}

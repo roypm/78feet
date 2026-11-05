@@ -14,7 +14,7 @@ import { ConfirmDialog } from "@/components/staff/confirm-dialog";
 import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
-import { emptyField } from "@/lib/box/format";
+import { emptyField, displayPhone } from "@/lib/box/format";
 import { matchesSearch, searchHaystack } from "@/lib/ui/search";
 
 export type TeamMember = {
@@ -146,7 +146,7 @@ export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[
                               {person.loginId}
                             </span>
                             <span className="mt-0.5 block truncate text-sm text-muted-foreground xl:hidden">
-                              {[emptyField(person.phone), emptyField(person.email)].join(" · ")}
+                              {[displayPhone(person.phone), emptyField(person.email)].join(" · ")}
                             </span>
                             <div className="mt-1 flex flex-wrap gap-1.5 md:hidden">
                               <Badge variant="secondary">{person.role === "admin" ? "Admin" : "Coach"}</Badge>
@@ -159,7 +159,7 @@ export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[
                         </TableCell>
                         <TableCell className="hidden max-w-[12rem] px-3 py-2.5 align-middle xl:table-cell">
                           <span className="block truncate text-sm" title={person.phone ?? undefined}>
-                            {emptyField(person.phone)}
+                            {displayPhone(person.phone)}
                           </span>
                         </TableCell>
                         <TableCell className="hidden max-w-[18rem] px-3 py-2.5 align-middle xl:table-cell">

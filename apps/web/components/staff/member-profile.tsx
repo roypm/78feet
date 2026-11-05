@@ -17,7 +17,7 @@ import {
   quotaPeriodForConsumption,
   usesPeriodicQuota,
 } from "@78feet/domain";
-import { emptyField, formatPrice, memberFullName } from "@/lib/box/format";
+import { displayPhone, emptyField, formatPrice, memberFullName } from "@/lib/box/format";
 import { MarkPaidButton } from "@/components/staff/mark-paid-button";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -426,7 +426,7 @@ export function MemberProfile({
             <dl className="flex flex-col gap-3">
               <FieldRow label="Nombre" value={memberFullName(member.firstName, member.lastName)} />
               <FieldRow label="DNI" value={emptyField(member.dni)} />
-              <FieldRow label="Teléfono" value={emptyField(member.phone)} />
+              <FieldRow label="Teléfono" value={displayPhone(member.phone)} />
               <FieldRow label="Email" value={emptyField(member.email)} />
               <FieldRow label="Usuario" value={member.loginId} />
             </dl>

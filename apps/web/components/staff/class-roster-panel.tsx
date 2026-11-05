@@ -9,7 +9,7 @@ import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
-import { emptyField } from "@/lib/box/format";
+import { emptyField, displayPhone } from "@/lib/box/format";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -189,7 +189,7 @@ export function ClassRosterPanel({
                     </Link>
                   </TableCell>
                   <TableCell className="px-3 py-2.5 align-middle text-sm text-muted-foreground">
-                    {emptyField(person.phone)}
+                    {displayPhone(person.phone)}
                   </TableCell>
                   {canRemoveMember ? (
                     <TableCell className="w-0 whitespace-nowrap px-3 py-2.5 align-middle text-right">

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FormInput } from "@/components/staff/form-control";
 import { FormDialog } from "@/components/staff/form-dialog";
-import { emptyField } from "@/lib/box/format";
+import { emptyField, displayPhone } from "@/lib/box/format";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
 
 export type StaffProfileData = {
@@ -116,7 +116,7 @@ export function StaffProfile({ person }: { person: StaffProfileData }) {
           <dl className="flex flex-col gap-3">
             <ProfileField label="Nombre" value={`${person.firstName} ${person.lastName}`} />
             <ProfileField label="DNI" value={emptyField(person.dni)} />
-            <ProfileField label="Teléfono" value={emptyField(person.phone)} />
+            <ProfileField label="Teléfono" value={displayPhone(person.phone)} />
             <ProfileField label="Correo" value={emptyField(person.email)} />
           </dl>
         </div>

@@ -9,7 +9,7 @@ import { usesPeriodicQuota } from "@78feet/domain";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MemberListSearch } from "@/components/staff/member-list-search";
 import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
-import { emptyField, memberFullName } from "@/lib/box/format";
+import { displayPhone, emptyField, memberFullName } from "@/lib/box/format";
 import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
 import { cn } from "cn";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
@@ -147,7 +147,7 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
         <TableBody>
           {filtered.map((member) => {
             const fullName = memberFullName(member.firstName, member.lastName);
-            const phone = emptyField(member.phone);
+            const phone = displayPhone(member.phone);
             const email = emptyField(member.email);
             const dni = emptyField(member.dni);
 
@@ -173,7 +173,7 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
                     <div className="min-w-0">
                     <span className="inline-flex items-center gap-2 font-medium wrap-break-word">{fullName}{pending && openingId === member.id && <Spinner aria-label="Abriendo socio" />}</span>
                     <span className="mt-0.5 block truncate text-sm text-muted-foreground sm:hidden">
-                      {[member.dni, member.phone].filter(Boolean).join(" · ") || null}
+                      {[member.dni, member.phone ? displayPhone(member.phone) : null].filter(Boolean).join(" · ") || null}
                     </span>
                     {member.email ? (
                       <span className="mt-0.5 block truncate text-sm text-muted-foreground sm:hidden" title={member.email}>
@@ -184,7 +184,7 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
                   </div>
                 </TableCell>
                 <TableCell className="hidden max-w-[8rem] px-3 py-2.5 align-middle sm:table-cell">
-                  <CellText value={phone} className="tabular-nums" title={member.phone ?? undefined} />
+                  <CellText value={phone} title={member.phone ?? undefined} />
                 </TableCell>
                 <TableCell className="hidden max-w-[16rem] px-3 py-2.5 align-middle md:table-cell">
                   <CellText value={email} title={member.email ?? undefined} />

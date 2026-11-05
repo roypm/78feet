@@ -5,7 +5,7 @@ import { requireStaff } from "@/lib/auth/current";
 import { Badge } from "@/components/ui/badge";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { ProfilePhotoEditor } from "@/components/member/profile-photo-editor";
-import { emptyField } from "@/lib/box/format";
+import { emptyField, displayPhone } from "@/lib/box/format";
 import { getProfileImageUrlForUser } from "@/lib/box/profile-images";
 
 export default function Page() {
@@ -22,7 +22,7 @@ async function OwnStaffProfile() {
   const rows = [
     { label: "Nombre", value: `${user.firstName} ${user.lastName}`.trim() },
     { label: "DNI", value: user.dni },
-    { label: "Teléfono", value: user.phone },
+    { label: "Teléfono", value: displayPhone(user.phone) },
     { label: "Correo", value: user.email },
     { label: "Usuario de acceso", value: user.loginId },
     { label: "Rol", value: user.role === "admin" ? "Admin" : "Coach" },
