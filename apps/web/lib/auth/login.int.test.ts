@@ -42,6 +42,19 @@ describe.skipIf(!hasDatabase)("loginWithPassword", () => {
     expect(result).toEqual({ ok: false, locked: false });
   });
 
+  it("rejects a locked account without checking the password", async () => {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { failedLogins: 10, lockedUntil: new Date(Date.now() + 60_000) },
+    });
+    const result = await loginWithPassword(loginId, "secret-pass");
+    expect(result).toEqual({ ok: false, locked: true });
+    await prisma.user.update({
+      where: { id: userId },
+      data: { failedLogins: 0, lockedUntil: null },
+    });
+  });
+
   afterAll(async () => {
     if (userId) {
       await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
