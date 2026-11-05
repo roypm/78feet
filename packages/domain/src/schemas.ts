@@ -56,7 +56,6 @@ export const sessionUserSchema = z.object({
 });
 
 export const loginResponseSchema = z.object({
-  token: z.string(),
   user: sessionUserSchema,
   theme: userThemeSchema,
 });
@@ -250,6 +249,17 @@ export const patchTemplateSchema = templateWriteSchema
   .omit({ boxId: true })
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });
+
+export const applyTemplateDraftUpdatedSchema = patchTemplateSchema.and(
+  z.object({ id: z.string().uuid() }),
+);
+
+export const applyTemplateDraftSchema = z.object({
+  boxId: z.string().uuid(),
+  deletedIds: z.array(z.string().uuid()),
+  updated: z.array(applyTemplateDraftUpdatedSchema),
+  created: z.array(templateWriteSchema.omit({ boxId: true })),
+});
 
 export const classTypeWriteSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio"),
@@ -457,6 +467,7 @@ export type QuotaAdjustment = z.infer<typeof quotaAdjustmentSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type TemplateWrite = z.infer<typeof templateWriteSchema>;
 export type PatchTemplate = z.infer<typeof patchTemplateSchema>;
+export type ApplyTemplateDraft = z.infer<typeof applyTemplateDraftSchema>;
 export type ClassTypeWrite = z.infer<typeof classTypeWriteSchema>;
 export type ClassTypePatch = z.infer<typeof classTypePatchSchema>;
 export type TrainingWrite = z.infer<typeof trainingWriteSchema>;

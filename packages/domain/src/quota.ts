@@ -35,23 +35,6 @@ export function weeklyUsed(params: {
   });
 }
 
-export function monthlyUsed(params: {
-  bookings: readonly Booking[];
-  instancesById: ReadonlyMap<string, Pick<ClassInstance, "date">>;
-  userId: string;
-  monthDate: string;
-  kind: ClassKind;
-}): number {
-  return quotaUsed({
-    bookings: params.bookings,
-    instancesById: params.instancesById,
-    userId: params.userId,
-    periodDate: params.monthDate,
-    period: "month",
-    kind: params.kind,
-  });
-}
-
 export function quotaUsed(params: {
   bookings: readonly Booking[];
   instancesById: ReadonlyMap<string, Pick<ClassInstance, "date">>;
