@@ -194,7 +194,7 @@ Una sede de la empresa. Puede haber más de una. En esta v1 no se borra.
 
 La web staff y el socio eligen box por URL o selector; horario, plantilla, clases nuevas y borrador de plantilla son por box. La materialización recorre cada box con su propio horario.
 
-Un box nuevo lo crea el admin desde Horario del box: nace con plantilla vacía y abierto de `07:00` a `21:00` los siete días (`defaultBoxHours`).
+Un box nuevo lo crea el admin desde **Sedes** (`/staff/boxes`): nace con plantilla vacía y abierto de `07:00` a `21:00` los siete días (`defaultBoxHours`). **Horario del box** solo edita apertura y excepciones por fecha de la sede elegida.
 
 Tarifas, biblioteca, tipos de clase y equipo no tienen `box_id`.
 
@@ -500,7 +500,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | GET | `/api/v1/me/bookings` | próximas reservas |
 | GET | `/api/v1/me/bookings/history` | reservas cuya clase ya empezó, de la más reciente a la más antigua |
 | GET | `/api/v1/me/summary` | tarifa, cupos usados/límite (`null` = ilimitado), saldo de bono, estado del mes |
-| GET/PATCH | `/api/v1/me/preferences` | consultar o guardar el tema propio (`{ theme: "system" \| "light" \| "dark" }`); todos los roles con sesión activa; rechaza campos extra |
+| GET/PATCH | `/api/v1/me/preferences` | consultar o guardar tema (`theme`) y sede por defecto (`preferenceBoxId`, uuid o null); todos los roles con sesión; rechaza campos extra; la sede solo cambia por este endpoint, no al navegar el selector |
 | POST/DELETE | `/api/v1/me/profile-image` | subir/reemplazar o quitar la foto propia (multipart `image`) | sesión activa |
 
 **Staff**

@@ -23,18 +23,20 @@ La identidad visual salió del grilling de diseño (28/10/2026). Este documento 
 
 ### Superficies y texto
 
+Paleta neutra alineada con las capturas de la app móvil legacy (`assets/brand/reference/app-screenshot-*.png`). Mismos alias semánticos; solo cambian los hex en `globals.css`.
+
 | Rol | Claro | Oscuro | Alias principal |
 |---|---|---|---|
-| Menú lateral | `#E4EBF3` | `#0E1620` | `--sidebar` |
-| Lienzo | `#F4F1EB` | `#1C2838` | `--background`, `--color-bg` |
-| Cabecera de módulo | `#FFFFFF` | `#2C3E54` | `--header`, `--color-header` |
-| Cards y superficies | `#FFFFFF` | `#3A516C` | `--card`, `--color-surface` |
-| Bordes | `#DDD6CC` | `#4A5E78` | `--border`, `--color-border` |
-| Texto principal | `#111827` | `#F9FAFB` | `--foreground`, `--color-text` |
-| Texto secundario | `#6B7280` | `#B6C2CE` | `--muted-foreground`, `--color-text-muted` |
-| Superficie secundaria | `#EBE6DE` | `#31445C` | `--secondary`, `--muted` |
+| Menú lateral | `#E0E0E0` | `#202020` | `--sidebar` |
+| Lienzo | `#D8D8D8` | `#303030` | `--background`, `--color-bg` |
+| Cabecera de módulo | `#FFFFFF` | `#262626` | `--header`, `--color-header` |
+| Cards y superficies | `#FFFFFF` | `#484848` | `--card`, `--color-surface` |
+| Bordes | `#C8C8C8` | `#595959` | `--border`, `--color-border` |
+| Texto principal | `#191919` | `#F8F8F8` | `--foreground`, `--color-text` |
+| Texto secundario | `#707070` | `#C8C8C8` | `--muted-foreground`, `--color-text-muted` |
+| Superficie secundaria | `#E0E0E0` (secondary/accent) · `#F8E8D8` (muted) | `#404040` | `--secondary`, `--muted` |
 
-El menú es frío, el lienzo claro es cálido, la cabecera separa el título del contenido y las cards forman la superficie elevada.
+Grises neutros en claro y oscuro; la cabecera de módulo separa el título del contenido y las cards forman la superficie elevada sobre el lienzo.
 
 ### Feedback semántico
 
@@ -118,8 +120,8 @@ Las listas paginadas comparten `ListPagination`: rango y total a la izquierda; A
 
 ### Menú lateral
 
-- Marca 78feet con tratamiento propio y enlace al inicio del rol. A su lado, botón visible para contraer o expandir; sigue accesible en modo de iconos. El perfil queda separado de la marca y de la navegación, con avatar, nombre y rol.
-- Staff: Actividad (Hoy, Semana, Excepciones, Biblioteca), Gestión (Socios, Impagos y Equipo), Configuración del box (Plantilla, Tipos de clase, Horario del box y Tarifas). Solo se muestran enlaces autorizados y las secciones vacías se omiten.
+- Marca **77 FEET** con logotipo (`/brand/mark-full-color.png` en sidebar expandido; `/brand/mark-icon-square.png` en modo iconos), enlace al inicio del rol y `aria-label` «77 FEET, ir al inicio». Fuentes en `assets/brand/logo/`; copias web con fondo transparente en `apps/web/public/brand/`. A su lado, botón visible para contraer o expandir; sigue accesible en modo de iconos. El perfil queda separado de la marca y de la navegación, con avatar, nombre y rol.
+- Staff: Actividad (Hoy, Semana, Excepciones, Biblioteca), Gestión (Socios, Impagos y Equipo), Configuración del box (Sedes, Plantilla, Tipos de clase, Horario del box y Tarifas). Solo se muestran enlaces autorizados y las secciones vacías se omiten. En Mi perfil, **Sede por defecto** (si hay más de una) usa radios como Apariencia; solo se guarda desde ahí, no al cambiar el selector de box.
 - Socios: Entrenamiento (Calendario, Mis reservas, Biblioteca) y Mi cuenta (Historial, Mi tarifa). Mi perfil permanece junto al avatar.
 - Pie fijo con cambio de tema y Cerrar sesión en una línea. El contenido central del menú tiene scroll si falta altura; cabecera y pie permanecen accesibles. En móvil se abre como panel y se cierra al navegar o usar Escape.
 - El menú recuerda su estado expandido por navegador. El enlace activo expone `aria-current`; los controles tienen etiquetas en español, foco visible y ayudas al plegarse. Los detalles de clase del staff conservan la sección de origen (Hoy, Semana o Excepciones); una entrada directa usa Semana.
