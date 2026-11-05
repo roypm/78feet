@@ -1,59 +1,45 @@
 ---
 name: ftd
 description: >
-  Fast Track Development (setup-roy): light one-shot delivery of a product piece
-  in the current repo. Shorter path — brief, technical plan, tasks, implement,
-  converge — no clarify/checklist/analyze phases and no product pauses. One task
-  per request, not a chat mode. Use when the user names ftd, FTD, fast track,
-  skill rápida, skill ligera, tap, or piece-light. For full spec discipline
-  use sdd instead. Not companion, grilling, or surgical.
+  Fast Track Development: implements one clearly scoped feature or product
+  change in the current repo through a lightweight pipeline—Anchor, Specify,
+  Plan, Tasks, Implement, Converge. End-to-end with optional checks unless
+  requested. Use when the user asks for FTD, fast-track development, or
+  lightweight implementation.
 ---
 
 # FTD — Fast Track Development
 
-Deliver **one product piece** with minimal ceremony, then stop. Same philosophy as **sdd** (sensible scope, repo fit), fewer phases, no decision gates.
-
-Each request is **one shot**: run the pipeline and implement; do not stay in FTD for unrelated work.
-
-## Not this skill
-
-| Skill | When |
-|-------|------|
-| **sdd** | Full Spec-Driven path, optional `auto` / `pausas` levels |
-| **surgical** | Bug fix or tiny change, not a new piece |
-| **companion** | Teach step by step; default no writes |
-| **grilling** | Interrogate a plan; no implementation |
+Deliver one clearly scoped change through the pipeline below: ground the work in the repo, specify the outcome, plan and break down tasks, implement, then converge. Treat each request as a separate task and stop when it is complete.
 
 ## Hard rules
 
-1. **Repo anchor first** — Read what the task needs; follow existing patterns.
-2. **No product pauses** — If something is unknowable without the user (secret, email address, business rule), state the **single blocker** in one line; implement everything else that does not depend on it, or stop with that blocker only if nothing safe can be written.
-3. **No constitution** — Do not create project-wide principle files unless asked.
-4. **Implement** — Brief and plan are for quality, not a substitute for code.
-5. **Claims** — Do not say tests/build passed unless you ran them this session.
-6. **Git** — No commit or push unless explicitly asked.
+1. **Anchor first** — Read relevant project context (`AGENTS.md`, docs, nearby code) and follow existing patterns.
+2. **Keep moving** — If missing information blocks part of the work, state what is missing and continue with the parts that do not depend on it. If nothing can be done safely, stop and ask for that information.
+3. **Keep scope local** — Avoid project-wide rules or configuration unless asked. Update existing docs when the change makes them inaccurate; don’t create docs when none are relevant.
+4. **Complete the change** — Use **Specify**, **Plan**, and **Tasks** to guide **Implement**; do not stop after planning alone.
+5. **Checks** — Skip tests by default. Run them only if requested or a quick check is necessary; report results accurately.
+6. **Respect Git boundaries** — Do not commit or push unless explicitly asked.
 
-## Pipeline (in order)
+## Pipeline (always, in order)
 
-| Step | Name | Do |
-|------|------|-----|
-| 0 | **Anclaje** | Quick context: stack, files touched, conventions. |
-| 1 | **Brief** (`specify`) | Piece, done-when, short in/out. |
-| 2 | **Técnica** (`plan`) | Where and how in this codebase. |
-| 3 | **Tareas** (`tasks`) | Short ordered list (often 1–3 steps). |
-| 4 | **Programar** (`implement`) | Apply changes. |
-| 5 | **Cierre** (`converge`) | Met brief? Checks run? One-line assumptions if any. |
+Run the phases below in order for each request. Step **0** re-anchors repo context and governing principles for that change. Scale **Plan** and **Tasks** to the size of the change.
 
-No separate clarify, checklist, or analyze — fold obvious gaps into the brief and fix small inconsistencies while planning.
+| Step | Name | Goal | Do |
+|------|------|------|-----|
+| 0 | **Anchor** | Ground this change in the repo and the rules later steps must honor. | Read `AGENTS.md`, docs, and nearby code; note constraints, patterns, risks, and non-negotiables (security, architecture, quality). State any principles the user gave for this task that are not already in project docs. |
+| 1 | **Specify** | Turn the request into a clear spec: what to build and why—not stack or implementation. | Define problem, outcome, acceptance criteria, scope, and out-of-scope in product language; keep it concise; defer tech choices to **Plan**. Record assumptions you proceed on when something is underspecified. |
+| 2 | **Plan** | Translate the spec into a technical design: stack, architecture, and how the change lands in the codebase. | Choose how and where to implement (modules, files, data, dependencies) in this repo. |
+| 3 | **Tasks** | Produce dependency-ordered, actionable work items from the plan and spec. | Break the plan into concrete ordered tasks; each advances a spec requirement with a clear done check; omit filler. |
+| 4 | **Implement** | Execute tasks in order and build the change per the plan. | Complete tasks using project conventions. |
+| 5 | **Converge** | Verify the change matches the spec and tasks; close the loop on this request. | Compare outcome to **Specify** and **Tasks**; state assumptions and anything still missing. Run checks only per hard rule 5; report what ran accurately (including when none ran). |
 
 ## Response shape (optional, keep short)
 
 ```markdown
 ## FTD · <piece title>
-**Hecho cuando:** …
-**Tareas:** 1) …
+**Done when:** …
+**Tasks:** 1) …
 ---
 (implementation + verification note)
 ```
-
-User chose FTD for a large piece — honor that; do not switch to **sdd** unless they ask.
