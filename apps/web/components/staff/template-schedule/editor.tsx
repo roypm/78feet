@@ -17,6 +17,7 @@ export function TemplateEditor({
   onClose,
   onCommit,
   onRemove,
+  onDuplicate,
 }: {
   draft: Draft;
   types: ClassType[];
@@ -24,6 +25,7 @@ export function TemplateEditor({
   onClose: () => void;
   onCommit: (slot: TemplateSlotWrite, existing?: ScheduleTemplate) => void;
   onRemove: (id: string) => void;
+  onDuplicate?: () => void;
 }) {
   const isEditing = Boolean(draft.template);
 
@@ -63,10 +65,15 @@ export function TemplateEditor({
             options={[{ value: "", label: "Sin coach" }, ...coaches.map((coach) => ({ value: coach.id, label: coach.name }))]} />
           <QuantityField label="Aforo" name="defaultCapacity" min={1} required defaultValue={draft.defaultCapacity} />
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>
             Cerrar
           </Button>
+          {onDuplicate ? (
+            <Button type="button" variant="outline" className="min-h-11" onClick={onDuplicate}>
+              Duplicar
+            </Button>
+          ) : null}
           {draft.template ? (
             <Button
               type="button"

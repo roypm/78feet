@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { exceptionKindLabel, exceptionKinds, isCalendarException } from "./exceptions";
+import {
+  exceptionCardStatusLabel,
+  exceptionKindLabel,
+  exceptionKinds,
+  isCalendarException,
+} from "./exceptions";
 
 describe("exceptionKinds", () => {
   it("marks extras without template", () => {
@@ -22,6 +27,13 @@ describe("exceptionKinds", () => {
     expect(exceptionKindLabel("extra")).toBe("Clase extra");
     expect(exceptionKindLabel("modified")).toBe("Modificada");
     expect(exceptionKindLabel("cancelled")).toBe("Cancelada");
+  });
+
+  it("picks a single short status for the exceptions card", () => {
+    expect(exceptionCardStatusLabel(["extra"])).toBe("Extra");
+    expect(exceptionCardStatusLabel(["modified"])).toBe("Modificada");
+    expect(exceptionCardStatusLabel(["modified", "cancelled"])).toBe("Cancelada");
+    expect(exceptionCardStatusLabel(["extra", "cancelled"])).toBe("Cancelada");
   });
 
   it("flags calendar exceptions", () => {

@@ -42,6 +42,13 @@ export function exceptionKindLabel(kind: ExceptionKind): string {
   return "Cancelada";
 }
 
+/** Etiqueta corta del listado de Excepciones (Extra · Modificada · Cancelada). */
+export function exceptionCardStatusLabel(kinds: ExceptionKind[]): string {
+  if (kinds.includes("cancelled")) return "Cancelada";
+  if (kinds.includes("extra")) return "Extra";
+  return "Modificada";
+}
+
 /** Instancia que no sigue la plantilla tal cual (extra o tocada como excepción). */
 export function isCalendarException(row: { templateId: string | null; editedAt: Date | null }): boolean {
   return row.templateId === null || row.editedAt !== null;

@@ -1,10 +1,10 @@
 # Auditoría de la web desplegada
 
-Revisión del 3 de noviembre de 2026 sobre la web ya desplegada. Recoge lo que hay que cambiar antes de enseñar la v1. Las decisiones están cerradas.
+Revisión del 3 de noviembre de 2026 sobre la web ya desplegada. Recoge el **antes/después** acordado antes de enseñar la v1. Las decisiones están cerradas e **implementadas en las llescas 7–20** (nov 2026).
 
-No sustituye al PRD ni al TRD. Esos se actualizan al construir esto. El registro del grilling original no se toca.
+El producto vigente está en el [PRD](./prd.md), el [TRD](./trd.md) y [app-flow](./app-flow.md). Este archivo no sustituye a esos documentos; conserva el registro de la auditoría. El registro del grilling original no se toca.
 
-Cómo cortarlo en llescas y en qué orden: [hoja de ruta](./hoja-de-ruta.md#auditoria-web). Una sección de este archivo es una llesca, no un único PR.
+Corte en llescas y orden de ejecución: [hoja de ruta](./hoja-de-ruta.md#auditoria-web) (bloque cerrado). Una sección de este archivo era una llesca, no un único PR.
 
 ## Segundo box
 

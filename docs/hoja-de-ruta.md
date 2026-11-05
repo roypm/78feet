@@ -15,18 +15,18 @@ Una llesca por pasada. Cada una deja el repo en un estado que se puede probar an
 | 4 | Reservar y cancelar | hecha | Socio y staff reservan/cancelan contra Postgres, con `FOR UPDATE` |
 | 5 | Pantallas del socio (web) | hecha | Calendario, detalle, mis reservas, historial, mi tarifa — [app-flow](./app-flow.md) |
 | 6 | Panel de staff | hecha | Hoy, semana, detalle de clase (roster y reservas staff), excepciones, catálogo de tipos de clase, socios, cuentas y perfiles de Equipo, impagos, horario semanal y excepciones por fecha del box, y Biblioteca (staff y socio) |
-| 7–20 | Auditoría de la web | pendiente | Decisiones en [auditoria-web](./auditoria-web.md); corte y orden en la sección de abajo |
+| 7–20 | Auditoría de la web | hecha | [auditoria-web](./auditoria-web.md); detalle por llesca en la sección de abajo |
 | 21 | App Expo | pendiente | Seis pestañas del socio (incluye Historial y Biblioteca), mismo cliente de `@78feet/domain`, Android primero |
 
 Fuera de esta lista (v1): pagos online, notificaciones, asistencia, lista de espera, iOS, Docker.
 
 <a id="auditoria-web"></a>
 
-## Auditoría de la web (llescas 7–20)
+## Auditoría de la web (llescas 7–20) — cerrada
 
-Qué hay que cambiar: [auditoria-web](./auditoria-web.md). Este bloque solo dice **cómo cortarlo** y **en qué orden**. El PRD y el TRD se actualizan **dentro** de la llesca que cambia producto o dominio, no en un PR de docs previo. El grilling original no se toca.
+Registro del delta y checklist de ejecución: [auditoria-web](./auditoria-web.md). **Bloque completado**; el producto vigente vive en PRD, TRD y app-flow. Las filas siguientes documentan qué llesca cerró cada parte de la auditoría (historial de construcción, no backlog).
 
-Una fila = una llesca = un PR. El «Hecho cuando» es la sección de la auditoría; no mezclar dos H2 distintas en el mismo merge, salvo que compartan el mismo patrón (los avisos de campo sí van juntos).
+Una fila = una llesca = un PR. El «Hecho cuando» era la sección correspondiente de la auditoría.
 
 Dentro de un mismo grupo, el orden entre llescas es libre. No empezar el grupo siguiente si la cadena que lo desbloquea no está hecha.
 
@@ -62,10 +62,10 @@ No empiezan hasta que la 18 esté hecha. Dependen del box en datos o en pantalla
 
 | # | Llesca | Estado | Hecho cuando |
 |---|---|---|---|
-| 19 | Plantilla: duplicar y publicar por box | pendiente | Duplicar abre el alta copiando tipo, hora, aforo y coach del mismo día y box, sin guardar sola; Aplicar y Cancelar cambio afectan solo el box en pantalla |
-| 20 | Excepciones: card | pendiente | Estado junto al nombre; segunda línea con box, día, hora, aforo y coach; sin pastillas a la derecha ni fila extra de modalidad |
+| 19 | Plantilla: duplicar y publicar por box | hecha | Duplicar abre el alta copiando tipo, hora, aforo y coach del mismo día y box, sin guardar sola; Aplicar y Cancelar cambio afectan solo el box en pantalla |
+| 20 | Excepciones: card | hecha | Estado junto al nombre; segunda línea con box, día, hora, aforo y coach; sin pastillas a la derecha ni fila extra de modalidad |
 
-Expo (llesca 21) espera a cerrar este bloque: el modelo de box y las reglas de la auditoría tienen que estar en dominio antes de copiarlos a móvil.
+Expo (llesca 21) puede empezar: el bloque de auditoría web (7–20) está cerrado y el modelo de box y sus reglas están en dominio y en la web staff.
 
 ## Mantenimiento posterior a v1
 

@@ -1,10 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { clockToMinutes, isWithinOpeningIntervals, type BoxHoursConfig } from "@78feet/domain";
 import { toast } from "sonner";
 import { applyTemplateDraft, summaryMessage } from "@/lib/box/apply-template-draft";
+import {
+  clearPersistedTemplateWorking,
+  readPersistedTemplateWorking,
+  writePersistedTemplateWorking,
+} from "@/lib/box/template-draft-persistence";
 import { localTemplateOverlap, newPendingTemplateId, templatesEqual, templatesSnapshot, type ScheduleTemplate, type TemplateSlotWrite } from "@/lib/box/template-draft";
 import type { Draft, TemplateKind, ClassType } from "./shared";
 
@@ -19,11 +24,28 @@ export function useTemplateDraft({ templates, types, openingHours, boxId }: {
   const { router, pending: applying, begin, setPending: setApplying } = useActionFeedback();
   const baseline = useMemo(() => templatesSnapshot(templates), [templates]);
   const baselineKey = JSON.stringify(baseline);
-  const [workingState, setWorkingState] = useState(() => ({
-    baselineKey,
-    value: templatesSnapshot(templates),
-  }));
+  const [workingState, setWorkingState] = useState(() => {
+    const snapshot = templatesSnapshot(templates);
+    const restored = readPersistedTemplateWorking(boxId, baselineKey);
+    return {
+      baselineKey,
+      value: restored ?? snapshot,
+    };
+  });
   const working = workingState.baselineKey === baselineKey ? workingState.value : baseline;
+
+  useEffect(() => {
+    const snapshot = templatesSnapshot(templates);
+    const restored = readPersistedTemplateWorking(boxId, baselineKey);
+    setWorkingState({ baselineKey, value: restored ?? snapshot });
+    setDraft(null);
+    setApplyOpen(false);
+  }, [boxId, baselineKey, templates]);
+
+  useEffect(() => {
+    if (templatesEqual(baseline, working)) clearPersistedTemplateWorking(boxId);
+    else writePersistedTemplateWorking(boxId, baselineKey, working);
+  }, [boxId, baselineKey, baseline, working]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [applyOpen, setApplyOpen] = useState(false);
   const editorKey = useRef(0);
@@ -83,9 +105,23 @@ export function useTemplateDraft({ templates, types, openingHours, boxId }: {
     });
   }
 
+  function startDuplicate(template: ScheduleTemplate) {
+    setDraft({
+      key: ++editorKey.current,
+      kind: template.kind,
+      weekday: template.weekday,
+      startTime: template.startTime.slice(0, 5),
+      endTime: template.endTime.slice(0, 5),
+      classTypeId: template.classTypeId,
+      coachId: template.coachId,
+      defaultCapacity: template.defaultCapacity,
+    });
+  }
+
   function cancelDraftChanges() {
     setWorking(templatesSnapshot(baseline));
     setDraft(null);
+    clearPersistedTemplateWorking(boxId);
     toast.message("Cambios descartados");
   }
 
@@ -139,6 +175,7 @@ export function useTemplateDraft({ templates, types, openingHours, boxId }: {
       toast.success(summaryMessage(summary));
       setApplyOpen(false);
       setDraft(null);
+      clearPersistedTemplateWorking(boxId);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo aplicar la plantilla");
@@ -149,6 +186,6 @@ export function useTemplateDraft({ templates, types, openingHours, boxId }: {
 
   return {
     working, isDirty, draft, setDraft, applyOpen, setApplyOpen, applying,
-    startCreate, startEdit, cancelDraftChanges, commitSlot, removeSlot, applyTemplate,
+    startCreate, startEdit, startDuplicate, cancelDraftChanges, commitSlot, removeSlot, applyTemplate,
   };
 }

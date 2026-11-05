@@ -29,7 +29,7 @@ Sin Docker, sin microservicios, sin GraphQL, sin Kubernetes. Un despliegue, una 
 
 ```
 apps/web        Next.js — interfaz del staff, del socio en web, y la API
-apps/mobile     Expo — prevista para socios; todavía no existe en el repo (hoja de ruta, llesca 7)
+apps/mobile     Expo — prevista para socios; todavía no existe en el repo (hoja de ruta, llesca 21)
 packages/domain tipos, esquemas zod, reglas puras de cupo y cliente de API
 ```
 
@@ -192,9 +192,9 @@ Una sede de la empresa. Puede haber más de una. En esta v1 no se borra.
 | `exceptions` | jsonb | Excepciones por fecha. Si existe la fecha, sus intervalos sustituyen el día semanal. Una lista vacía cierra el día. Solo se guardan para hoy o una fecha futura. |
 | `created_at` | timestamptz | El primer box es el de `created_at` más antiguo. |
 
-Hasta el selector de la llesca siguiente, la web lee y escribe el horario, la plantilla y las clases nuevas sobre ese primer box. La materialización recorre cada box con su propio horario.
+La web staff y el socio eligen box por URL o selector; horario, plantilla, clases nuevas y borrador de plantilla son por box. La materialización recorre cada box con su propio horario.
 
-Un box nuevo, cuando el producto lo permita, nace con la plantilla vacía y abierto de `07:00` a `21:00` los siete días. Ese horario por defecto vive en `defaultBoxHours`.
+Un box nuevo lo crea el admin desde Horario del box: nace con plantilla vacía y abierto de `07:00` a `21:00` los siete días (`defaultBoxHours`).
 
 Tarifas, biblioteca, tipos de clase y equipo no tienen `box_id`.
 
@@ -565,8 +565,9 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
   socio para quien entre desde el navegador. Server Components para lectura, route handlers para mutaciones.
   Reservas staff: detalle de instancia (`/staff/clases/:id`), enlazado desde Semana, Hoy o Excepciones; usa
   `POST/DELETE /api/v1/admin/bookings`. `/staff/reservas` redirige a Semana.
-- **App móvil** (`apps/mobile`, pendiente): solo socios. La hoja de ruta reserva para esta llesca Expo Router
-  con seis pestañas: Calendario, Mis reservas, Historial, Biblioteca, Mi tarifa y Cuenta; consumirá la misma API.
+- **App móvil** (`apps/mobile`, pendiente, llesca 21): solo socios. Expo Router con seis pestañas:
+  Calendario, Mis reservas, Historial, Biblioteca, Mi tarifa y Cuenta; consumirá la misma API y las reglas de
+  `@78feet/domain` ya validadas en web (incluido multi-box).
 - Sin estado offline, sin push, sin cámara. La imagen del tipo, si hay, es un archivo que sube el admin, ya encuadrado; nadie la saca desde la app.
 
 ## 8. Tiempo
@@ -641,7 +642,11 @@ El saldo de bonos del listado se calcula con agregaciones `SUM(quantity)` de cr�
 
 ### Organización de la edición de plantilla web
 
-`TemplateSchedule` compone la cuadrícula, el editor de huecos y el diálogo de aplicación. El hook `useTemplateDraft` gestiona borrador, validaciones locales, descarte y estado de guardado; la función `applyTemplateDraft` concentra las peticiones DELETE, PATCH y POST, en ese orden y de forma secuencial. Si una petición falla, detiene las siguientes y propaga el error al hook. Este flujo mantiene las transacciones individuales de cada endpoint: el lote completo de edición no es una transacción única.
+`TemplateSchedule` compone la cuadrícula, el editor de huecos y el diálogo de aplicación. El hook `useTemplateDraft` gestiona borrador, validaciones locales, descarte y estado de guardado; el borrador sin aplicar de cada box se conserva en `sessionStorage` por sesión del navegador. La función `applyTemplateDraft` concentra las peticiones DELETE, PATCH y POST, en ese orden y de forma secuencial. Si una petición falla, detiene las siguientes y propaga el error al hook. Este flujo mantiene las transacciones individuales de cada endpoint: el lote completo de edición no es una transacción única.
+
+### Listado de Excepciones (staff)
+
+`ExceptionsList` renderiza las instancias anómalas desde hoy (`listExceptions`). La etiqueta corta del estado (`Extra`, `Modificada`, `Cancelada`) la expone `exceptionCardStatusLabel` en `lib/box/exceptions.ts`, con prioridad Cancelada sobre Extra y Modificada cuando varios `kinds` aplican.
 
 ### Organización de las acciones sobre clases puntuales
 

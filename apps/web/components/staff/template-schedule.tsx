@@ -40,7 +40,7 @@ export function TemplateSchedule({
   const [mobileDay, setMobileDay] = useState(1);
   const {
     working, isDirty, draft, setDraft, applyOpen, setApplyOpen, applying,
-    startCreate, startEdit: editSlot, cancelDraftChanges, commitSlot, removeSlot, applyTemplate,
+    startCreate, startEdit: editSlot, startDuplicate, cancelDraftChanges, commitSlot, removeSlot, applyTemplate,
   } = useTemplateDraft({ templates, types, openingHours, boxId });
   const activeKind = view === "open" ? "open" : "directed";
   const effectiveFrom = formatDay(nextMondayDate(localDateString(new Date())));
@@ -94,6 +94,7 @@ export function TemplateSchedule({
           onClose={() => setDraft(null)}
           onCommit={commitSlot}
           onRemove={removeSlot}
+          onDuplicate={draft.template ? () => startDuplicate(draft.template!) : undefined}
         />
       ) : null}
 

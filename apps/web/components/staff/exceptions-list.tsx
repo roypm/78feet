@@ -4,14 +4,8 @@ import { ClassTypeThumb } from "@/components/class-type-thumb";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import type { ExceptionInstance } from "@/lib/box/exceptions";
-import { exceptionKindLabel } from "@/lib/box/exceptions";
+import { exceptionCardStatusLabel } from "@/lib/box/exceptions";
 import { formatDay, formatTime } from "@/lib/box/format";
-import { Badge } from "@/components/ui/badge";
-import { ProfileAvatar } from "@/components/member/profile-avatar";
-
-function kindGridLabel(kind: ExceptionInstance["kind"]): string {
-  return kind === "open" ? "Open" : "Dirigida";
-}
 
 export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
   if (items.length === 0) {
@@ -22,12 +16,14 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
     <ul className="grid gap-3 lg:grid-cols-2">
       {items.map((item) => {
         const cancelled = item.status === "cancelled";
+        const status = exceptionCardStatusLabel(item.kinds);
         const timeRange = `${formatTime(new Date(item.startAt))}–${formatTime(new Date(item.endAt))}`;
         const meta = [
           item.boxName,
           formatDay(item.date),
           timeRange,
-          cancelled ? null : `${item.bookedCount}/${item.capacity}`,
+          `${item.capacity} plazas`,
+          item.coachName,
         ]
           .filter((part): part is string => Boolean(part))
           .join(" · ");
@@ -44,7 +40,7 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
             <Link
               href={`/staff/clases/${item.id}?desde=excepciones`}
               prefetch={true}
-              aria-label={`${item.name}, ${meta}${item.coachName ? `, coach ${item.coachName}` : ""}`}
+              aria-label={`${item.name}, ${status}, ${meta}`}
               className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/40"
             />
             <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
@@ -56,33 +52,14 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
                     : "pointer-events-none size-full"
                 }
               />
-              {cancelled ? (
-                <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-destructive/80 px-0.5 text-center text-[9px] font-semibold leading-tight text-white">
-                  Cancelada
-                </span>
-              ) : null}
             </div>
             <span className="pointer-events-none relative min-w-0 flex-1">
-              <span className="block truncate font-medium">{item.name}</span>
+              <span className="block truncate font-medium">
+                {item.name}
+                <span className="font-normal text-muted-foreground"> · {status}</span>
+              </span>
               <span className="block truncate text-sm text-muted-foreground tabular-nums">{meta}</span>
-              {item.coachName ? (
-                <span className="mt-1 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-                  <ProfileAvatar name={item.coachName} imageUrl={item.coachProfileImageUrl} size="sm" />
-                  <span className="min-w-0 truncate">{item.coachName}</span>
-                </span>
-              ) : null}
-              <span className="block text-sm text-muted-foreground">{kindGridLabel(item.kind)}</span>
             </span>
-            <div className="relative z-10 flex max-w-[40%] shrink-0 flex-wrap justify-end gap-1">
-              {item.kinds.map((kind) => (
-                <Badge
-                  key={kind}
-                  variant={kind === "cancelled" ? "destructive" : kind === "extra" ? "outline" : "secondary"}
-                >
-                  {exceptionKindLabel(kind)}
-                </Badge>
-              ))}
-            </div>
           </li>
         );
       })}

@@ -146,6 +146,7 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 ### 5.2 Plantilla y semanas
 
 - La **plantilla semanal** coloca tipos en el horario: día, hora de inicio y fin, tipo de clase, coach (opcional) y aforo. No se vuelve a elegir la grilla: sale del tipo.
+- Desde un hueco existente se puede **duplicar** otro del mismo box y día: abre el alta con tipo, hora, aforo y coach copiados, sin guardar sola; al confirmar entra en el borrador de ese box. La misma hora sigue bloqueada por solape.
 - El **coach es del hueco**, no del tipo. El mismo tipo a las 9:00 y a las 18:00 puede tener coaches distintos.
 - De la plantilla salen **instancias con fecha concreta**. Todo se reserva contra una instancia, nunca contra la plantilla.
 - El calendario es **rodante y automático**: la semana en curso y las tres siguientes, de lunes a domingo. Cierra el domingo de esa cuarta semana. **No hay botón de publicar** y el admin no tiene tarea semanal.
@@ -163,6 +164,7 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 
 ### 5.3 Excepciones (una semana concreta)
 
+- El listado de Excepciones muestra cada fila con el estado (**Extra**, **Modificada** o **Cancelada**) junto al nombre del tipo; debajo, box, día, hora, aforo y coach si lo hay. Una cancelada se distingue con el anillo que ya tenía.
 - No se toca la plantilla: se actúa sobre la instancia. Se puede **cancelar** la clase, **cambiar hora, coach o aforo**, **cambiar el tipo** (uno que ya exista) o **añadir una clase extra** eligiendo un tipo. El coach puede hacerlo; no puede crear el tipo.
 - Cambiar el **tipo** de un hueco con gente cancela las reservas y devuelve el cupo.
 - Cambiar la **hora** de una clase con gente: las reservas **viajan con la clase** (siempre dentro del mismo día).
