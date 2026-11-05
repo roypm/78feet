@@ -41,6 +41,7 @@ export function CancelBookingButton({
       }
       toast.success("Reserva cancelada");
       setOpen(false);
+      router.refresh();
       router.push(nextHref);
     } catch {
       toast.error("No se pudo cancelar");

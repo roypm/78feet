@@ -1,13 +1,14 @@
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { kindViewFromParam } from "@/lib/box/day-groups";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listTemplates } from "@/lib/box/templates";
-import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
+import { calendarHref } from "@/lib/box/calendar-navigation";
+import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
 import { listCoaches } from "@/lib/box/staff-users";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
-import { calendarHref } from "@/lib/box/calendar-navigation";
 import { TemplateSchedule } from "@/components/staff/template-schedule";
 import { BoxTabs } from "@/components/member/box-tabs";
 import { KindTabs } from "@/components/member/kind-tabs";
@@ -39,8 +40,12 @@ async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: stri
   const query = await searchParams;
   const boxes = await listBoxes();
   const ordered = orderBoxes(boxes, user.preferenceBoxId);
-  const box = pickBox(ordered, query.box, user.preferenceBoxId);
   const view = kindViewFromParam(query.tipo);
+  const canonical = canonicalBoxRedirect(ordered, query.box, user.preferenceBoxId, (id) =>
+    calendarHref("/staff/plantilla", undefined, view, id),
+  );
+  if (canonical) redirect(canonical);
+  const box = pickBox(ordered, query.box, user.preferenceBoxId);
   const canWrite = user.role === "admin";
   const [types, templates, coaches, hours] = await Promise.all([
     listClassTypes(),

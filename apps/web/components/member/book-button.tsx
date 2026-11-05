@@ -23,6 +23,7 @@ export function BookButton({ instanceId }: { instanceId: string }) {
         return;
       }
       toast.success("Reserva confirmada");
+      router.refresh();
       router.push("/calendario");
     } catch {
       toast.error("No se pudo reservar");

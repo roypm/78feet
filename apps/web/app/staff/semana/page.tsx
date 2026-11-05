@@ -1,9 +1,11 @@
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { eachDate } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listWeek } from "@/lib/box/staff-calendar";
-import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
+import { calendarHref } from "@/lib/box/calendar-navigation";
+import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
 import { CalendarBoard } from "@/components/member/calendar-board";
@@ -34,10 +36,14 @@ async function Week({ searchParams }: { searchParams: Promise<{ semana?: string;
   const user = await requireStaff();
   const query = await searchParams;
   const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
+  const view = query.tipo === "open" ? "open" : "dirigidas";
+  const canonical = canonicalBoxRedirect(boxes, query.box, user.preferenceBoxId, (id) =>
+    calendarHref("/staff/semana", query.semana, view, id),
+  );
+  if (canonical) redirect(canonical);
   const box = pickBox(boxes, query.box, user.preferenceBoxId);
   const now = new Date();
   const week = memberWeek(now, query.semana);
-  const view = query.tipo === "open" ? "open" : "dirigidas";
   const [classes, hours] = await Promise.all([listWeek(week.start, now, box.id), getBoxHours(undefined, box.id)]);
   const filtered = classes.filter((item) => (view === "open" ? item.kind === "open" : item.kind === "directed"));
 

@@ -36,8 +36,15 @@ export function pickBox(
   return box;
 }
 
-export async function boxesForUser(preferenceBoxId: string | null | undefined): Promise<BoxSummary[]> {
-  return orderBoxes(await listBoxes(), preferenceBoxId);
+/** When `?box=` is set but unknown, return the URL that matches the fallback box. */
+export function canonicalBoxRedirect(
+  boxes: readonly BoxSummary[],
+  requested: string | undefined,
+  preferenceBoxId: string | null | undefined,
+  hrefFor: (boxId: string) => string,
+): string | null {
+  if (!requested || boxes.some((box) => box.id === requested)) return null;
+  return hrefFor(pickBox(boxes, undefined, preferenceBoxId).id);
 }
 
 async function assertUniqueName(name: string, exceptId?: string): Promise<void> {
@@ -87,19 +94,6 @@ export async function requireBox(id: string): Promise<BoxSummary> {
   const box = await prisma.box.findUnique({ where: { id }, select: { id: true, name: true } });
   if (!box) throw new BoxError(404, "FORBIDDEN", "El box no existe");
   return box;
-}
-
-export async function memberBoxes(userId: string): Promise<{ paymentBoxId: string | null; preferenceBoxId: string | null }> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { paymentBoxId: true, preferenceBoxId: true },
-  });
-  return { paymentBoxId: user?.paymentBoxId ?? null, preferenceBoxId: user?.preferenceBoxId ?? null };
-}
-
-export async function setPreferenceBox(userId: string, boxId: string | null): Promise<void> {
-  if (boxId !== null) await requireBox(boxId);
-  await prisma.user.update({ where: { id: userId }, data: { preferenceBoxId: boxId } });
 }
 
 export async function setPaymentBox(memberId: string, paymentBoxId: string): Promise<{ paymentBoxId: string; paymentBoxName: string }> {

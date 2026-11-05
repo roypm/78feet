@@ -1,17 +1,23 @@
 
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
+import { ListPagination } from "@/components/member/list-pagination";
+import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireMember } from "@/lib/auth/current";
-import { listUpcomingBookings } from "@/lib/box/bookings";
+import { listUpcomingBookingsPage } from "@/lib/box/bookings";
 import { formatDay, formatTime, kindLabel } from "@/lib/box/format";
 import { CancelBookingButton } from "@/components/member/cancel-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
-export default function Page() {
+export default function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ pagina?: string }>;
+}) {
   return (
     <Suspense
       fallback={
@@ -23,14 +29,15 @@ export default function Page() {
         </ModulePage>
       }
     >
-      <Bookings />
+      <Bookings searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Bookings() {
+async function Bookings({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
   const user = await requireMember();
-  const bookings = await listUpcomingBookings(user.id);
+  const query = await searchParams;
+  const { items: bookings, pageInfo } = await listUpcomingBookingsPage(user.id, pageNumber(query.pagina));
 
   return (
     <ModulePage>
@@ -69,6 +76,7 @@ async function Bookings() {
           ))}
         </ul>
       )}
+      <ListPagination pageInfo={pageInfo} path="/reservas" />
       </ModuleBody>
     </ModulePage>
   );

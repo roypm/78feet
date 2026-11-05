@@ -19,12 +19,12 @@ export async function POST(request: Request): Promise<Response> {
   const result = await loginWithPassword(parsed.data.loginId, parsed.data.password);
   if (!result.ok) {
     if (result.locked) {
-      return jsonError("FORBIDDEN", 403, "Cuenta bloqueada. Pedí el reset al staff.");
+      return jsonError("ACCOUNT_LOCKED", 403);
     }
     return jsonError("FORBIDDEN", 403, "Usuario o contraseña incorrectos");
   }
 
-  const response = jsonOk({ token: result.token, user: result.user, theme: result.theme });
+  const response = jsonOk({ user: result.user, theme: result.theme });
   response.headers.append("Set-Cookie", buildSessionCookie(result.token));
   return response;
 }

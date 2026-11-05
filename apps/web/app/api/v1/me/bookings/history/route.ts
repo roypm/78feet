@@ -1,4 +1,8 @@
-import { listBookingHistory } from "@/lib/box/bookings";
+import { pageNumber } from "@/lib/box/pagination";
+import { listBookingHistoryPage } from "@/lib/box/bookings";
 import { sessionHandler } from "@/lib/box/guard";
 
-export const GET = sessionHandler(["member"], async (user) => listBookingHistory(user.id));
+export const GET = sessionHandler(["member"], async (user, request) => {
+  const page = pageNumber(new URL(request.url).searchParams.get("pagina") ?? undefined);
+  return listBookingHistoryPage(user.id, page);
+});

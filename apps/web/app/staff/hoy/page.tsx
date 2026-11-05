@@ -4,12 +4,13 @@ import { ClassTypeThumb } from "@/components/class-type-thumb";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listDay } from "@/lib/box/staff-calendar";
-import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { groupDayByKind, kindViewFromParam, viewKind } from "@/lib/box/day-groups";
+import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
 import { formatDay, formatTime, kindGroupLabel } from "@/lib/box/format";
 import { BoxTabs } from "@/components/member/box-tabs";
 import { KindTabs } from "@/components/member/kind-tabs";
@@ -53,8 +54,12 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string; 
   const user = await requireStaff();
   const query = await searchParams;
   const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
-  const box = pickBox(boxes, query.box, user.preferenceBoxId);
   const view = kindViewFromParam(query.tipo);
+  const canonical = canonicalBoxRedirect(boxes, query.box, user.preferenceBoxId, (id) =>
+    view === "open" ? `/staff/hoy?box=${id}&tipo=open` : `/staff/hoy?box=${id}`,
+  );
+  if (canonical) redirect(canonical);
+  const box = pickBox(boxes, query.box, user.preferenceBoxId);
   const activeKind = viewKind(view);
   const today = localDateString(new Date());
   const classes = await listDay(today, new Date(), box.id);

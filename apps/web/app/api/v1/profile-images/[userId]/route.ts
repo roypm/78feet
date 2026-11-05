@@ -1,23 +1,10 @@
+import { canViewProfileImage } from "@/lib/auth/profile-image-access";
 import { loadActiveUserFromRequest } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 
 function isUuid(value: string): boolean {
   return /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(value);
-}
-
-async function canViewImage(viewer: { id: string; role: string }, target: { id: string; role: string }): Promise<boolean> {
-  if (viewer.id === target.id || viewer.role === "coach" || viewer.role === "admin") return true;
-  if (target.role === "member") {
-    return Boolean(await prisma.booking.findFirst({
-      where: { userId: target.id, status: "active" },
-      select: { id: true },
-    }));
-  }
-  return Boolean(await prisma.classInstance.findFirst({
-    where: { coachId: target.id },
-    select: { id: true },
-  }));
 }
 
 export async function GET(
@@ -38,7 +25,7 @@ export async function GET(
       user: { select: { id: true, role: true } },
     },
   });
-  if (!image || !(await canViewImage(viewer, image.user))) return new Response(null, { status: 404 });
+  if (!image || !(await canViewProfileImage(viewer, image.user))) return new Response(null, { status: 404 });
 
   return new Response(image.data, {
     headers: {

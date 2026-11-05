@@ -476,14 +476,14 @@ El horario habitual de cada box vive en `box.weekly_hours`: siete días ISO (lun
 
 Los endpoints de datos devuelven JSON y validan entradas con los esquemas zod de `packages/domain`. La ruta de imágenes devuelve el binario con su tipo MIME.
 Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_EXHAUSTED`,
-`OVERLAP`, `CANCELLATION_CLOSED`, `NO_MEMBERSHIP`, `FORBIDDEN`, `CLASS_TYPE_IN_USE`,
-`CONFIRM_REQUIRED` y `SCHEDULE_CLOSED`).
+`OVERLAP`, `CANCELLATION_CLOSED`, `NO_MEMBERSHIP`, `FORBIDDEN`, `ACCOUNT_LOCKED`,
+`CLASS_TYPE_IN_USE`, `CONFIRM_REQUIRED` y `SCHEDULE_CLOSED`).
 
 **Público / sesión**
 
 | Método | Ruta | Quién |
 |---|---|---|
-| POST | `/api/v1/auth/login` | todos; devuelve token, usuario y su tema guardado |
+| POST | `/api/v1/auth/login` | todos; devuelve usuario y tema; la sesión va en cookie `httpOnly` (web). Credenciales incorrectas → `FORBIDDEN`; cuenta bloqueada → `ACCOUNT_LOCKED` |
 | POST | `/api/v1/auth/logout` | todos |
 | GET | `/api/v1/auth/me` | todos |
 
@@ -497,8 +497,8 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 | GET | `/api/v1/trainings/:id` | ficha: fases y bloques en orden |
 | POST | `/api/v1/bookings` | reservar `{ instanceId }` |
 | DELETE | `/api/v1/bookings/:id` | cancelar (regla de 2 h) |
-| GET | `/api/v1/me/bookings` | próximas reservas |
-| GET | `/api/v1/me/bookings/history` | reservas cuya clase ya empezó, de la más reciente a la más antigua |
+| GET | `/api/v1/me/bookings?pagina` | próximas reservas, paginadas (25 por página, `pagina` ≥ 1) |
+| GET | `/api/v1/me/bookings/history?pagina` | reservas cuya clase ya empezó, paginadas (25 por página, `pagina` ≥ 1) |
 | GET | `/api/v1/me/summary` | tarifa, cupos usados/límite (`null` = ilimitado), saldo de bono, estado del mes |
 | GET/PATCH | `/api/v1/me/preferences` | consultar o guardar tema (`theme`) y sede por defecto (`preferenceBoxId`, uuid o null); todos los roles con sesión; rechaza campos extra; la sede solo cambia por este endpoint, no al navegar el selector |
 | POST/DELETE | `/api/v1/me/profile-image` | subir/reemplazar o quitar la foto propia (multipart `image`) | sesión activa |
@@ -553,9 +553,10 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 - JWT firmado, `exp` 90 días, claims mínimos: `sub`, `role`, `tv`.
 - `tv` (token version) se compara con `user.token_version` en cada request autenticado; si no coincide, 401.
   Se incrementa al resetear la contraseña de un socio y al desactivar un usuario. El `logout` solo borra el token en el cliente.
-- **Web**: cookie `httpOnly`, `Secure`, `SameSite=Lax`.
-- **App**: el token se guarda en `expo-secure-store` y se envía como `Authorization: Bearer`.
-- Límite de intentos: 10 fallos por `login_id` en 15 minutos → `locked_until`; se libera con reset del staff.
+- **Web**: cookie `httpOnly`, `Secure`, `SameSite=Lax`. El JSON de login no incluye el JWT.
+- **App** (futuro): el cliente móvil obtendrá el token por un canal acordado (p. ej. header dedicado o endpoint aparte); hoy la API web prioriza cookie.
+- Límite de intentos: 10 fallos por `login_id` en 15 minutos → `locked_until`; la API responde `ACCOUNT_LOCKED` (403). Se libera con reset del staff.
+- Usuario o contraseña incorrectos (incluido login inexistente o socio de baja) → mismo mensaje genérico (`FORBIDDEN`, 403) para no filtrar cuentas.
 - El staff puede resetear la contraseña de un socio; el socio no puede cambiarla.
 - Sin emails: no hay "olvidé mi contraseña" automático.
 
@@ -646,7 +647,7 @@ El saldo de bonos del listado se calcula con agregaciones `SUM(quantity)` de cr�
 
 ### Listado de Excepciones (staff)
 
-`ExceptionsList` renderiza las instancias anómalas desde hoy (`listExceptions`). La etiqueta corta del estado (`Extra`, `Modificada`, `Cancelada`) la expone `exceptionCardStatusLabel` en `lib/box/exceptions.ts`, con prioridad Cancelada sobre Extra y Modificada cuando varios `kinds` aplican.
+`/staff/excepciones?pagina` pagina el listado (25 por página). `ExceptionsList` renderiza las instancias anómalas desde hoy (`listExceptionsPage`). La etiqueta corta del estado (`Extra`, `Modificada`, `Cancelada`) la expone `exceptionCardStatusLabel` en `lib/box/exceptions.ts`, con prioridad Cancelada sobre Extra y Modificada cuando varios `kinds` aplican.
 
 ### Organización de las acciones sobre clases puntuales
 

@@ -183,7 +183,7 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
     expect(after.json).toMatchObject({ quota: { directedUsed: 1 } });
 
     const mine = await call(myBookings, "GET", "/api/v1/me/bookings", memberToken);
-    const bookings = mine.json as unknown as { instanceId: string; canCancel: boolean }[];
+    const bookings = (mine.json as { items: { instanceId: string; canCancel: boolean }[] }).items;
     expect(bookings.some((item) => item.instanceId === row.id && item.canCancel)).toBe(true);
 
     const admin = await prisma.user.findFirstOrThrow({ where: { loginId: `admin-${suffix}` } });

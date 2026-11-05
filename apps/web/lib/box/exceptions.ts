@@ -1,7 +1,9 @@
 import { localDateString } from "@78feet/domain";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { classTypeImageUrl } from "./images";
 import { personName } from "./map";
+import { paginate } from "./pagination";
 import { isoDateFromDb, isoDateToDb } from "./time";
 import { profileImageUrl } from "./profile-images";
 
@@ -54,25 +56,48 @@ export function isCalendarException(row: { templateId: string | null; editedAt: 
   return row.templateId === null || row.editedAt !== null;
 }
 
-export async function listExceptions(from: string, now = new Date()) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) {
-    from = localDateString(now);
-  }
-  const rows = await prisma.classInstance.findMany({
-    where: {
-      date: { gte: isoDateToDb(from) },
-      OR: [{ templateId: null }, { editedAt: { not: null } }, { status: "cancelled" }],
-    },
-    include: {
-      classType: true,
-      box: { select: { name: true } },
-      coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
-      bookings: { where: { status: "active" }, select: { id: true } },
-    },
-    orderBy: [{ date: "asc" }, { startAt: "asc" }],
-  });
+function normalizeFromDate(from: string, now: Date): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) return localDateString(now);
+  return from;
+}
 
-  return rows.map((row) => ({
+function exceptionsWhere(from: string): Prisma.ClassInstanceWhereInput {
+  return {
+    date: { gte: isoDateToDb(from) },
+    OR: [{ templateId: null }, { editedAt: { not: null } }, { status: "cancelled" }],
+  };
+}
+
+const exceptionInclude = {
+  classType: true,
+  box: { select: { name: true } },
+  coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
+  bookings: { where: { status: "active" as const }, select: { id: true } },
+};
+
+type ExceptionRow = {
+  id: string;
+  date: Date;
+  startAt: Date;
+  endAt: Date;
+  kind: "directed" | "open";
+  status: "scheduled" | "cancelled";
+  capacity: number;
+  templateId: string | null;
+  editedAt: Date | null;
+  classType: { name: string; imageKey: string };
+  box: { name: string };
+  coach: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImage: { updatedAt: Date } | null;
+  } | null;
+  bookings: { id: string }[];
+};
+
+function mapExceptionRow(row: ExceptionRow): ExceptionInstance {
+  return {
     id: row.id,
     date: isoDateFromDb(row.date),
     startAt: row.startAt.toISOString(),
@@ -91,5 +116,31 @@ export async function listExceptions(from: string, now = new Date()) {
       editedAt: row.editedAt,
       status: row.status,
     }),
-  })) satisfies ExceptionInstance[];
+  };
+}
+
+export async function listExceptions(from: string, now = new Date()) {
+  from = normalizeFromDate(from, now);
+  const rows = await prisma.classInstance.findMany({
+    where: exceptionsWhere(from),
+    include: exceptionInclude,
+    orderBy: [{ date: "asc" }, { startAt: "asc" }],
+  });
+  return rows.map((row) => mapExceptionRow(row as ExceptionRow));
+}
+
+export async function listExceptionsPage(from: string, page = 1, now = new Date()) {
+  from = normalizeFromDate(from, now);
+  const where = exceptionsWhere(from);
+  const total = await prisma.classInstance.count({ where });
+  return paginate(total, page, async (window) => {
+    const rows = await prisma.classInstance.findMany({
+      where,
+      include: exceptionInclude,
+      orderBy: [{ date: "asc" }, { startAt: "asc" }],
+      skip: window.skip,
+      take: window.take,
+    });
+    return rows.map((row) => mapExceptionRow(row as ExceptionRow));
+  });
 }

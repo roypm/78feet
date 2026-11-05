@@ -1,17 +1,23 @@
 
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
+import { ListPagination } from "@/components/member/list-pagination";
 import { Suspense } from "react";
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireMember } from "@/lib/auth/current";
-import { listBookingHistory, type HistoryBookingView } from "@/lib/box/bookings";
+import { listBookingHistoryPage, type HistoryBookingView } from "@/lib/box/bookings";
 import { formatDay, formatMonth, formatTime, kindLabel } from "@/lib/box/format";
 import { groupHistoryByMonth } from "@/lib/box/history";
+import { pageNumber } from "@/lib/box/pagination";
 import { Badge } from "@/components/ui/badge";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
 
-export default function Page() {
+export default function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ pagina?: string }>;
+}) {
   return (
     <Suspense
       fallback={
@@ -23,7 +29,7 @@ export default function Page() {
         </ModulePage>
       }
     >
-      <History />
+      <History searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -34,9 +40,10 @@ function historyNote(booking: HistoryBookingView): string | null {
   return null;
 }
 
-async function History() {
+async function History({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
   const user = await requireMember();
-  const bookings = await listBookingHistory(user.id);
+  const query = await searchParams;
+  const { items: bookings, pageInfo } = await listBookingHistoryPage(user.id, pageNumber(query.pagina));
   const months = groupHistoryByMonth(bookings);
 
   return (
@@ -89,6 +96,7 @@ async function History() {
                 </ul>
               </section>
             ))}
+            <ListPagination pageInfo={pageInfo} path="/historial" />
           </div>
         )}
       </ModuleBody>

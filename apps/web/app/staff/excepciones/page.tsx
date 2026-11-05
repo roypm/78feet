@@ -1,10 +1,12 @@
 
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
+import { ListPagination } from "@/components/member/list-pagination";
+import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import { addDays, localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
-import { listExceptions } from "@/lib/box/exceptions";
+import { listExceptionsPage } from "@/lib/box/exceptions";
 import { listBoxes } from "@/lib/box/boxes";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listCoaches } from "@/lib/box/staff-users";
@@ -12,7 +14,11 @@ import { ExtraClassForm } from "@/components/staff/extra-class-form";
 import { ExceptionsList } from "@/components/staff/exceptions-list";
 import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
 
-export default function Page() {
+export default function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ pagina?: string }>;
+}) {
   return (
     <Suspense
       fallback={
@@ -24,20 +30,22 @@ export default function Page() {
         </ModulePage>
       }
     >
-      <Exceptions />
+      <Exceptions searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Exceptions() {
+async function Exceptions({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
   const user = await requireStaff();
+  const query = await searchParams;
   const today = localDateString(new Date());
-  const [items, classTypes, coaches, boxes] = await Promise.all([
-    listExceptions(today),
+  const [result, classTypes, coaches, boxes] = await Promise.all([
+    listExceptionsPage(today, pageNumber(query.pagina)),
     listClassTypes(),
     listCoaches(),
     listBoxes(),
   ]);
+  const items = result.items;
 
   return (
     <ModulePage>
@@ -54,6 +62,7 @@ async function Exceptions() {
               <ExtraClassForm defaultDate={addDays(today, 1)} classTypes={classTypes} coaches={coaches} boxes={boxes} />
             </ModulePrimaryAction>
             <ExceptionsList items={items} />
+            <ListPagination pageInfo={result.pageInfo} path="/staff/excepciones" />
           </>
         )}
       </ModuleBody>
