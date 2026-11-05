@@ -36,7 +36,7 @@ function BoxRenameRow({ box }: { box: BoxSummary }) {
   }
 
   return (
-    <li className="rounded-lg border border-border bg-card p-4">
+    <li className="w-full max-w-md rounded-lg border border-border bg-card p-4">
       <form onSubmit={(event) => void rename(event)} className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <FormInput
           label="Nombre"
@@ -45,6 +45,7 @@ function BoxRenameRow({ box }: { box: BoxSummary }) {
           onChange={(event) => setDraft(event.target.value)}
           required
           maxLength={40}
+          className="min-w-0 flex-1"
         />
         <PendingButton
           type="submit"

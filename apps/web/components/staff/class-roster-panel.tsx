@@ -183,10 +183,15 @@ export function ClassRosterPanel({
               {roster.map((person) => (
                 <TableRow key={person.bookingId} className="border-border">
                   <TableCell className="min-w-[9rem] px-3 py-2.5 align-middle text-sm">
-                    <Link href={`/staff/socios/${person.userId}`} className="inline-flex min-w-0 items-center gap-2 font-medium text-primary">
+                    <span className="inline-flex min-w-0 items-center gap-2">
                       <ProfileAvatar name={person.name} imageUrl={person.profileImageUrl} size="sm" />
-                      <span className="min-w-0 wrap-break-word">{person.name}</span>
-                    </Link>
+                      <Link
+                        href={`/staff/socios/${person.userId}`}
+                        className="min-w-0 font-medium text-primary no-underline hover:no-underline pointer-hover:text-foreground"
+                      >
+                        {person.name}
+                      </Link>
+                    </span>
                   </TableCell>
                   <TableCell className="px-3 py-2.5 align-middle text-sm text-muted-foreground">
                     {displayPhone(person.phone)}

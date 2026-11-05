@@ -9,6 +9,7 @@ import { brandHomeLabel, BrandMark } from "@/components/navigation/brand-mark";
 import { LogoutButton } from "@/components/member/logout-button";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
 import { SidebarNavLink } from "@/components/sidebar-nav-link";
+import { SidebarLiquidNav } from "@/components/navigation/sidebar-liquid-menu";
 import { useTheme } from "@/components/theme-provider";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -106,20 +107,22 @@ function AppFrame({ displayName, profileImageUrl, homeHref, profileHref, roleLab
           <Separator />
         </SidebarHeader>
         <SidebarContent className="gap-2">
-          <nav aria-label="Navegación principal" className="flex flex-col gap-2">
-            {groups.filter((group) => group.links.length > 0).map((group) => (
-              <SidebarGroup key={group.label} className="py-1">
-                <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu className="gap-1">
-                    {group.links.map((link) => (
-                      <SidebarNavLink key={link.href} {...link} active={isNavigationActive(pathname, link.href, classOrigin)} />
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            ))}
-          </nav>
+          <SidebarLiquidNav>
+            <nav aria-label="Navegación principal" className="flex flex-col gap-2">
+              {groups.filter((group) => group.links.length > 0).map((group) => (
+                <SidebarGroup key={group.label} className="py-1">
+                  <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="gap-1">
+                      {group.links.map((link) => (
+                        <SidebarNavLink key={link.href} {...link} active={isNavigationActive(pathname, link.href, classOrigin)} />
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              ))}
+            </nav>
+          </SidebarLiquidNav>
         </SidebarContent>
         <SidebarFooter className="gap-2 px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Separator />

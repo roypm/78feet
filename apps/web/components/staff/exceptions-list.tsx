@@ -13,7 +13,7 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
   }
 
   return (
-    <ul className="grid gap-3 lg:grid-cols-2">
+    <ul className="flex flex-col gap-3">
       {items.map((item) => {
         const cancelled = item.status === "cancelled";
         const status = exceptionCardStatusLabel(item.kinds);

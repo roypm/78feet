@@ -53,7 +53,7 @@ async function Exceptions({ searchParams }: { searchParams: Promise<{ pagina?: s
         title="Excepciones"
         description="Solo lo que no sigue la plantilla al pie de la letra: clases extra, instancias modificadas o canceladas. Podés añadir una extra en cualquier fecha futura, también más allá del calendario visible en Semana."
       />
-      <ModuleBody width="full" inset="content">
+      <ModuleBody inset="content">
         {classTypes.length === 0 ? (
           <EmptyState title="Primero hace falta un tipo de clase" description={user.role === "admin" ? "Creá un tipo antes de añadir clases extra." : "Pedile al admin que cree un tipo de clase para poder añadir sesiones."} href={user.role === "admin" ? "/staff/tipos" : undefined} action="Crear tipo" />
         ) : (
@@ -61,8 +61,10 @@ async function Exceptions({ searchParams }: { searchParams: Promise<{ pagina?: s
             <ModulePrimaryAction>
               <ExtraClassForm defaultDate={addDays(today, 1)} classTypes={classTypes} coaches={coaches} boxes={boxes} />
             </ModulePrimaryAction>
-            <ExceptionsList items={items} />
-            <ListPagination pageInfo={result.pageInfo} path="/staff/excepciones" />
+            <div className="flex flex-col gap-3">
+              <ExceptionsList items={items} />
+              <ListPagination pageInfo={result.pageInfo} path="/staff/excepciones" />
+            </div>
           </>
         )}
       </ModuleBody>

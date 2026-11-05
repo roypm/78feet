@@ -6,7 +6,7 @@ export function ListPagination({ pageInfo, path, filters = {} }: {
   pageInfo: PageInfo; path: string; filters?: Record<string, string | undefined>;
 }) {
   const { page, pageSize, total, totalPages } = pageInfo;
-  if (total === 0) return null;
+  if (total === 0 || totalPages <= 1) return null;
   function href(target: number) {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
@@ -14,7 +14,10 @@ export function ListPagination({ pageInfo, path, filters = {} }: {
     return query.size ? `${path}?${query}` : path;
   }
   return (
-    <nav aria-label="Paginación" className="flex flex-wrap items-center justify-between gap-3 py-3">
+    <nav
+      aria-label="Paginación"
+      className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"
+    >
       <p className="text-sm text-muted-foreground">
         {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} de {total}
       </p>

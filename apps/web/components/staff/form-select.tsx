@@ -25,6 +25,7 @@ export function FormSelect({
   disabled = false,
   placeholder = "Seleccionar…",
   children,
+  labelClassName,
 }: {
   label: string;
   options: SelectOption[];
@@ -36,6 +37,7 @@ export function FormSelect({
   disabled?: boolean;
   placeholder?: string;
   children?: ReactNode;
+  labelClassName?: string;
 }) {
   const id = useId();
   const errorId = `${id}-error`;
@@ -76,7 +78,7 @@ export function FormSelect({
   }
 
   return (
-    <Field label={label} htmlFor={id} invalid={Boolean(error)} disabled={disabled} error={error} errorId={errorId}>
+    <Field label={label} htmlFor={id} invalid={Boolean(error)} disabled={disabled} error={error} errorId={errorId} labelClassName={labelClassName}>
       <div className="relative">
         <input
           ref={hiddenRef}
