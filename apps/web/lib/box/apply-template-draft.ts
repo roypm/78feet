@@ -12,14 +12,6 @@ export function summaryMessage(summary: Summary): string {
   return changes.length ? `Plantilla actualizada. ${changes.join(" · ")}.` : "Plantilla actualizada.";
 }
 
-function mergeSummary(left: Summary, right: Summary): Summary {
-  return {
-    cancelledClassCount: left.cancelledClassCount + right.cancelledClassCount,
-    cancelledBookingCount: left.cancelledBookingCount + right.cancelledBookingCount,
-    movedBookingCount: left.movedBookingCount + right.movedBookingCount,
-  };
-}
-
 function slotBody(slot: TemplateSlotWrite) {
   return {
     weekday: slot.weekday,
@@ -36,24 +28,19 @@ export async function applyTemplateDraft(
   working: ScheduleTemplate[],
   boxId?: string,
 ): Promise<Summary> {
+  if (!boxId) throw new Error("Falta el box de la plantilla");
   const { deletedIds, created, updated } = diffTemplates(baseline, working);
-  let summary: Summary = { cancelledClassCount: 0, cancelledBookingCount: 0, movedBookingCount: 0 };
-  for (const id of deletedIds) {
-    const result = await api<{ summary: Summary }>(`/api/v1/admin/templates/${id}`, { method: "DELETE" });
-    summary = mergeSummary(summary, result.summary);
+  if (deletedIds.length + created.length + updated.length === 0) {
+    return { cancelledClassCount: 0, cancelledBookingCount: 0, movedBookingCount: 0 };
   }
-  for (const slot of updated) {
-    const result = await api<{ summary: Summary }>(`/api/v1/admin/templates/${slot.id}`, {
-      method: "PATCH",
-      body: JSON.stringify(slotBody(slot)),
-    });
-    summary = mergeSummary(summary, result.summary);
-  }
-  for (const slot of created) {
-    await api("/api/v1/admin/templates", {
-      method: "POST",
-      body: JSON.stringify({ ...slotBody(slot), ...(boxId ? { boxId } : {}) }),
-    });
-  }
-  return summary;
+  const result = await api<{ summary: Summary }>("/api/v1/admin/templates/apply-draft", {
+    method: "POST",
+    body: JSON.stringify({
+      boxId,
+      deletedIds,
+      updated: updated.map((slot) => ({ id: slot.id, ...slotBody(slot) })),
+      created: created.map((slot) => slotBody(slot)),
+    }),
+  });
+  return result.summary;
 }

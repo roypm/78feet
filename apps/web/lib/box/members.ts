@@ -24,6 +24,7 @@ import { getMemberSummary } from "./summary";
 import { createQuotaAdjustment, listQuotaAdjustments } from "./quota-adjustments";
 import { profileImageUrl } from "./profile-images";
 import { primaryBoxId } from "./hours";
+import { lockUserRow } from "./locks";
 
 type MemberUser = {
   id: string;
@@ -367,30 +368,62 @@ export async function changeMemberTariff(id: string, tariffId: string, actorId: 
 
 export async function grantMemberCredits(id: string, input: GrantCredits, actorId: string) {
   await requireMember(id);
-  if (input.quantity < 0) {
-    const detail = await getMember(id);
-    if (detail.credits.balance + input.quantity < 0) {
-      throw new BoxError(403, "FORBIDDEN", "No hay saldo suficiente para quitar");
+  return prisma.$transaction(async (tx) => {
+    await lockUserRow(tx, id);
+    if (input.quantity < 0) {
+      const grants = await tx.creditGrant.findMany({
+        where: { userId: id },
+        select: { quantity: true },
+      });
+      const bookings = await tx.booking.findMany({
+        where: {
+          userId: id,
+          OR: [{ status: "active" }, { quotaReturned: false }],
+        },
+        select: { pool: true, status: true, quotaReturned: true },
+      });
+      const granted = grants.reduce((sum, row) => sum + row.quantity, 0);
+      const consumed = bookings.filter(
+        (booking) => booking.pool === "pack" && (booking.status === "active" || booking.quotaReturned === false),
+      ).length;
+      if (granted - consumed + input.quantity < 0) {
+        throw new BoxError(403, "FORBIDDEN", "No hay saldo suficiente para quitar");
+      }
     }
-  }
-  const grant = await prisma.creditGrant.create({
-    data: {
-      userId: id,
-      quantity: input.quantity,
-      note: input.note ?? null,
-      createdBy: actorId,
-    },
+    const grant = await tx.creditGrant.create({
+      data: {
+        userId: id,
+        quantity: input.quantity,
+        note: input.note ?? null,
+        createdBy: actorId,
+      },
+    });
+    const allGrants = await tx.creditGrant.findMany({
+      where: { userId: id },
+      select: { quantity: true },
+    });
+    const allBookings = await tx.booking.findMany({
+      where: {
+        userId: id,
+        OR: [{ status: "active" }, { quotaReturned: false }],
+      },
+      select: { pool: true, status: true, quotaReturned: true },
+    });
+    const granted = allGrants.reduce((sum, row) => sum + row.quantity, 0);
+    const consumed = allBookings.filter(
+      (booking) => booking.pool === "pack" && (booking.status === "active" || booking.quotaReturned === false),
+    ).length;
+    const balance = granted - consumed;
+    return {
+      grant: {
+        id: grant.id,
+        quantity: grant.quantity,
+        note: grant.note,
+        createdAt: grant.createdAt.toISOString(),
+      },
+      balance,
+    };
   });
-  const detail = await getMember(id);
-  return {
-    grant: {
-      id: grant.id,
-      quantity: grant.quantity,
-      note: grant.note,
-      createdAt: grant.createdAt.toISOString(),
-    },
-    balance: detail.credits.balance,
-  };
 }
 
 export async function resetMemberPassword(id: string, password: string) {
@@ -458,60 +491,64 @@ export async function adjustMemberQuota(
   if (!period) throw new BoxError(403, "FORBIDDEN", "La tarifa no tiene cupo periódico");
   const periodStart = quotaPeriodStartDate(today, period);
   const periodStartDb = isoDateToDb(periodStart);
-  const existing = await listQuotaAdjustments(prisma, id, period, periodStartDb);
-  const bookings = await prisma.booking.findMany({
-    where: { userId: id, OR: [{ status: "active" }, { quotaReturned: false }] },
-    include: { instance: { select: { id: true, date: true } } },
-  });
-  const instancesById = new Map(
-    bookings.map((booking) => [booking.instanceId, { date: isoDateFromDb(booking.instance.date) }]),
-  );
-  const domainBookings = bookings.map((booking) => ({
-    id: booking.id,
-    instanceId: booking.instanceId,
-    userId: booking.userId,
-    pool: booking.pool,
-    status: booking.status,
-    quotaReturned: booking.quotaReturned,
-    createdBy: booking.createdBy,
-    cancelledAt: booking.cancelledAt,
-    cancelledBy: booking.cancelledBy,
-  }));
-  const used = quotaUsed({
-    bookings: domainBookings,
-    instancesById,
-    userId: id,
-    periodDate: today,
-    period,
-    kind: input.kind,
-  });
   const limit = input.kind === "directed" ? membership.tariff.quotaDirected : membership.tariff.quotaOpen;
   if (limit === null) {
     throw new BoxError(403, "FORBIDDEN", "Un cupo ilimitado no se ajusta");
   }
-  const adjustment = quotaAdjustmentTotal(existing, input.kind) + input.delta;
-  const available = limit - used + adjustment;
-  if (available < 0) {
-    throw new BoxError(403, "FORBIDDEN", "El ajuste dejaría el cupo del periodo por debajo de las reservas ya consumidas");
-  }
-  const row = await createQuotaAdjustment(prisma, {
-    userId: id,
-    period,
-    periodStart: periodStartDb,
-    kind: input.kind,
-    delta: input.delta,
-    note: input.note ?? null,
-    createdBy: actorId,
+
+  return prisma.$transaction(async (tx) => {
+    await lockUserRow(tx, id);
+    const existing = await listQuotaAdjustments(tx, id, period, periodStartDb);
+    const bookings = await tx.booking.findMany({
+      where: { userId: id, OR: [{ status: "active" }, { quotaReturned: false }] },
+      include: { instance: { select: { id: true, date: true } } },
+    });
+    const instancesById = new Map(
+      bookings.map((booking) => [booking.instanceId, { date: isoDateFromDb(booking.instance.date) }]),
+    );
+    const domainBookings = bookings.map((booking) => ({
+      id: booking.id,
+      instanceId: booking.instanceId,
+      userId: booking.userId,
+      pool: booking.pool,
+      status: booking.status,
+      quotaReturned: booking.quotaReturned,
+      createdBy: booking.createdBy,
+      cancelledAt: booking.cancelledAt,
+      cancelledBy: booking.cancelledBy,
+    }));
+    const used = quotaUsed({
+      bookings: domainBookings,
+      instancesById,
+      userId: id,
+      periodDate: today,
+      period,
+      kind: input.kind,
+    });
+    const adjustment = quotaAdjustmentTotal(existing, input.kind) + input.delta;
+    const available = limit - used + adjustment;
+    if (available < 0) {
+      throw new BoxError(403, "FORBIDDEN", "El ajuste dejaría el cupo del periodo por debajo de las reservas ya consumidas");
+    }
+    const row = await createQuotaAdjustment(tx, {
+      userId: id,
+      period,
+      periodStart: periodStartDb,
+      kind: input.kind,
+      delta: input.delta,
+      note: input.note ?? null,
+      createdBy: actorId,
+    });
+    const summary = await getMemberSummary(id, now);
+    return {
+      adjustment: {
+        id: row.id,
+        kind: row.kind,
+        delta: row.delta,
+        note: row.note,
+        createdAt: row.createdAt.toISOString(),
+      },
+      quota: summary.quota,
+    };
   });
-  const summary = await getMemberSummary(id, now);
-  return {
-    adjustment: {
-      id: row.id,
-      kind: row.kind,
-      delta: row.delta,
-      note: row.note,
-      createdAt: row.createdAt.toISOString(),
-    },
-    quota: summary.quota,
-  };
 }

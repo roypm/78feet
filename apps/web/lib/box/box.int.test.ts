@@ -232,8 +232,8 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     classTypeIds.push(wodType.id, openType.id);
     const template = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
       weekday: 1,
-      startTime: "07:10",
-      endTime: "08:10",
+      startTime: "08:15",
+      endTime: "09:15",
       classTypeId: wodType.id,
       defaultCapacity: 12,
     });
@@ -241,13 +241,13 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     const templateId = (template.json as { template: { id: string; startTime: string } }).template.id;
     const createdCount = (template.json as { createdInstanceCount: number }).createdInstanceCount;
     expect(createdCount).toBeGreaterThan(0);
-    expect((template.json as { template: { startTime: string } }).template.startTime).toBe("07:10:00");
+    expect((template.json as { template: { startTime: string } }).template.startTime).toBe("08:15:00");
     templateIds.push(templateId);
 
     const parallelOpen = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
       weekday: 1,
-      startTime: "07:40",
-      endTime: "08:40",
+      startTime: "08:15",
+      endTime: "09:15",
       classTypeId: openType.id,
       defaultCapacity: 10,
     });
@@ -256,8 +256,8 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
 
     const sameKindOverlap = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
       weekday: 1,
-      startTime: "07:40",
-      endTime: "08:40",
+      startTime: "08:15",
+      endTime: "09:15",
       classTypeId: wodType.id,
       defaultCapacity: 8,
     });

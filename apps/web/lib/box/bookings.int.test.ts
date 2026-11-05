@@ -196,7 +196,8 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
 
     const listed = await call(listMine, "GET", "/api/v1/me/bookings", memberToken);
     expect(listed.status).toBe(200);
-    expect(listed.json).toEqual(
+    const listedItems = (listed.json as { items: { id: string }[] }).items;
+    expect(listedItems).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: bookingId })]),
     );
 
@@ -212,7 +213,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     expect(cancelled.json).toMatchObject({ status: "cancelled", quotaReturned: true });
 
     const after = await call(listMine, "GET", "/api/v1/me/bookings", memberToken);
-    const rows = after.json as unknown as { id: string }[];
+    const rows = (after.json as { items: { id: string }[] }).items;
     expect(rows.some((row) => row.id === bookingId)).toBe(false);
 
     const again = await call(bookAsMember, "POST", "/api/v1/bookings", memberToken, {
@@ -450,6 +451,21 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     ).toBe(1);
   });
 
+  it("blocks overlapping bookings for the same member in parallel", async () => {
+    const week = openWeek();
+    const first = await createInstance(slot(week, 14));
+    const second = await createInstance(slot(week, 14));
+    const [one, two] = await Promise.allSettled([
+      reserveForMember({ memberId, instanceId: first.id, createdBy: memberId }),
+      reserveForMember({ memberId, instanceId: second.id, createdBy: memberId }),
+    ]);
+    const fulfilled = [one, two].filter((result) => result.status === "fulfilled");
+    expect(fulfilled).toHaveLength(1);
+    const rejected = [one, two].filter((result) => result.status === "rejected") as PromiseRejectedResult[];
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toMatchObject({ code: "OVERLAP" });
+  });
+
   it("lists past bookings in history and keeps upcoming classes out of it", async () => {
     const september = await createInstance({
       date: "2026-09-15",
@@ -494,19 +510,19 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
 
     const history = await call(bookingHistory, "GET", "/api/v1/me/bookings/history", memberToken);
     expect(history.status).toBe(200);
-    const rows = history.json as unknown as {
+    const rows = (history.json as { items: {
       id: string;
       status: string;
       boxCancelled: boolean;
       coachName: string | null;
       instance: { date: string };
-    }[];
+    }[] }).items;
     expect(rows.map((row) => row.id)).toEqual([kept.id, dropped.id]);
     expect(rows[0]).toMatchObject({ status: "active", boxCancelled: false, coachName: "Ciro Coach" });
     expect(rows[1]).toMatchObject({ status: "cancelled", boxCancelled: true, coachName: null });
 
     const listed = await call(listMine, "GET", "/api/v1/me/bookings", memberToken);
-    const upcomingRows = listed.json as unknown as { instanceId: string }[];
+    const upcomingRows = (listed.json as { items: { instanceId: string }[] }).items;
     expect(upcomingRows.some((row) => row.instanceId === ahead.id)).toBe(true);
     expect(upcomingRows.some((row) => row.instanceId === september.id || row.instanceId === august.id)).toBe(false);
   });

@@ -12,6 +12,7 @@ import {
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import type { Db } from "./db";
+import { lockBoxRow, lockInstanceRow } from "./locks";
 import { BoxError } from "./errors";
 import { requireClassType } from "./class-types";
 import { toDomainBooking, toDomainInstance } from "./map";
@@ -84,22 +85,25 @@ export async function createExtraInstance(input: CreateInstance, now = new Date(
   if (!isDateOpenDuring(await getBoxHours(prisma, boxId), input.date, startTime, endTime)) {
     throw new BoxError(409, "SCHEDULE_CLOSED", "El box está cerrado en ese horario");
   }
-  await assertNoInstanceOverlap(prisma, { boxId, date: input.date, startAt, endAt, kind: classType.kind });
-  const row = await prisma.classInstance.create({
-    data: {
-      boxId,
-      date: isoDateToDb(input.date),
-      startAt,
-      endAt,
-      classTypeId: classType.id,
-      kind: classType.kind,
-      coachId: input.coachId ?? null,
-      capacity: input.capacity,
-      status: "scheduled",
-      editedAt: now,
-    },
+  return prisma.$transaction(async (tx) => {
+    await lockBoxRow(tx, boxId);
+    await assertNoInstanceOverlap(tx, { boxId, date: input.date, startAt, endAt, kind: classType.kind });
+    const row = await tx.classInstance.create({
+      data: {
+        boxId,
+        date: isoDateToDb(input.date),
+        startAt,
+        endAt,
+        classTypeId: classType.id,
+        kind: classType.kind,
+        coachId: input.coachId ?? null,
+        capacity: input.capacity,
+        status: "scheduled",
+        editedAt: now,
+      },
+    });
+    return { id: row.id };
   });
-  return { id: row.id };
 }
 
 export async function removeExtraInstance(id: string, actorId: string, now = new Date()) {
@@ -251,19 +255,19 @@ export async function patchInstance(id: string, patch: PatchInstance, actorId: s
   if (existing.training && existing.training.classTypeId !== classTypeId && patch.trainingId === undefined) {
     trainingId = null;
   }
-
-  const activeCount = existing.bookings.length;
   if (existing.status === "cancelled" && status === "scheduled" && existing.startAt <= now) {
     throw new BoxError(409, "FORBIDDEN", "No se puede recuperar una clase que ya empezó");
   }
+
   const typeChanged = classTypeId !== existing.classTypeId;
-  const capacityDrops = shouldCancelAllForCapacity(capacity, activeCount);
-  if (capacityDrops && patch.confirmCapacity !== true && !typeChanged && status !== "cancelled") {
+  const preActiveCount = existing.bookings.length;
+  const preCapacityDrops = shouldCancelAllForCapacity(capacity, preActiveCount);
+  if (preCapacityDrops && patch.confirmCapacity !== true && !typeChanged && status !== "cancelled") {
     throw new BoxError(
       409,
       "CONFIRM_REQUIRED",
-      activeCount === 1 ? "1 reserva se va a cancelar" : `${activeCount} reservas se van a cancelar`,
-      { detachCount: activeCount },
+      preActiveCount === 1 ? "1 reserva se va a cancelar" : `${preActiveCount} reservas se van a cancelar`,
+      { detachCount: preActiveCount },
     );
   }
 
@@ -282,6 +286,17 @@ export async function patchInstance(id: string, patch: PatchInstance, actorId: s
   }
 
   return prisma.$transaction(async (tx) => {
+    await lockInstanceRow(tx, id);
+    const activeCount = await tx.booking.count({ where: { instanceId: id, status: "active" } });
+    const capacityDrops = shouldCancelAllForCapacity(capacity, activeCount);
+    if (capacityDrops && patch.confirmCapacity !== true && !typeChanged && status !== "cancelled") {
+      throw new BoxError(
+        409,
+        "CONFIRM_REQUIRED",
+        activeCount === 1 ? "1 reserva se va a cancelar" : `${activeCount} reservas se van a cancelar`,
+        { detachCount: activeCount },
+      );
+    }
     await assertNoInstanceOverlap(tx, { id, boxId: existing.boxId, date, startAt, endAt, kind });
     let cancelledBookingCount = 0;
     if (status === "cancelled" && existing.status !== "cancelled") {

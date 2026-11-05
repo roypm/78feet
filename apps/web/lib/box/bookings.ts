@@ -11,12 +11,15 @@ import {
   type BookingPool,
   type ClassInstance,
 } from "@78feet/domain";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { isUniqueViolation } from "./db";
+import { lockInstanceRow, lockUserRow } from "./locks";
 import { BoxError } from "./errors";
 import { toDomainBooking, toDomainInstance } from "./map";
 import { isoDateFromDb, isoDateToDb } from "./time";
 import { listQuotaAdjustments } from "./quota-adjustments";
+import { paginate } from "./pagination";
 import { profileImageUrl } from "./profile-images";
 
 type InstanceRow = {
@@ -108,12 +111,8 @@ export async function reserveForMember(params: {
   const now = params.now ?? new Date();
   try {
     return await prisma.$transaction(async (tx) => {
-      const locked = await tx.$queryRaw<Array<{ id: string }>>`
-        SELECT id FROM "class_instance" WHERE id = ${params.instanceId}::uuid FOR UPDATE
-      `;
-      if (locked.length === 0) {
-        throw new BoxError(404, "FORBIDDEN", "La clase no existe");
-      }
+      await lockInstanceRow(tx, params.instanceId);
+      await lockUserRow(tx, params.memberId);
 
       const instance = await tx.classInstance.findUnique({
         where: { id: params.instanceId },
@@ -267,25 +266,51 @@ export type MemberBookingView = BookingView & {
 
 export async function listUpcomingBookings(userId: string, now = new Date()): Promise<MemberBookingView[]> {
   const rows = await prisma.booking.findMany({
-    where: {
-      userId,
-      OR: [
-        { status: "active", instance: { status: "scheduled", startAt: { gt: now } } },
-        {
-          status: "cancelled",
-          quotaReturned: true,
-          instance: { status: "cancelled", startAt: { gt: now } },
-        },
-      ],
-    },
+    where: upcomingWhere(userId, now),
     include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
     orderBy: { instance: { startAt: "asc" } },
   });
-  return rows.map((row) => ({
+  return rows.map((row) => mapUpcomingRow(row, now));
+}
+
+function upcomingWhere(userId: string, now: Date): Prisma.BookingWhereInput {
+  return {
+    userId,
+    OR: [
+      { status: "active", instance: { status: "scheduled", startAt: { gt: now } } },
+      {
+        status: "cancelled",
+        quotaReturned: true,
+        instance: { status: "cancelled", startAt: { gt: now } },
+      },
+    ],
+  };
+}
+
+function mapUpcomingRow(
+  row: BookingRow & { instance: InstanceRow & { classType: { name: string }; box: { name: string } } },
+  now: Date,
+): MemberBookingView {
+  return {
     ...toView(row, row.instance),
     canCancel: row.status === "active" && memberCanCancel(now, row.instance.startAt),
     boxCancelled: row.instance.status === "cancelled",
-  }));
+  };
+}
+
+export async function listUpcomingBookingsPage(userId: string, page = 1, now = new Date()) {
+  const where = upcomingWhere(userId, now);
+  const total = await prisma.booking.count({ where });
+  return paginate(total, page, async (window) => {
+    const rows = await prisma.booking.findMany({
+      where,
+      include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
+      orderBy: { instance: { startAt: "asc" } },
+      skip: window.skip,
+      take: window.take,
+    });
+    return rows.map((row) => mapUpcomingRow(row, now));
+  });
 }
 
 export type HistoryBookingView = MemberBookingView & {
@@ -299,24 +324,22 @@ function personName(person: { firstName: string; lastName: string } | null): str
   return name.length > 0 ? name : null;
 }
 
-export async function listBookingHistory(userId: string, now = new Date()): Promise<HistoryBookingView[]> {
-  const rows = await prisma.booking.findMany({
-    where: {
-      userId,
-      instance: { startAt: { lte: now } },
-    },
-    include: {
-      instance: {
-        include: {
-          classType: { select: { name: true } },
-          box: { select: { name: true } },
-          coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
-        },
-      },
-    },
-    orderBy: [{ instance: { startAt: "desc" } }, { createdAt: "desc" }],
-  });
-  return rows.map((row) => ({
+function historyWhere(userId: string, now: Date) {
+  return {
+    userId,
+    instance: { startAt: { lte: now } },
+  } as const;
+}
+
+function mapHistoryRow(
+  row: BookingRow & {
+    instance: InstanceRow & {
+      coach: { id: string; firstName: string; lastName: string; profileImage: { updatedAt: Date } | null } | null;
+    };
+  },
+  now: Date,
+): HistoryBookingView {
+  return {
     ...toView(row, row.instance),
     canCancel: row.status === "active" && memberCanCancel(now, row.instance.startAt),
     boxCancelled: row.instance.status === "cancelled",
@@ -324,5 +347,34 @@ export async function listBookingHistory(userId: string, now = new Date()): Prom
     coachProfileImageUrl: row.instance.coach
       ? profileImageUrl(row.instance.coach.id, row.instance.coach.profileImage?.updatedAt)
       : null,
-  }));
+  };
+}
+
+const historyInclude = {
+  instance: {
+    include: {
+      classType: { select: { name: true } },
+      box: { select: { name: true } },
+      coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
+    },
+  },
+};
+
+export async function listBookingHistoryPage(userId: string, page = 1, now = new Date()) {
+  const where = historyWhere(userId, now);
+  const total = await prisma.booking.count({ where });
+  return paginate(total, page, async (window) => {
+    const rows = await prisma.booking.findMany({
+      where,
+      include: historyInclude,
+      orderBy: [{ instance: { startAt: "desc" } }, { createdAt: "desc" }],
+      skip: window.skip,
+      take: window.take,
+    });
+    return rows.map((row) => mapHistoryRow(row as BookingRow & {
+      instance: InstanceRow & {
+        coach: { id: string; firstName: string; lastName: string; profileImage: { updatedAt: Date } | null } | null;
+      };
+    }, now));
+  });
 }
