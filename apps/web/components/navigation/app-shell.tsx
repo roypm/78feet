@@ -2,9 +2,10 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Footprints, Moon, Sun, type LucideIcon } from "lucide-react";
+import { Moon, Sun, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { brandHomeLabel, BrandMark } from "@/components/navigation/brand-mark";
 import { LogoutButton } from "@/components/member/logout-button";
 import { ProfileAvatar } from "@/components/member/profile-avatar";
 import { SidebarNavLink } from "@/components/sidebar-nav-link";
@@ -78,9 +79,9 @@ function AppFrame({ displayName, profileImageUrl, homeHref, profileHref, roleLab
       <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader className="gap-3 px-2 pt-3 pb-2">
           <div className="flex min-h-10 items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
-            <Link href={homeHref} aria-label="78feet, ir al inicio" className="flex min-w-0 items-center gap-2.5 rounded-md py-1">
-              <Footprints className="size-6 shrink-0 text-primary" aria-hidden="true" />
-              <span className="text-lg font-semibold tracking-tight group-data-[collapsible=icon]:hidden">78feet</span>
+            <Link href={homeHref} aria-label={brandHomeLabel} className="flex min-w-0 items-center gap-2.5 rounded-md py-1">
+              <BrandMark variant="sidebar-icon" className="hidden group-data-[collapsible=icon]:block" />
+              <BrandMark variant="sidebar" className="group-data-[collapsible=icon]:hidden" />
             </Link>
             <SidebarTrigger className="size-9 shrink-0" />
           </div>
