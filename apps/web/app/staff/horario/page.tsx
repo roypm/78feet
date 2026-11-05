@@ -4,7 +4,6 @@ import { requireAdmin } from "@/lib/auth/current";
 import { listBoxes, pickBox } from "@/lib/box/boxes";
 import { getBoxHours } from "@/lib/box/hours";
 import { BoxTabs } from "@/components/member/box-tabs";
-import { BoxAdmin } from "@/components/staff/box-admin";
 import { HoursForm } from "@/components/staff/hours-form";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 import { localDateString } from "@78feet/domain";
@@ -41,10 +40,7 @@ async function Hours({ searchParams }: { searchParams: Promise<{ box?: string }>
         tabs={<BoxTabs boxes={boxes} boxId={box.id} hrefFor={(id) => `/staff/horario?box=${id}`} />}
       />
       <ModuleBody width="full">
-        <div className="flex flex-col gap-8">
-          <BoxAdmin key={box.id} boxId={box.id} name={box.name} />
-          <HoursForm key={box.id} initialConfig={hours} today={localDateString(new Date())} boxId={box.id} />
-        </div>
+        <HoursForm key={box.id} initialConfig={hours} today={localDateString(new Date())} boxId={box.id} />
       </ModuleBody>
     </ModulePage>
   );

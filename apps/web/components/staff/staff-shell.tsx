@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BookOpen, Calendar, CalendarClock, CalendarDays, CircleUser, Clock, CreditCard, LayoutTemplate, Tag, Users, Wallet } from "lucide-react";
+import { BookOpen, Building2, Calendar, CalendarClock, CalendarDays, CircleUser, Clock, CreditCard, LayoutTemplate, Tag, Users, Wallet } from "lucide-react";
 import { AppShell, type NavigationGroup } from "@/components/navigation/app-shell";
 
 const groups: NavigationGroup[] = [
@@ -17,6 +17,7 @@ const groups: NavigationGroup[] = [
     { href: "/staff/equipo", label: "Equipo", icon: CircleUser, admin: true },
   ] },
   { label: "Configuración del box", links: [
+    { href: "/staff/boxes", label: "Sedes", icon: Building2, admin: true },
     { href: "/staff/plantilla", label: "Plantilla", icon: LayoutTemplate, admin: true },
     { href: "/staff/tipos", label: "Tipos de clase", icon: Tag, admin: true },
     { href: "/staff/horario", label: "Horario del box", icon: Clock, admin: true },
