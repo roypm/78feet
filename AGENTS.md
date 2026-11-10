@@ -1,6 +1,9 @@
 ## Setup Roy
 Optional resources for AI-assisted work are installed in `docs/setup-roy/`. When the user names a resource or the task clearly fits the pack, inspect the installed tree and its available guidance, then read the relevant resources and follow those that apply. Use only paths that actually exist. Otherwise work normally.
 
+## React / Next.js
+Al crear, revisar o refactorizar código React/Next.js, leer `docs/setup-roy/skills/vercel-react-best-practices/SKILL.md` y aplicar las reglas pertinentes. Consultar los archivos de `rules/` que correspondan al cambio. Si hay diferencias, prevalecen la documentación del proyecto y la guía de Next.js instalada en `node_modules/next/dist/docs/`.
+
 ## Commits
 `<emoji> <tipo>: <resumen en imperativo>`, ej. `✨ feat: calcular cupo semanal`.
 Tabla de emoji por tipo en `docs/git-flow.md`.
