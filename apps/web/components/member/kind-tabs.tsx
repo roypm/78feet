@@ -1,6 +1,9 @@
+"use client";
+
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import type { ReactNode } from "react";
 import { cn } from "cn";
+import { SegmentSlideList, segmentSlideItemProps, useSegmentSlide } from "@/components/member/segment-slide";
 
 export type KindView = "dirigidas" | "open";
 
@@ -16,26 +19,43 @@ export function KindTabs({
   className?: string;
 }) {
   return (
-    <div role="tablist" aria-label="Tipo de clase" className={cn("flex w-fit rounded-md bg-muted p-0.5", className)}>
+    <SegmentSlideList
+      role="tablist"
+      aria-label="Tipo de clase"
+      className={cn("grid w-fit max-w-full shrink-0 grid-cols-2 rounded-md bg-muted p-0.5", className)}
+    >
       <Tab href={directedHref} active={view === "dirigidas"}>
         Dirigidas
       </Tab>
       <Tab href={openHref} active={view === "open"}>
         Open
       </Tab>
-    </div>
+    </SegmentSlideList>
   );
 }
 
+/** Chips estáticos cuando `prefers-reduced-motion` o fuera de `SegmentSlideList`. */
 export function chipClass(active: boolean): string {
-  return active
-    ? "flex min-h-8 touch-manipulation items-center rounded-sm bg-card px-2.5 text-sm font-semibold text-foreground transition-[scale,background-color,color] duration-150 ease-out active:scale-[0.97] pointer-hover:ring-1 pointer-hover:ring-border"
-    : "flex min-h-8 touch-manipulation items-center rounded-sm px-2.5 text-sm text-muted-foreground transition-[scale,background-color,color] duration-150 ease-out active:scale-[0.97] pointer-hover:bg-card/50 pointer-hover:text-foreground";
+  return cn(
+    "flex min-h-8 touch-manipulation items-center justify-center rounded-sm px-2.5 text-sm font-medium transition-[scale,background-color,color] duration-150 ease-out active:scale-[0.97]",
+    active
+      ? "bg-card text-foreground"
+      : "text-muted-foreground pointer-hover:bg-card/50 pointer-hover:text-foreground",
+  );
 }
 
 function Tab({ href, active, children }: { href: string; active: boolean; children: string }) {
+  const slide = useSegmentSlide();
+  const slideProps = segmentSlideItemProps(active, slide);
   return (
-    <Link href={href} prefetch={true} role="tab" aria-selected={active} className={chipClass(active)}>
+    <Link
+      href={href}
+      prefetch={true}
+      role="tab"
+      aria-selected={active}
+      {...slideProps}
+      className={cn(slideProps.className ?? chipClass(active), "min-w-0 w-full")}
+    >
       {children}
     </Link>
   );
@@ -50,20 +70,22 @@ export function FilterTabLink({
   active: boolean;
   children: string;
 }) {
+  const slide = useSegmentSlide();
+  const slideProps = segmentSlideItemProps(active, slide);
   return (
     <Link
       href={href}
       prefetch={true}
       role="tab"
       aria-selected={active}
-      className={cn(chipClass(active), "shrink-0 whitespace-nowrap")}
+      {...slideProps}
+      className={cn(slideProps.className ?? chipClass(active), "max-w-48 shrink-0 overflow-hidden")}
     >
-      {children}
+      <span className="min-w-0 truncate">{children}</span>
     </Link>
   );
 }
 
-/** Misma fila y estilo que KindTabs en el header (`tabs`), para filtros por query (p. ej. Biblioteca). */
 export function FilterTabs({
   children,
   className,
@@ -74,7 +96,7 @@ export function FilterTabs({
   "aria-label"?: string;
 }) {
   return (
-    <div
+    <SegmentSlideList
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
@@ -83,6 +105,6 @@ export function FilterTabs({
       )}
     >
       {children}
-    </div>
+    </SegmentSlideList>
   );
 }

@@ -1,5 +1,5 @@
 
-import { EmptyState } from "@/components/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/staff/list-empty-block";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ListPagination } from "@/components/member/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
@@ -8,10 +8,11 @@ import { requireStaff } from "@/lib/auth/current";
 import { listRegisteredPaymentsPage } from "@/lib/box/registered-payments";
 import { listBoxes } from "@/lib/box/boxes";
 import { formatPrice } from "@/lib/box/format";
-import { CobrosNavTabs, paymentBoxListHref } from "@/components/staff/cobros-tabs";
+import { paymentBoxListHref } from "@/components/staff/cobros-tabs";
+import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
 import { RegisteredPaymentsTable } from "@/components/staff/registered-payments-table";
 import { BoxTabs } from "@/components/member/box-tabs";
-import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string }> }) {
   return (
@@ -46,12 +47,10 @@ async function Registered({ searchParams }: { searchParams: Promise<{ pagina?: s
 
   return (
     <ModulePage>
-      <ModuleHeader
-        title="Cobros registrados"
-        description={summary}
-        tabs={
-          <ModuleHeaderTabStack>
-            <CobrosNavTabs active="registered" />
+      <ModuleHeader title="Cobros registrados" description={summary} />
+      <ModuleBody width="full" inset="content">
+        <ListSearchToolbar
+          filters={
             <BoxTabs
               boxes={boxes}
               boxId={paymentBoxId}
@@ -60,12 +59,10 @@ async function Registered({ searchParams }: { searchParams: Promise<{ pagina?: s
               ariaLabel="Box de pago"
               hrefFor={(id) => paymentBoxListHref("/staff/cobros", id)}
             />
-          </ModuleHeaderTabStack>
-        }
-      />
-      <ModuleBody width="full" inset="content">
+          }
+        />
         {data.items.length === 0 ? (
-            <EmptyState
+            <ListEmptyBlock
               title="No hay cobros registrados"
               description={
                 paymentBoxId

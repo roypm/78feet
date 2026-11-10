@@ -24,10 +24,12 @@ export function TrainingLibraryTable({
   trainings,
   hasTypeFilter,
   action,
+  filters,
 }: {
   trainings: StaffTrainingCard[];
   hasTypeFilter: boolean;
   action?: ReactNode;
+  filters?: ReactNode;
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -47,12 +49,18 @@ export function TrainingLibraryTable({
 
   return (
     <div className="flex flex-col gap-3">
-      <ListSearchToolbar action={action}>
+      <ListSearchToolbar action={action} filters={filters}>
         <SearchInput ref={searchRef} aria-label="Buscar entrenamientos en esta página" placeholder="Buscar por nombre o tipo…"
           value={query} onValueChange={setQuery} />
       </ListSearchToolbar>
       {trainings.length === 0 ? (
-        <EmptyState title={hasTypeFilter ? "Este tipo todavía no tiene entrenamientos" : "Todavía no hay entrenamientos"} description="Usá Nuevo entrenamiento para añadir fases y bloques a la biblioteca." href={hasTypeFilter ? "/staff/biblioteca" : "/staff/biblioteca/nuevo"} action={hasTypeFilter ? "Ver todos" : "Nuevo entrenamiento"} />
+        <EmptyState
+          layout="panel"
+          title={hasTypeFilter ? "Este tipo todavía no tiene entrenamientos" : "Todavía no hay entrenamientos"}
+          description="Usá Nuevo entrenamiento para añadir fases y bloques a la biblioteca."
+          href={hasTypeFilter ? "/staff/biblioteca" : "/staff/biblioteca/nuevo"}
+          action={hasTypeFilter ? "Ver todos" : "Nuevo entrenamiento"}
+        />
       ) : filtered.length === 0 ? (
         <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra por nombre o tipo los entrenamientos de esta página. Probá otra búsqueda o consultá otra página.">
           <Button type="button" variant="outline" className="min-h-11" onClick={clearQuery}>Limpiar búsqueda</Button>

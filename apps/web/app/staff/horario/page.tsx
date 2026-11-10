@@ -40,7 +40,7 @@ async function Hours({ searchParams }: { searchParams: Promise<{ box?: string }>
       <ModuleHeader
         title="Horario del box"
         description="Define cuándo se pueden programar clases. Los cambios se aplican al guardar."
-        tabs={<BoxTabs boxes={boxes} boxId={box.id} hrefFor={(id) => `/staff/horario?box=${id}`} />}
+        tabs={boxes.length > 1 ? <BoxTabs boxes={boxes} boxId={box.id} hrefFor={(id) => `/staff/horario?box=${id}`} /> : undefined}
       />
       <ModuleBody width="full">
         <HoursForm key={box.id} initialConfig={hours} today={localDateString(new Date())} boxId={box.id} />

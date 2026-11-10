@@ -45,7 +45,7 @@ export function TimeColumn({ label, value, count, onValueChange, disabled }: {
           return (
             <Radio.Root
               key={option} value={option} data-value={option} nativeButton render={<button type="button" />}
-              className="flex h-11 shrink-0 touch-manipulation cursor-pointer items-center justify-center rounded-md text-base tabular-nums outline-none select-none pointer-hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-checked:bg-primary data-checked:pointer-hover:bg-primary data-checked:font-semibold data-checked:text-primary-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50 sm:h-9 sm:text-sm"
+              className="flex h-11 shrink-0 touch-manipulation cursor-pointer items-center justify-center rounded-md text-base font-medium tabular-nums outline-none select-none pointer-hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-checked:bg-primary data-checked:pointer-hover:bg-primary data-checked:text-primary-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50 sm:h-9 sm:text-sm"
             >
               {option}
             </Radio.Root>

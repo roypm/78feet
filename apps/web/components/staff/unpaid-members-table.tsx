@@ -2,12 +2,13 @@
 
 import { EmptyState } from "@/components/feedback/empty-state";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import type { SubscriptionBilling } from "@78feet/domain";
 import { formatPrice } from "@/lib/box/format";
 import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
 import { MarkPaidButton } from "@/components/staff/mark-paid-button";
+import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
 import { MemberListSearch } from "@/components/staff/member-list-search";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -24,7 +25,7 @@ export type UnpaidMemberRow = {
   periodLabel: string;
 };
 
-export function UnpaidMembersTable({ members }: { members: UnpaidMemberRow[] }) {
+export function UnpaidMembersTable({ members, filters }: { members: UnpaidMemberRow[]; filters?: ReactNode }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const filtered = useMemo(
@@ -52,12 +53,14 @@ export function UnpaidMembersTable({ members }: { members: UnpaidMemberRow[] }) 
 
   return (
     <div className="flex flex-col gap-3">
-      <MemberListSearch
-        ref={searchRef}
-        value={query}
-        onChange={setQuery}
-        placeholder="Buscar por nombre, tarifa o periodo…"
-      />
+      <ListSearchToolbar filters={filters}>
+        <MemberListSearch
+          ref={searchRef}
+          value={query}
+          onChange={setQuery}
+          placeholder="Buscar por nombre, tarifa o periodo…"
+        />
+      </ListSearchToolbar>
       {filtered.length === 0 ? (
         <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra los impagos de la página actual. Podés limpiar el texto o consultar otra página."><button type="button" className="min-h-11 text-primary" onClick={clearQuery}>Limpiar búsqueda</button></EmptyState>
       ) : (

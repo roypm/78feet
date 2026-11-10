@@ -55,7 +55,13 @@ async function Exceptions({ searchParams }: { searchParams: Promise<{ pagina?: s
       />
       <ModuleBody inset="content">
         {classTypes.length === 0 ? (
-          <EmptyState title="Primero hace falta un tipo de clase" description={user.role === "admin" ? "Creá un tipo antes de añadir clases extra." : "Pedile al admin que cree un tipo de clase para poder añadir sesiones."} href={user.role === "admin" ? "/staff/tipos" : undefined} action="Crear tipo" />
+          <EmptyState
+            layout="panel"
+            title="Primero hace falta un tipo de clase"
+            description={user.role === "admin" ? "Creá un tipo antes de añadir clases extra." : "Pedile al admin que cree un tipo de clase para poder añadir sesiones."}
+            href={user.role === "admin" ? "/staff/tipos" : undefined}
+            action="Crear tipo"
+          />
         ) : (
           <>
             <ModulePrimaryAction>

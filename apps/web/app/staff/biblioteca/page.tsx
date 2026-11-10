@@ -6,7 +6,7 @@ import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireStaff } from "@/lib/auth/current";
 import { listStaffTrainingsPage, listTrainingFilterTypes } from "@/lib/box/trainings";
 import { Button } from "@/components/ui/button";
-import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
+import { QueryFilter } from "@/components/member/query-filter";
 import { TrainingLibraryTable } from "@/components/staff/training-library-table";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
@@ -41,28 +41,27 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
 
   return (
     <ModulePage>
-      <ModuleHeader
-        title="Biblioteca"
-        description="Entrenamientos reutilizables por tipo dirigido."
-        tabs={
-          <FilterTabs aria-label="Tipo de entrenamiento">
-            <FilterTabLink href="/staff/biblioteca" active={!classTypeId}>
-              Todos
-            </FilterTabLink>
-            {types.map((type) => (
-              <FilterTabLink
-                key={type.id}
-                href={`/staff/biblioteca?tipo=${type.id}`}
-                active={classTypeId === type.id}
-              >
-                {type.name}
-              </FilterTabLink>
-            ))}
-          </FilterTabs>
-        }
-      />
+      <ModuleHeader title="Biblioteca" description="Entrenamientos reutilizables por tipo dirigido." />
       <ModuleBody width="full" inset="content">
-        <TrainingLibraryTable trainings={trainings} hasTypeFilter={Boolean(classTypeId)} action={
+        <TrainingLibraryTable
+          trainings={trainings}
+          hasTypeFilter={Boolean(classTypeId)}
+          filters={
+            <QueryFilter
+              ariaLabel="Tipo de entrenamiento"
+              chipCount={types.length}
+              active={classTypeId ?? "todos"}
+              options={[
+                { value: "todos", label: "Todos", href: "/staff/biblioteca" },
+                ...types.map((type) => ({
+                  value: type.id,
+                  label: type.name,
+                  href: `/staff/biblioteca?tipo=${type.id}`,
+                })),
+              ]}
+            />
+          }
+          action={
           <Button nativeButton={false} variant="outline" className="min-h-11" render={<Link href="/staff/biblioteca/nuevo" />}>
             Nuevo entrenamiento
           </Button>

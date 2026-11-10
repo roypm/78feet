@@ -7,7 +7,8 @@ import { Suspense } from "react";
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
 import { requireMember } from "@/lib/auth/current";
 import { listTrainingFilterTypes, listTrainingsPage } from "@/lib/box/trainings";
-import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
+import { QueryFilter } from "@/components/member/query-filter";
+import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
 
 export default function Page({
@@ -41,27 +42,25 @@ async function Library({ searchParams }: { searchParams: Promise<{ tipo?: string
 
   return (
     <ModulePage>
-      <ModuleHeader
-        title="Biblioteca"
-        description="Entrenamientos de clases dirigidas."
-        tabs={
-          <FilterTabs aria-label="Tipo de entrenamiento">
-            <FilterTabLink href="/biblioteca" active={!classTypeId}>
-              Todos
-            </FilterTabLink>
-            {types.map((type) => (
-              <FilterTabLink
-                key={type.id}
-                href={`/biblioteca?tipo=${type.id}`}
-                active={classTypeId === type.id}
-              >
-                {type.name}
-              </FilterTabLink>
-            ))}
-          </FilterTabs>
-        }
-      />
+      <ModuleHeader title="Biblioteca" description="Entrenamientos de clases dirigidas." />
       <ModuleBody>
+        <ListSearchToolbar
+          filters={
+            <QueryFilter
+              ariaLabel="Tipo de entrenamiento"
+              chipCount={types.length}
+              active={classTypeId ?? "todos"}
+              options={[
+                { value: "todos", label: "Todos", href: "/biblioteca" },
+                ...types.map((type) => ({
+                  value: type.id,
+                  label: type.name,
+                  href: `/biblioteca?tipo=${type.id}`,
+                })),
+              ]}
+            />
+          }
+        />
         {trainings.length === 0 ? (
           <EmptyState title={classTypeId ? "No hay entrenamientos de este tipo" : "Todavía no hay entrenamientos"} description={classTypeId ? "Probá con otro tipo de clase o volvé a ver toda la biblioteca." : "Los entrenamientos aparecerán acá cuando el staff los publique."} href={classTypeId ? "/biblioteca" : undefined} action={classTypeId ? "Ver todos" : undefined} />
         ) : (

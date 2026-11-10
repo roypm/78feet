@@ -1,6 +1,7 @@
 "use client";
 
 import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { SegmentSlideList, segmentSlideHandlers, useSegmentSlide } from "@/components/member/segment-slide";
 import { cn } from "cn";
 import { formatWeekChip, formatWeekRange } from "@/lib/box/format";
 import { calendarHref } from "@/lib/box/calendar-navigation";
@@ -26,29 +27,7 @@ export function WeekNav({
   const navDisabled = "flex min-h-8 shrink-0 items-center rounded-sm px-2 text-sm text-muted-foreground";
 
   const chips = (
-    <div className="flex gap-1 rounded-md bg-muted p-0.5">
-      {week.weeks.map((item) => {
-        const active = item.start === week.start;
-        const chip = formatWeekChip(item.start);
-        return (
-          <Link
-            key={item.start}
-            href={calendarHref(basePath, item.start, view, boxId)}
-            prefetch={true}
-            aria-current={active ? "page" : undefined}
-            aria-label={`Semana del ${formatWeekRange(item.start, item.end)}`}
-            className={
-              active
-                ? "flex min-h-8 shrink-0 touch-manipulation flex-col items-center justify-center rounded-sm bg-card px-2 text-xs leading-tight font-semibold text-foreground transition-transform duration-150 ease-out active:scale-[0.97]"
-                : "flex min-h-8 shrink-0 touch-manipulation flex-col items-center justify-center rounded-sm px-2 text-xs leading-tight text-muted-foreground transition-transform duration-150 ease-out active:scale-[0.97] [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground"
-            }
-          >
-            <span className="tabular-nums">{chip.day}</span>
-            <span>{chip.month}</span>
-          </Link>
-        );
-      })}
-    </div>
+    <WeekChips basePath={basePath} view={view} boxId={boxId} week={week} />
   );
 
   if (width === "calendar") {
@@ -104,5 +83,63 @@ export function WeekNav({
         <span className={navDisabled}>Siguiente</span>
       )}
     </nav>
+  );
+}
+
+function WeekChips({
+  basePath,
+  view,
+  boxId,
+  week,
+}: {
+  basePath: string;
+  view: CalendarView;
+  boxId?: string;
+  week: CalendarWeek;
+}) {
+  return (
+    <SegmentSlideList role="group" aria-label="Semanas del calendario" className="flex gap-0.5 rounded-md bg-muted p-0.5">
+      {week.weeks.map((item) => (
+        <WeekChip key={item.start} item={item} active={item.start === week.start} basePath={basePath} view={view} boxId={boxId} />
+      ))}
+    </SegmentSlideList>
+  );
+}
+
+function WeekChip({
+  item,
+  active,
+  basePath,
+  view,
+  boxId,
+}: {
+  item: CalendarWeek["weeks"][number];
+  active: boolean;
+  basePath: string;
+  view: CalendarView;
+  boxId?: string;
+}) {
+  const slide = useSegmentSlide();
+  const chip = formatWeekChip(item.start);
+  const className = cn(
+    "flex min-h-8 shrink-0 touch-manipulation flex-col items-center justify-center rounded-sm px-2 text-xs font-medium leading-tight transition-[scale,color] duration-150 ease-out active:scale-[0.97]",
+    slide?.enabled
+      ? cn("relative z-[1] bg-transparent", active ? "text-foreground" : "text-muted-foreground pointer-hover:text-foreground")
+      : active
+        ? "bg-card text-foreground"
+        : "text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground",
+  );
+  return (
+    <Link
+      href={calendarHref(basePath, item.start, view, boxId)}
+      prefetch={true}
+      aria-current={active ? "page" : undefined}
+      aria-label={`Semana del ${formatWeekRange(item.start, item.end)}`}
+      {...segmentSlideHandlers(slide)}
+      className={className}
+    >
+      <span className="tabular-nums">{chip.day}</span>
+      <span>{chip.month}</span>
+    </Link>
   );
 }

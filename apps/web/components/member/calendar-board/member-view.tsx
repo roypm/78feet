@@ -6,12 +6,13 @@ import { BLOCK_INSET, calendarAxis, columnHeight } from "@/lib/box/calendar-layo
 import { calendarHref } from "@/lib/box/calendar-navigation";
 import { KindTabs } from "@/components/member/kind-tabs";
 import { BoxTabs } from "@/components/member/box-tabs";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/member/module-page";
 import { CalendarGrid } from "./grid";
 import { WeekNav } from "./week-nav";
 import type { CalendarBoardCoreProps } from "./types";
 import { PX_PER_HOUR, PX_PER_HOUR_LARGE } from "@/lib/box/column";
 import { chipClass } from "@/components/member/kind-tabs";
+import { SegmentSlideList, segmentSlideHandlers, useSegmentSlide } from "@/components/member/segment-slide";
 import { useCalendarScale } from "./use-calendar-scale";
 
 export function MemberCalendarBoard({
@@ -42,18 +43,18 @@ export function MemberCalendarBoard({
         title={title}
         description="Cuatro semanas de clases. Tocá un bloque para reservar o ver plazas y roster."
         tabs={
-          <div className="flex flex-col items-start gap-2">
+          <ModuleHeaderTabStack>
             <BoxTabs boxes={boxes} boxId={boxId ?? ""} hrefFor={(id) => calendarHref(basePath, semana, view, id)} />
             <KindTabs
               view={view}
               directedHref={calendarHref(basePath, semana, "dirigidas", boxId)}
               openHref={calendarHref(basePath, semana, "open", boxId)}
             />
-          </div>
+          </ModuleHeaderTabStack>
         }
         action={
           desktop ? (
-            <div className="flex w-fit rounded-md bg-muted p-0.5" role="group" aria-label="Tamaño del calendario">
+            <SegmentSlideList role="group" aria-label="Tamaño del calendario" className="flex gap-0.5 rounded-md bg-muted p-0.5">
               <DensityButton pressed={density === "pequeno"} onClick={() => choose("pequeno")}>
                 Pequeño
               </DensityButton>
@@ -63,7 +64,7 @@ export function MemberCalendarBoard({
               <DensityButton pressed={density === "grande"} onClick={() => choose("grande")}>
                 Grande
               </DensityButton>
-            </div>
+            </SegmentSlideList>
           ) : null
         }
         toolbar={
@@ -115,8 +116,16 @@ function DensityButton({
   onClick: () => void;
   children: string;
 }) {
+  const slide = useSegmentSlide();
+  const handlers = segmentSlideHandlers(slide);
   return (
-    <button type="button" aria-pressed={pressed} onClick={onClick} className={chipClass(pressed)}>
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      {...handlers}
+      className={slide ? slide.chipClass(pressed) : chipClass(pressed)}
+    >
       {children}
     </button>
   );

@@ -40,7 +40,9 @@ export function ModuleHeader({
           <SidebarTrigger className="-ml-2 size-11 shrink-0 md:hidden" />
           <h1 className="min-w-0 shrink-0 text-xl font-semibold wrap-break-word">{title}</h1>
           {tabs ? (
-            <div className={cn("flex min-w-0 flex-wrap items-center gap-2", TAB_ROW_MIN_H)}>{tabs}</div>
+            <div className={cn("flex min-w-0 max-w-full flex-1 items-center overflow-x-auto overscroll-x-contain touch-pan-x", TAB_ROW_MIN_H)}>
+              {tabs}
+            </div>
           ) : null}
         </div>
         {action ? (
@@ -94,9 +96,9 @@ export function ModuleHeaderToolbar({
   );
 }
 
-/** Dos filas de pestañas en el header (sede + tipo, cobros + sede, etc.). */
+/** Sede y Dirigidas/Open en una sola fila; si no caben, la cabecera se desplaza en horizontal. */
 export function ModuleHeaderTabStack({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex flex-col items-start gap-2", className)}>{children}</div>;
+  return <div className={cn("flex w-max flex-nowrap items-center gap-2", className)}>{children}</div>;
 }
 
 export function ModuleBody({

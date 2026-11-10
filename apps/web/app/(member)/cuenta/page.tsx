@@ -4,7 +4,7 @@ import { LoadingState } from "@/components/feedback/loading-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
-import { listBoxes, orderBoxes } from "@/lib/box/boxes";
+import { listBoxes } from "@/lib/box/boxes";
 import { emptyField, displayPhone } from "@/lib/box/format";
 import { getOwnProfile } from "@/lib/box/summary";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
@@ -30,7 +30,7 @@ export default function Page() {
 async function Account() {
   const user = await requireMember();
   const profile = await getOwnProfile(user.id);
-  const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
+  const boxes = await listBoxes();
   if (!profile) {
     return (
       <ModulePage>

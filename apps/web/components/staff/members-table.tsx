@@ -90,7 +90,7 @@ function CellText({
   );
 }
 
-export function MembersTable({ members, action }: { members: MemberListRow[]; action?: ReactNode }) {
+export function MembersTable({ members, action, filters }: { members: MemberListRow[]; action?: ReactNode; filters?: ReactNode }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const { router, pending } = useActionFeedback();
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -125,7 +125,7 @@ export function MembersTable({ members, action }: { members: MemberListRow[]; ac
 
   return (
     <div className="flex flex-col gap-3">
-      <ListSearchToolbar action={action}>
+      <ListSearchToolbar action={action} filters={filters}>
         <MemberListSearch ref={searchRef} value={query} onChange={setQuery} />
       </ListSearchToolbar>
       {filtered.length === 0 ? (

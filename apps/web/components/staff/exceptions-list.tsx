@@ -9,7 +9,13 @@ import { formatDay, formatTime } from "@/lib/box/format";
 
 export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
   if (items.length === 0) {
-    return <EmptyState title="No hay excepciones desde hoy" description="Las clases extra y los cambios puntuales aparecerán acá. Usá Añadir clase extra si necesitás una sesión fuera de la plantilla." />;
+    return (
+      <EmptyState
+        layout="panel"
+        title="No hay excepciones desde hoy"
+        description="Las clases extra y los cambios puntuales aparecerán acá. Usá Añadir clase extra si necesitás una sesión fuera de la plantilla."
+      />
+    );
   }
 
   return (
