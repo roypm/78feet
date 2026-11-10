@@ -1,9 +1,9 @@
 # Setup Roy
 
-This directory is an optional AI pack installed in the project (`docs/setup-roy/`). It can grow over time: skills, agents, workflows, and other pieces may appear under this tree — there is no fixed list in this file.
+This optional pack provides reusable resources for AI-assisted work. Its contents and organization can change over time.
 
-**What it is for:** extra playbooks the user (or their request) may rely on when working in this repo.
+When the user names a resource or the task clearly fits the pack, inspect the installed tree and read the available descriptions and guidance to find what applies. Follow the relevant resources and their required dependencies using paths that actually exist. A partial installation may contain only a subset of the upstream pack.
 
-**How to use it:** when the task clearly belongs to setup-roy or the user names a piece here, explore this folder, open the file that fits (titles, paths, YAML `description`, or search), and follow it. For composed stacks (e.g. SDD + Ponytail), use a file under [`workflows/`](workflows/) when the user names a workflow or workflow number. If nothing here applies, ignore the pack and use the rest of the project as usual.
+Treat examples, optional alternatives, and required dependencies according to the resource's own instructions. Do not assume a fixed catalog, directory layout, or entry filename. Installation metadata records provenance and scope; it is not a resource to execute.
 
-**Do not** force a pack piece on every task or invent that the user already chose one.
+Do not force a resource onto every task or assume the user selected a particular method. If nothing fits, work normally using the project's instructions.

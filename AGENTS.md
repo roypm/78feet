@@ -1,5 +1,5 @@
 ## Setup Roy
-Optional pack in `docs/setup-roy/`. When the user or the task points there, read `docs/setup-roy/agents.md` and follow whatever piece fits under that tree. Otherwise work normally.
+Optional resources for AI-assisted work are installed in `docs/setup-roy/`. When the user names a resource or the task clearly fits the pack, inspect the installed tree and its available guidance, then read the relevant resources and follow those that apply. Use only paths that actually exist. Otherwise work normally.
 
 ## Commits
 `<emoji> <tipo>: <resumen en imperativo>`, ej. `✨ feat: calcular cupo semanal`.
