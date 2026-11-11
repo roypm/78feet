@@ -608,6 +608,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 - Entornos: `local` y `production`. Sin staging en v1.
 - Secretos solo en variables de entorno de Vercel; nunca en el repo.
 - Migraciones con Prisma (`prisma migrate deploy`) en el deploy.
+- `apps/web/vercel.json` ejecuta `pnpm run build:deploy`: aplica las migraciones con `DIRECT_URL`, regenera Prisma y después compila y comprueba el CSS. `pnpm build` sigue siendo una compilación local sin migraciones.
 - Dominio propio (~10–15 €/año); Apple Developer 99 €/año solo cuando se publique iOS.
 
 ## 11. Privacidad y RGPD
@@ -637,11 +638,35 @@ multi-tenant, i18n, exportaciones, panel de métricas, app de staff, offline, Do
 
 Las pantallas de Socios, Impagos y Biblioteca consultan páginas de 25 filas con `skip`/`take` y un recuento filtrado. El orden añade `id` como desempate estable. El servidor normaliza páginas inválidas a 1 y ajusta las que exceden el total.
 
+El historial de pagos de cada socio también pagina de 25 en 25 mediante `?pagina=N`, con orden por fecha de registro e ID. Reservar y consultar el resumen calculan el consumo periódico con recuentos por periodo y el saldo de bono con sumas y recuentos SQL; no cargan el historial completo. La comprobación de solapes de una reserva solo consulta reservas activas que coinciden con el intervalo solicitado. El dominio recibe los totales calculados y conserva la decisión sobre el cupo o bono a consumir.
+
+### Coordinación de escrituras y límites
+
+El acceso bloquea la fila de la cuenta antes de leer y actualizar los intentos de contraseña. Cambiar la tarifa bloquea al socio antes de leer su membresía y cancelar sus reservas futuras. Reservar y cancelar una reserva toman los bloqueos en orden clase → socio; la cancelación vuelve a leer el estado tras bloquear y solo actualiza reservas activas. Las modificaciones puntuales del horario, incluida la restauración o retirada de una clase extra, toman sede → clase y leen los valores actuales después de adquirir esos bloqueos.
+
+Los esquemas de enteros persistidos respetan el rango `Int` de PostgreSQL. Importes y cantidades de los formularios comparten el máximo `2_147_483_647`; los importes se expresan en céntimos. Una cookie de sesión con codificación inválida se trata como ausencia de sesión.
+
+La comprobación de migraciones recorre todos los archivos SQL en orden cronológico y cubre la asignación de sede a pagos existentes, además de los casos históricos específicos. Las regresiones de concurrencia se ejecutan contra PostgreSQL aislado y verifican acceso paralelo, solapes, conservación de cambios puntuales, cancelaciones y cambio de tarifa durante una reserva.
+
 El filtrado de texto de Socios, Impagos y Biblioteca staff se aplica en el cliente a la página cargada; Equipo filtra la lista de cuentas cargada. Comparten la normalización de mayúsculas y acentos en `lib/ui/search.ts`, sin parámetros ni peticiones adicionales de búsqueda. Biblioteca staff solo indexa nombre y tipo, no el contenido del entrenamiento.
 
 Los GET de `/api/v1/admin/members`, `/api/v1/admin/unpaid`, `/api/v1/admin/trainings` y `/api/v1/trainings` aceptan `page=N`. Con `page` devuelven `{ items, pageInfo: { page, pageSize, total, totalPages } }`; Impagos añade `asOf` y Biblioteca de socio añade `types`. Sin `page`, mantienen el contrato anterior para los consumidores existentes y selectores internos.
 
 El saldo de bonos del listado se calcula con agregaciones `SUM(quantity)` de créditos y recuento de reservas consumidas para los IDs cargados: `pool=pack` y (`status=active` o `quotaReturned=false`). Impagos filtra en SQL por tarifa vigente y ausencia del pago de su periodo, antes de contar y paginar; no carga el historial de pagos.
+
+### Organización de componentes web
+
+`apps/web/components` se organiza por responsabilidad: `ui` conserva los primitives locales de shadcn/Base UI; `common` reúne composiciones transversales en `layout`, `navigation`, `forms`, `dialogs`, `feedback`, `lists`, `filters` y `media`; `providers` contiene los proveedores de contexto.
+
+Los componentes de negocio se agrupan en `account`, `calendar`, `bookings`, `classes`, `class-types`, `members`, `team`, `payments`, `tariffs`, `trainings` y `boxes`. Compartir una pieza entre socio y staff no la convierte en genérica: el calendario sigue en `calendar` y el selector de sede en `boxes`. Los shells específicos de rol permanecen junto a la navegación común. Cada módulo puede consumir componentes de otro módulo manteniendo la propiedad original, como los pagos que aparecen en la ficha de un socio.
+
+Los hooks y tipos específicos permanecen junto a sus componentes. Las subcarpetas se crean para conjuntos reales de piezas, como `calendar/calendar-board`, `boxes/hours` y `boxes/template-schedule`. Los helpers sin UI pertenecen a `lib` y las reglas de negocio a `packages/domain`. Se usan imports directos, sin archivos de reexportación generales.
+
+`FormActions` compone Cancelar y el envío con espera para formularios; `ConfirmDialog` centraliza las confirmaciones, incluido su trigger opcional. Los formularios de registro y corrección de pagos comparten `PaymentFields` y el catálogo de métodos de `payments-view.ts`. `BoxTabs` prepara las opciones de sede y delega su presentación en `QueryFilter`, contando solo las sedes reales para decidir entre chips y desplegable.
+
+La ficha de socio compone operaciones locales de edición personal, contraseña, tarifa, box de pago y estado de cuenta. Los diálogos conservan su propio estado de apertura y comparten el bloqueo de envío de la ficha. El alta de socio tiene un único propietario del estado de envío. Ficha y gestión de cupo comparten `formatAvailableQuota`; el editor de entrenamiento delega los cambios de cada fase en `TrainingPhaseEditor`, manteniendo el guardado y las confirmaciones en `TrainingEditor`.
+
+La ruta `/dev/component-composition` permite comprobar estas composiciones con datos demo, largos, vacíos, uno y envío pendiente, además de claro/oscuro. Solo está disponible en desarrollo; los formularios de muestra no envían peticiones y la ficha se presenta en lectura.
 
 ### Organización de la edición de plantilla web
 
