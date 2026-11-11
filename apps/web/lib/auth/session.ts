@@ -16,13 +16,7 @@ export function toSessionUser(user: Pick<User, "id" | "loginId" | "role" | "firs
 }
 
 export function buildSessionCookie(token: string, maxAge = SESSION_MAX_AGE_SECONDS): string {
-  const parts = [
-    `${SESSION_COOKIE}=${token}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-    `Max-Age=${maxAge}`,
-  ];
+  const parts = [`${SESSION_COOKIE}=${token}`, "Path=/", "HttpOnly", "SameSite=Lax", `Max-Age=${maxAge}`];
   if (process.env.NODE_ENV === "production") {
     parts.push("Secure");
   }
@@ -47,7 +41,11 @@ export function tokenFromRequest(request: Request): string | null {
     .find((part) => part.startsWith(`${SESSION_COOKIE}=`));
   if (!match) return null;
   const value = match.slice(SESSION_COOKIE.length + 1);
-  return value.length > 0 ? decodeURIComponent(value) : null;
+  try {
+    return value.length > 0 ? decodeURIComponent(value) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function loadActiveUserFromRequest(request: Request): Promise<User | null> {

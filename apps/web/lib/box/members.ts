@@ -100,8 +100,8 @@ async function requireAssignableTariff(tariffId: string) {
   return tariff;
 }
 
-async function requireMember(id: string) {
-  const user = await prisma.user.findUnique({ where: { id } });
+async function requireMember(id: string, db: Db = prisma) {
+  const user = await db.user.findUnique({ where: { id } });
   if (!user || user.role !== "member") {
     throw new BoxError(404, "FORBIDDEN", "El socio no existe");
   }
@@ -332,12 +332,11 @@ export async function updateMember(id: string, patch: PatchMember) {
 }
 
 export async function changeMemberTariff(id: string, tariffId: string, actorId: string) {
-  const user = await requireMember(id);
-  if (user.status !== "active") {
-    throw new BoxError(403, "FORBIDDEN", "El socio está de baja");
-  }
   await requireAssignableTariff(tariffId);
   return prisma.$transaction(async (tx) => {
+    await lockUserRow(tx, id);
+    const user = await requireMember(id, tx);
+    if (user.status !== "active") throw new BoxError(403, "FORBIDDEN", "El socio está de baja");
     const now = new Date();
     const current = await tx.membership.findFirst({
       where: { userId: id, endedAt: null },

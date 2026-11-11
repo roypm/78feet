@@ -15,7 +15,10 @@ function validBoxHours(): BoxHoursConfig {
   return {
     weekly: Array.from({ length: 7 }, (_, index) => ({
       weekday: index + 1,
-      intervals: [{ openTime: "07:00", closeTime: "12:00" }, { openTime: "13:00", closeTime: "21:00" }],
+      intervals: [
+        { openTime: "07:00", closeTime: "12:00" },
+        { openTime: "13:00", closeTime: "21:00" },
+      ],
     })),
     exceptions: [],
   };
@@ -185,5 +188,19 @@ describe("staff schemas", () => {
   it("validates optional contact updates", () => {
     expect(patchStaffSchema.safeParse({ phone: null, email: "ana@example.test" }).success).toBe(true);
     expect(patchStaffSchema.safeParse({ email: "no-es-email" }).success).toBe(false);
+  });
+});
+
+describe("límites de enteros persistidos", () => {
+  it("acepta el límite SQL y rechaza el siguiente céntimo", async () => {
+    const { createPaymentSchema, patchPaymentSchema, STORAGE_INT_MAX } = await import("./schemas");
+    const input = {
+      userId: "11111111-1111-4111-8111-111111111111",
+      billingPeriod: "one_time",
+      amountCents: STORAGE_INT_MAX,
+    };
+    expect(createPaymentSchema.safeParse(input).success).toBe(true);
+    expect(createPaymentSchema.safeParse({ ...input, amountCents: STORAGE_INT_MAX + 1 }).success).toBe(false);
+    expect(patchPaymentSchema.safeParse({ amountCents: STORAGE_INT_MAX + 1 }).success).toBe(false);
   });
 });

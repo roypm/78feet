@@ -1,9 +1,14 @@
 import { z } from "zod";
 import { ERROR_CODES } from "./errors";
 
-export const isoDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "fecha inválida");
+export const STORAGE_INT_MAX = 2_147_483_647;
+const storageInteger = z
+  .number()
+  .int()
+  .min(-2_147_483_648, "El valor supera el mínimo permitido")
+  .max(STORAGE_INT_MAX, "El valor supera el máximo permitido");
+
+export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "fecha inválida");
 
 export const roleSchema = z.enum(["member", "coach", "admin"]);
 export const userStatusSchema = z.enum(["active", "inactive"]);
@@ -18,14 +23,7 @@ export const ownPreferencesSchema = z
     message: "Indicá al menos una preferencia",
   });
 export const tariffConsumptionSchema = z.enum(["weekly_quota", "monthly_quota", "pack"]);
-export const tariffBillingSchema = z.enum([
-  "monthly",
-  "quarterly",
-  "semiannual",
-  "annual",
-  "none",
-  "one_time",
-]);
+export const tariffBillingSchema = z.enum(["monthly", "quarterly", "semiannual", "annual", "none", "one_time"]);
 export const paymentBillingSchema = z.enum(["monthly", "quarterly", "semiannual", "annual", "one_time"]);
 /** @deprecated */
 export const tariffKindSchema = z.enum(["monthly", "pack"]);
@@ -99,10 +97,10 @@ export const tariffWriteSchema = z
     name: z.string().trim().min(1, "El nombre es obligatorio"),
     consumptionModel: tariffConsumptionSchema,
     billingPeriod: tariffBillingSchema,
-    priceCents: z.number().int().min(0, "El precio no puede ser negativo"),
-    quotaDirected: z.number().int().min(0).nullable().optional(),
-    quotaOpen: z.number().int().min(0).nullable().optional(),
-    packClasses: z.number().int().positive().nullable().optional(),
+    priceCents: storageInteger.min(0, "El precio no puede ser negativo"),
+    quotaDirected: storageInteger.min(0).nullable().optional(),
+    quotaOpen: storageInteger.min(0).nullable().optional(),
+    packClasses: storageInteger.positive().nullable().optional(),
     active: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
@@ -151,11 +149,11 @@ export const tariffWriteSchema = z
     billingPeriod: value.billingPeriod,
     priceCents: value.priceCents,
     quotaDirected: usesPeriodicQuota(value.consumptionModel)
-      ? (value.quotaDirected === undefined ? 0 : value.quotaDirected)
+      ? value.quotaDirected === undefined
+        ? 0
+        : value.quotaDirected
       : 0,
-    quotaOpen: usesPeriodicQuota(value.consumptionModel)
-      ? (value.quotaOpen === undefined ? 0 : value.quotaOpen)
-      : 0,
+    quotaOpen: usesPeriodicQuota(value.consumptionModel) ? (value.quotaOpen === undefined ? 0 : value.quotaOpen) : 0,
     packClasses: value.consumptionModel === "pack" ? (value.packClasses ?? null) : null,
     active: value.active ?? true,
   }));
@@ -165,10 +163,10 @@ export const patchTariffSchema = z
     name: z.string().trim().min(1, "El nombre es obligatorio").optional(),
     consumptionModel: tariffConsumptionSchema.optional(),
     billingPeriod: tariffBillingSchema.optional(),
-    priceCents: z.number().int().min(0, "El precio no puede ser negativo").optional(),
-    quotaDirected: z.number().int().min(0).nullable().optional(),
-    quotaOpen: z.number().int().min(0).nullable().optional(),
-    packClasses: z.number().int().positive().nullable().optional(),
+    priceCents: storageInteger.min(0, "El precio no puede ser negativo").optional(),
+    quotaDirected: storageInteger.min(0).nullable().optional(),
+    quotaOpen: storageInteger.min(0).nullable().optional(),
+    packClasses: storageInteger.positive().nullable().optional(),
     active: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });
@@ -202,6 +200,8 @@ export const grantCreditsSchema = z.object({
   quantity: z
     .number()
     .int()
+    .min(-2_147_483_648)
+    .max(STORAGE_INT_MAX, "El valor supera el máximo permitido")
     .refine((value) => value !== 0, { message: "La cantidad no puede ser cero" }),
   note: z.string().trim().min(1).nullable().optional(),
 });
@@ -211,6 +211,8 @@ export const quotaAdjustmentSchema = z.object({
   delta: z
     .number()
     .int()
+    .min(-2_147_483_648)
+    .max(STORAGE_INT_MAX, "El valor supera el máximo permitido")
     .refine((value) => value !== 0, { message: "Indicá cuántas clases" }),
   note: z.string().trim().min(1).nullable().optional(),
 });
@@ -236,12 +238,12 @@ export const paymentBoxSchema = z.object({
 });
 
 export const templateWriteSchema = z.object({
-  weekday: z.number().int().min(1).max(7),
+  weekday: storageInteger.min(1).max(7),
   startTime: clockSchema,
   endTime: clockSchema,
   classTypeId: z.string().uuid(),
   coachId: z.string().uuid().nullable().optional(),
-  defaultCapacity: z.number().int().positive("El aforo tiene que ser mayor que cero"),
+  defaultCapacity: storageInteger.positive("El aforo tiene que ser mayor que cero"),
   boxId: z.string().uuid().optional(),
 });
 
@@ -250,9 +252,7 @@ export const patchTemplateSchema = templateWriteSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "Nada para actualizar" });
 
-export const applyTemplateDraftUpdatedSchema = patchTemplateSchema.and(
-  z.object({ id: z.string().uuid() }),
-);
+export const applyTemplateDraftUpdatedSchema = patchTemplateSchema.and(z.object({ id: z.string().uuid() }));
 
 export const applyTemplateDraftSchema = z.object({
   boxId: z.string().uuid(),
@@ -307,7 +307,7 @@ export const patchInstanceSchema = z
     endTime: clockSchema.optional(),
     classTypeId: z.string().uuid().optional(),
     coachId: z.string().uuid().nullable().optional(),
-    capacity: z.number().int().positive("El aforo tiene que ser mayor que cero").optional(),
+    capacity: storageInteger.positive("El aforo tiene que ser mayor que cero").optional(),
     status: instanceStatusSchema.optional(),
     cancelReason: z.string().trim().min(1).nullable().optional(),
     trainingId: z.string().uuid().nullable().optional(),
@@ -323,7 +323,7 @@ export const createInstanceSchema = z.object({
   endTime: clockSchema,
   classTypeId: z.string().uuid(),
   coachId: z.string().uuid().nullable().optional(),
-  capacity: z.number().int().positive("El aforo tiene que ser mayor que cero"),
+  capacity: storageInteger.positive("El aforo tiene que ser mayor que cero"),
   boxId: z.string().uuid().optional(),
 });
 
@@ -332,21 +332,21 @@ const openingIntervalSchema = z
     openTime: clockSchema,
     closeTime: clockSchema,
   })
-  .refine((value) => {
-    const seconds = (time: string) => {
-      const [hour, minute, second = 0] = time.split(":").map(Number);
-      return hour! * 3600 + minute! * 60 + second!;
-    };
-    return seconds(value.closeTime) > seconds(value.openTime);
-  }, {
-    message: "La hora de cierre tiene que ser posterior a la apertura",
-    path: ["closeTime"],
-  });
+  .refine(
+    (value) => {
+      const seconds = (time: string) => {
+        const [hour, minute, second = 0] = time.split(":").map(Number);
+        return hour! * 3600 + minute! * 60 + second!;
+      };
+      return seconds(value.closeTime) > seconds(value.openTime);
+    },
+    {
+      message: "La hora de cierre tiene que ser posterior a la apertura",
+      path: ["closeTime"],
+    },
+  );
 
-function validateNonOverlappingIntervals(
-  intervals: { openTime: string; closeTime: string }[],
-  ctx: z.RefinementCtx,
-) {
+function validateNonOverlappingIntervals(intervals: { openTime: string; closeTime: string }[], ctx: z.RefinementCtx) {
   const sorted = [...intervals].sort((a, b) => a.openTime.localeCompare(b.openTime));
   for (let index = 1; index < sorted.length; index += 1) {
     const previous = sorted[index - 1];
@@ -365,7 +365,7 @@ export const boxHoursConfigSchema = z
     weekly: z
       .array(
         z.object({
-          weekday: z.number().int().min(1).max(7),
+          weekday: storageInteger.min(1).max(7),
           intervals: openingIntervalsSchema,
         }),
       )
@@ -419,7 +419,7 @@ export const createPaymentSchema = z
     userId: z.string().uuid(),
     billingPeriod: paymentBillingSchema,
     periodStart: isoDateSchema.optional(),
-    amountCents: z.number().int().min(0),
+    amountCents: storageInteger.min(0),
     method: z.string().trim().min(1).nullable().optional(),
   })
   .superRefine((value, ctx) => {
@@ -441,7 +441,7 @@ export const createPaymentSchema = z
 
 export const patchPaymentSchema = z
   .object({
-    amountCents: z.number().int().min(0).optional(),
+    amountCents: storageInteger.min(0).optional(),
     method: z.string().trim().min(1).nullable().optional(),
   })
   .refine((value) => value.amountCents !== undefined || value.method !== undefined, {

@@ -4,17 +4,17 @@ import {
   subscriptionPeriodLabel,
 } from "@78feet/domain";
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  cash: "Efectivo",
-  bizum: "Bizum",
-  transfer: "Transferencia",
-  card: "TPV / tarjeta",
-  other: "Otro",
-};
+export const PAYMENT_METHODS = [
+  { value: "cash", label: "Efectivo" },
+  { value: "bizum", label: "Bizum" },
+  { value: "transfer", label: "Transferencia" },
+  { value: "card", label: "TPV / tarjeta" },
+  { value: "other", label: "Otro" },
+] as const;
 
 export function paymentMethodLabel(method: string | null | undefined): string {
   if (!method?.trim()) return "—";
-  return PAYMENT_METHOD_LABELS[method] ?? method;
+  return PAYMENT_METHODS.find((option) => option.value === method)?.label ?? method;
 }
 
 export type PaymentConceptSource = {

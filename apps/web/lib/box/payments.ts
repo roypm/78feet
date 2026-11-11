@@ -1,4 +1,5 @@
 import type { PatchPayment } from "@78feet/domain";
+import { paginate } from "./pagination";
 import { prisma } from "../db";
 import { BoxError } from "./errors";
 import { isoDateFromDb } from "./time";
@@ -9,7 +10,7 @@ export type { MemberPaymentRow, RegisteredPaymentRow } from "./payments-view";
 export { paymentMethodLabel, paymentConceptLabel } from "./payments-view";
 export { listRegisteredPaymentsPage } from "./registered-payments";
 
-export async function listMemberPayments(memberId: string) {
+export async function listMemberPayments(memberId: string, page = 1) {
   const user = await prisma.user.findUnique({
     where: { id: memberId },
     select: {
@@ -25,13 +26,15 @@ export async function listMemberPayments(memberId: string) {
     throw new BoxError(404, "FORBIDDEN", "El socio no existe");
   }
 
-  const rows = await prisma.payment.findMany({
-    where: { userId: memberId },
-    orderBy: [{ createdAt: "desc" }],
-    include: {
-      recorder: { select: { firstName: true, lastName: true } },
-    },
-  });
+  const total = await prisma.payment.count({ where: { userId: memberId } });
+  const result = await paginate(total, page, (window) =>
+    prisma.payment.findMany({
+      where: { userId: memberId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      ...window,
+      include: { recorder: { select: { firstName: true, lastName: true } } },
+    }),
+  );
 
   return {
     member: {
@@ -41,7 +44,8 @@ export async function listMemberPayments(memberId: string) {
       dni: user.dni,
       loginId: user.loginId,
     },
-    payments: rows.map((payment) => ({
+    pageInfo: result.pageInfo,
+    payments: result.items.map((payment) => ({
       id: payment.id,
       billingPeriod: payment.billingPeriod,
       periodStart: payment.periodStart ? isoDateFromDb(payment.periodStart) : null,
@@ -91,10 +95,7 @@ export async function patchPayment(paymentId: string, input: PatchPayment) {
     include: { recorder: { select: { firstName: true, lastName: true } } },
   });
 
-  return paymentView(
-    payment,
-    memberFullName(payment.recorder.firstName, payment.recorder.lastName),
-  );
+  return paymentView(payment, memberFullName(payment.recorder.firstName, payment.recorder.lastName));
 }
 
 export async function deletePayment(paymentId: string) {

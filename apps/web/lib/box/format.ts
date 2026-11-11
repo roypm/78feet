@@ -1,4 +1,4 @@
-import { atBoxTime } from "@78feet/domain";
+import { atBoxTime, formatQuotaUsedLimit, isUnlimitedQuota, type QuotaLimit } from "@78feet/domain";
 
 const timeFormat = new Intl.DateTimeFormat("es-ES", {
   timeZone: "Europe/Madrid",
@@ -146,4 +146,12 @@ export function displayPhone(value: string | null | undefined): string {
   }
 
   return raw;
+}
+
+export function formatAvailableQuota(used: number, limit: QuotaLimit, adjustment: number): string {
+  if (isUnlimitedQuota(limit)) return formatQuotaUsedLimit(used, limit);
+  const total = Math.max(0, limit + adjustment);
+  const available = Math.max(0, limit - used + adjustment);
+  if (total === 0) return "0 clases disponibles";
+  return `${available} de ${total} clase${total === 1 ? "" : "s"} disponible${available === 1 ? "" : "s"}`;
 }

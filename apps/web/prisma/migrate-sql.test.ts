@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
@@ -14,6 +14,36 @@ const sql = [
 ].join("\n");
 
 describe("migration chain", () => {
+  it("applies every migration in order and backfills existing payment ownership", async () => {
+    const db = new PGlite();
+    try {
+      const migrations = readdirSync(join(root, "migrations"))
+        .filter((name) => /^\d/.test(name))
+        .sort();
+      for (const name of migrations) {
+        if (name === "20261105140000_payment_box") {
+          await db.exec(`
+            INSERT INTO "user" (id, login_id, password_hash, role, status, first_name, last_name, updated_at, payment_box_id)
+            SELECT '11111111-1111-4111-8111-111111111111', 'migration-member', 'hash', 'member', 'active', 'Marta', 'García', NOW(), id FROM box LIMIT 1;
+            INSERT INTO payment (id, user_id, billing_period, amount_cents, recorded_by)
+            VALUES ('22222222-2222-4222-8222-222222222222', '11111111-1111-4111-8111-111111111111', 'one_time', 0, '11111111-1111-4111-8111-111111111111');
+          `);
+        }
+        await db.exec(readFileSync(join(root, "migrations", name, "migration.sql"), "utf8"));
+      }
+      const result = await db.query<{ matches: boolean }>(
+        `SELECT p.payment_box_id = u.payment_box_id AS matches FROM payment p JOIN "user" u ON u.id = p.user_id`,
+      );
+      expect(result.rows).toEqual([{ matches: true }]);
+      const tables = await db.query(
+        `SELECT table_name FROM information_schema.tables WHERE table_name = 'quota_adjustment'`,
+      );
+      expect(tables.rows).toHaveLength(1);
+    } finally {
+      await db.close();
+    }
+  }, 20_000);
+
   it("añade el modo sistema sin cambiar la apariencia de las cuentas existentes", async () => {
     const db = new PGlite();
     try {
@@ -21,8 +51,12 @@ describe("migration chain", () => {
       await db.exec(`INSERT INTO "user" (id, login_id, password_hash, role, status, first_name, last_name, updated_at)
         VALUES ('00000000-0000-0000-0000-000000000001', 'existing-user', 'test-hash', 'admin', 'active', 'Existing', 'Admin', NOW())`);
       await db.exec(readFileSync(join(root, "migrations/20261101193000_user_theme/migration.sql"), "utf8"));
-      await db.exec(readFileSync(join(root, "migrations/20261101200000_user_theme_system_value/migration.sql"), "utf8"));
-      await db.exec(readFileSync(join(root, "migrations/20261101200100_user_theme_system_default/migration.sql"), "utf8"));
+      await db.exec(
+        readFileSync(join(root, "migrations/20261101200000_user_theme_system_value/migration.sql"), "utf8"),
+      );
+      await db.exec(
+        readFileSync(join(root, "migrations/20261101200100_user_theme_system_default/migration.sql"), "utf8"),
+      );
       expect((await db.query(`SELECT login_id, first_name, theme FROM "user"`)).rows).toEqual([
         { login_id: "existing-user", first_name: "Existing", theme: "light" },
       ]);
@@ -97,9 +131,7 @@ describe("migration chain", () => {
         SELECT "name", "weekly_hours"->0->'intervals'->0->>'openTime' AS open_time FROM "box"
       `);
       expect(boxes.rows).toEqual([{ name: "Box 1", open_time: "07:00" }]);
-      const gone = await db.query<{ relname: string }>(
-        `SELECT relname FROM pg_class WHERE relname = 'box_settings'`,
-      );
+      const gone = await db.query<{ relname: string }>(`SELECT relname FROM pg_class WHERE relname = 'box_settings'`);
       expect(gone.rows).toEqual([]);
       const owners = await db.query<{ template_box: string; instance_box: string }>(`
         SELECT t."box_id"::text AS template_box, i."box_id"::text AS instance_box
