@@ -1,5 +1,5 @@
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function NotFound() {
   return (

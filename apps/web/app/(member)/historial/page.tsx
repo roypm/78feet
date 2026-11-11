@@ -1,17 +1,17 @@
 
-import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
-import { ListPagination } from "@/components/member/list-pagination";
+import { EmptyState } from "@/components/common/feedback/empty-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
+import { ListPagination } from "@/components/common/lists/list-pagination";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { requireMember } from "@/lib/auth/current";
 import { listBookingHistoryPage, type HistoryBookingView } from "@/lib/box/bookings";
 import { formatDay, formatMonth, formatTime, kindLabel } from "@/lib/box/format";
 import { groupHistoryByMonth } from "@/lib/box/history";
 import { pageNumber } from "@/lib/box/pagination";
 import { Badge } from "@/components/ui/badge";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
-import { ProfileAvatar } from "@/components/member/profile-avatar";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
+import { ProfileAvatar } from "@/components/common/media/profile-avatar";
 
 export default function Page({
   searchParams,

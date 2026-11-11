@@ -1,21 +1,21 @@
 
-import { ClassTypeThumb } from "@/components/class-type-thumb";
+import { ClassTypeThumb } from "@/components/class-types/class-type-thumb";
 
-import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { EmptyState } from "@/components/common/feedback/empty-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listDay } from "@/lib/box/staff-calendar";
 import { groupDayByKind, kindViewFromParam, viewKind } from "@/lib/box/day-groups";
 import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
 import { formatDay, formatTime, kindGroupLabel } from "@/lib/box/format";
-import { BoxTabs } from "@/components/member/box-tabs";
-import { KindTabs } from "@/components/member/kind-tabs";
-import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/member/module-page";
-import { ProfileAvatar } from "@/components/member/profile-avatar";
+import { BoxTabs } from "@/components/boxes/box-tabs";
+import { KindTabs } from "@/components/common/filters/kind-tabs";
+import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/common/layout/module-page";
+import { ProfileAvatar } from "@/components/common/media/profile-avatar";
 
 function todayClassMeta(item: {
   startAt: string;

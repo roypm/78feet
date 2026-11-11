@@ -1,17 +1,17 @@
 
-import { ListEmptyBlock } from "@/components/staff/list-empty-block";
-import { LoadingState } from "@/components/feedback/loading-state";
-import { ListPagination } from "@/components/member/list-pagination";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
+import { LoadingState } from "@/components/common/feedback/loading-state";
+import { ListPagination } from "@/components/common/lists/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
 import { listUnpaidPage } from "@/lib/box/unpaid";
 import { listBoxes } from "@/lib/box/boxes";
-import { BoxTabs } from "@/components/member/box-tabs";
-import { paymentBoxListHref } from "@/components/staff/cobros-tabs";
-import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
-import { UnpaidMembersTable } from "@/components/staff/unpaid-members-table";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { BoxTabs } from "@/components/boxes/box-tabs";
+import { paymentBoxListHref } from "@/lib/box/payment-navigation";
+import { ListSearchToolbar } from "@/components/common/lists/list-search-toolbar";
+import { UnpaidMembersTable } from "@/components/payments/unpaid-members-table";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string }> }) {
   return (

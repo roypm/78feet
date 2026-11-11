@@ -1,4 +1,4 @@
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 
 export default function NotFound() {
   return (

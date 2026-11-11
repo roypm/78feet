@@ -1,4 +1,4 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { eachDate } from "@78feet/domain";
@@ -8,8 +8,8 @@ import { calendarHref } from "@/lib/box/calendar-navigation";
 import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
-import { CalendarBoard } from "@/components/member/calendar-board";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { CalendarBoard } from "@/components/calendar/calendar-board";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page({
   searchParams,

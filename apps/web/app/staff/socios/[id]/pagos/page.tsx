@@ -1,17 +1,21 @@
+import { pageNumber } from "@/lib/box/pagination";
+import { ListPagination } from "@/components/common/lists/list-pagination";
 
-import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { EmptyState } from "@/components/common/feedback/empty-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { StaffCrumbs } from "@/components/staff/staff-crumbs";
+import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { listMemberPayments } from "@/lib/box/payments";
 import { BoxError } from "@/lib/box/errors";
 import { memberFullName } from "@/lib/box/format";
-import { MemberPaymentsTable } from "@/components/staff/member-payments-table";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { MemberPaymentsTable } from "@/components/payments/member-payments-table";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ pagina?: string }> };
+
+export default function Page({ params, searchParams }: PageProps) {
   return (
     <Suspense
       fallback={
@@ -23,18 +27,18 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </ModulePage>
       }
     >
-      <MemberPayments params={params} />
+      <MemberPayments params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function MemberPayments({ params }: { params: Promise<{ id: string }> }) {
+async function MemberPayments({ params, searchParams }: PageProps) {
   await requireStaff();
   const { id } = await params;
 
   let data;
   try {
-    data = await listMemberPayments(id);
+    data = await listMemberPayments(id, pageNumber((await searchParams).pagina));
   } catch (error) {
     if (error instanceof BoxError && error.status === 404) notFound();
     throw error;
@@ -60,10 +64,16 @@ async function MemberPayments({ params }: { params: Promise<{ id: string }> }) {
       />
       <ModuleBody width="full" inset="content">
         {data.payments.length === 0 ? (
-          <EmptyState title="Todavía no hay pagos registrados" description="Los pagos que registre el staff aparecerán en este historial." href={`/staff/socios/${id}`} action="Volver al socio" />
+          <EmptyState
+            title="Todavía no hay pagos registrados"
+            description="Los pagos que registre el staff aparecerán en este historial."
+            href={`/staff/socios/${id}`}
+            action="Volver al socio"
+          />
         ) : (
           <MemberPaymentsTable payments={data.payments} />
         )}
+        <ListPagination pageInfo={data.pageInfo} path={`/staff/socios/${id}/pagos`} />
       </ModuleBody>
     </ModulePage>
   );

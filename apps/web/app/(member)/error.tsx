@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorState } from "@/components/feedback/error-state";
+import { ErrorState } from "@/components/common/feedback/error-state";
 
 export default function Error({ reset }: { reset: () => void }) {
   return <ErrorState reset={reset} home="/calendario" />;

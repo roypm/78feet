@@ -1,22 +1,22 @@
 
-import { ResourceImage } from "@/components/feedback/resource-image";
+import { ResourceImage } from "@/components/common/media/resource-image";
 
-import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { EmptyState } from "@/components/common/feedback/empty-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { notFound } from "next/navigation";
 import { requireMember } from "@/lib/auth/current";
 import { getInstanceDetail } from "@/lib/box/calendar";
 import { BoxError } from "@/lib/box/errors";
 import { formatDay, formatTime, freeSpotLabel, kindLabel } from "@/lib/box/format";
-import { TrainingRead } from "@/components/box/training-read";
-import { BookButton } from "@/components/member/book-button";
-import { CancelBookingButton } from "@/components/member/cancel-button";
+import { TrainingRead } from "@/components/trainings/training-read";
+import { BookButton } from "@/components/bookings/book-button";
+import { CancelBookingButton } from "@/components/bookings/cancel-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
-import { ProfileAvatar } from "@/components/member/profile-avatar";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
+import { ProfileAvatar } from "@/components/common/media/profile-avatar";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (

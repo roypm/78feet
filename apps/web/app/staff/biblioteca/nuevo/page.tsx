@@ -1,12 +1,12 @@
 
-import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { EmptyState } from "@/components/common/feedback/empty-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { StaffCrumbs } from "@/components/staff/staff-crumbs";
+import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
 import { requireStaff } from "@/lib/auth/current";
 import { listClassTypes } from "@/lib/box/class-types";
-import { TrainingForm } from "@/components/staff/training-form";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { TrainingForm } from "@/components/trainings/training-form";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page() {
   return (

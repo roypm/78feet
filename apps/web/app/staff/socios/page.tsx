@@ -1,18 +1,18 @@
 
-import { ListEmptyBlock } from "@/components/staff/list-empty-block";
-import { LoadingState } from "@/components/feedback/loading-state";
-import { ListPagination } from "@/components/member/list-pagination";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
+import { LoadingState } from "@/components/common/feedback/loading-state";
+import { ListPagination } from "@/components/common/lists/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
 import { listMembersPage } from "@/lib/box/members";
 import { listBoxes } from "@/lib/box/boxes";
 import { listTariffs } from "@/lib/box/tariffs";
-import { CreateMemberAltaButton } from "@/components/staff/member-forms";
-import { FilterTabLink, FilterTabs } from "@/components/member/kind-tabs";
-import { ListSearchToolbar } from "@/components/staff/list-search-toolbar";
-import { MembersTable } from "@/components/staff/members-table";
-import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
+import { CreateMemberAltaButton } from "@/components/members/member-forms";
+import { FilterTabLink, FilterTabs } from "@/components/common/filters/kind-tabs";
+import { ListSearchToolbar } from "@/components/common/lists/list-search-toolbar";
+import { MembersTable } from "@/components/members/members-table";
+import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/common/layout/module-page";
 
 export default function Page({
   searchParams,

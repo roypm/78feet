@@ -1,6 +1,6 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { StaffCrumbs } from "@/components/staff/staff-crumbs";
+import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { getMember } from "@/lib/box/members";
@@ -9,9 +9,9 @@ import { listTariffs } from "@/lib/box/tariffs";
 import { BoxError } from "@/lib/box/errors";
 import { memberFullName } from "@/lib/box/format";
 import { getMemberSummary } from "@/lib/box/summary";
-import { MemberProfile } from "@/components/staff/member-profile";
+import { MemberProfile } from "@/components/members/member-profile";
 import { Badge } from "@/components/ui/badge";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (

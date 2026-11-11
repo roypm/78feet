@@ -1,6 +1,6 @@
 
-import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { EmptyState } from "@/components/common/feedback/empty-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
 import { billingPeriodKindLabel, consumptionModelLabel, formatQuotaUsedLimit, usesPeriodicQuota } from "@78feet/domain";
@@ -8,7 +8,7 @@ import { formatPrice } from "@/lib/box/format";
 import { getMemberSummary } from "@/lib/box/summary";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page() {
   return (

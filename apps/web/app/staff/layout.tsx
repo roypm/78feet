@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
-import { StaffShell } from "@/components/staff/staff-shell";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { StaffShell } from "@/components/common/navigation/staff-shell";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { getProfileImageUrlForUser } from "@/lib/box/profile-images";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {

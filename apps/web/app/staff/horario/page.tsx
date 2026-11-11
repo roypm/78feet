@@ -1,12 +1,12 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/current";
 import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
 import { getBoxHours } from "@/lib/box/hours";
-import { BoxTabs } from "@/components/member/box-tabs";
-import { HoursForm } from "@/components/staff/hours-form";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { BoxTabs } from "@/components/boxes/box-tabs";
+import { HoursForm } from "@/components/boxes/hours/hours-form";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 import { localDateString } from "@78feet/domain";
 
 export default function Page({ searchParams }: { searchParams: Promise<{ box?: string }> }) {

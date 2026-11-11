@@ -1,10 +1,10 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/current";
 import { listStaff } from "@/lib/box/staff-users";
-import { StaffForm } from "@/components/staff/staff-form";
-import { TeamTable } from "@/components/staff/team-table";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { StaffForm } from "@/components/team/staff-form";
+import { TeamTable } from "@/components/team/team-table";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page() {
   return (

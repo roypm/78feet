@@ -1,6 +1,6 @@
 
-import { ClassTypeThumb } from "@/components/class-type-thumb";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { ClassTypeThumb } from "@/components/class-types/class-type-thumb";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { instanceHasStarted } from "@78feet/domain";
@@ -8,17 +8,17 @@ import { requireStaff } from "@/lib/auth/current";
 import { getStaffInstance } from "@/lib/box/staff-calendar";
 import { listMembers } from "@/lib/box/members";
 import { parseStaffClassOrigin, staffClassOriginBack } from "@/lib/box/staff-nav";
-import { StaffCrumbs } from "@/components/staff/staff-crumbs";
+import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listTrainings } from "@/lib/box/trainings";
 import { listCoaches } from "@/lib/box/staff-users";
 import { BoxError } from "@/lib/box/errors";
 import { formatDay, formatTime, freeSpotLabel, kindLabel } from "@/lib/box/format";
-import { InstanceDetailActions } from "@/components/staff/instance-detail-actions";
-import { ClassRosterPanel } from "@/components/staff/class-roster-panel";
+import { InstanceDetailActions } from "@/components/classes/instance-detail-actions";
+import { ClassRosterPanel } from "@/components/classes/class-roster-panel";
 import { Badge } from "@/components/ui/badge";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
-import { ProfileAvatar } from "@/components/member/profile-avatar";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
+import { ProfileAvatar } from "@/components/common/media/profile-avatar";
 
 export default function Page({
   params,

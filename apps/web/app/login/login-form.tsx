@@ -1,11 +1,11 @@
 "use client";
 
-import { PendingButton } from "@/components/feedback/pending-button";
+import { PendingButton } from "@/components/common/feedback/pending-button";
 
 import { useState, type FormEvent } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
-import { useTheme, type Theme } from "@/components/theme-provider";
-import { FormInput } from "@/components/staff/form-control";
+import { useTheme, type Theme } from "@/components/providers/theme-provider";
+import { FormInput } from "@/components/common/forms/form-control";
 
 export function LoginForm() {
   const { applyTheme } = useTheme();

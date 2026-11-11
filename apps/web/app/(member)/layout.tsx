@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { MemberShell } from "@/components/member/member-shell";
+import { MemberShell } from "@/components/common/navigation/member-shell";
 import { requireMember } from "@/lib/auth/current";
 import { getProfileImageUrlForUser } from "@/lib/box/profile-images";
 

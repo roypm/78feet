@@ -1,14 +1,14 @@
-import { LoadingState } from "@/components/feedback/loading-state";
-import { ListPagination } from "@/components/member/list-pagination";
+import { LoadingState } from "@/components/common/feedback/loading-state";
+import { ListPagination } from "@/components/common/lists/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { requireStaff } from "@/lib/auth/current";
 import { listStaffTrainingsPage, listTrainingFilterTypes } from "@/lib/box/trainings";
 import { Button } from "@/components/ui/button";
-import { QueryFilter } from "@/components/member/query-filter";
-import { TrainingLibraryTable } from "@/components/staff/training-library-table";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { QueryFilter } from "@/components/common/filters/query-filter";
+import { TrainingLibraryTable } from "@/components/trainings/training-library-table";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page({
   searchParams,

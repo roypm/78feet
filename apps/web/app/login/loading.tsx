@@ -1,4 +1,4 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 
 export default function Loading() {
   return (

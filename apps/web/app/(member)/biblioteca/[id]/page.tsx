@@ -1,12 +1,12 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { notFound } from "next/navigation";
 import { requireMember } from "@/lib/auth/current";
 import { getTraining } from "@/lib/box/trainings";
 import { BoxError } from "@/lib/box/errors";
-import { TrainingRead } from "@/components/box/training-read";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { TrainingRead } from "@/components/trainings/training-read";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (

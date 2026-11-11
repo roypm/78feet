@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { BrandMark } from "@/components/navigation/brand-mark";
+import { BrandMark } from "@/components/common/navigation/brand-mark";
 import { getCurrentUser } from "@/lib/auth/current";
 import { LoginForm } from "./login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

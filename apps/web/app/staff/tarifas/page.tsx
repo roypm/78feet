@@ -1,9 +1,9 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/current";
 import { listTariffs } from "@/lib/box/tariffs";
-import { TariffsPanel } from "@/components/staff/tariffs-panel";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { TariffsPanel } from "@/components/tariffs/tariffs-panel";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page() {
   return (

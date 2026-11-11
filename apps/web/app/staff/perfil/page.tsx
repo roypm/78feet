@@ -1,12 +1,12 @@
-import { ThemePreferencePanel } from "@/components/member/theme-preference-panel";
-import { BoxPreferencePanel } from "@/components/member/box-preference-panel";
+import { ThemePreferencePanel } from "@/components/account/theme-preference-panel";
+import { BoxPreferencePanel } from "@/components/account/box-preference-panel";
 import { Suspense } from "react";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { requireStaff } from "@/lib/auth/current";
 import { listBoxes } from "@/lib/box/boxes";
 import { Badge } from "@/components/ui/badge";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
-import { ProfilePhotoEditor } from "@/components/member/profile-photo-editor";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
+import { ProfilePhotoEditor } from "@/components/account/profile-photo-editor";
 import { emptyField, displayPhone } from "@/lib/box/format";
 import { getProfileImageUrlForUser } from "@/lib/box/profile-images";
 

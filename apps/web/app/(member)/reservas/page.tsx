@@ -1,17 +1,17 @@
 
-import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
-import { ListPagination } from "@/components/member/list-pagination";
+import { EmptyState } from "@/components/common/feedback/empty-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
+import { ListPagination } from "@/components/common/lists/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
-import { NavigationLink as Link } from "@/components/feedback/navigation-link";
+import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { requireMember } from "@/lib/auth/current";
 import { listUpcomingBookingsPage } from "@/lib/box/bookings";
 import { formatDay, formatTime, kindLabel } from "@/lib/box/format";
-import { CancelBookingButton } from "@/components/member/cancel-button";
+import { CancelBookingButton } from "@/components/bookings/cancel-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page({
   searchParams,

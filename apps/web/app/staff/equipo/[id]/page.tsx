@@ -1,12 +1,12 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { StaffCrumbs } from "@/components/staff/staff-crumbs";
+import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/current";
 import { getStaff } from "@/lib/box/staff-users";
 import { BoxError } from "@/lib/box/errors";
-import { StaffProfile } from "@/components/staff/staff-profile";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { StaffProfile } from "@/components/team/staff-profile";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (

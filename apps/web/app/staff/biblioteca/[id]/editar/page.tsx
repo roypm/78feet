@@ -1,13 +1,13 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { StaffCrumbs } from "@/components/staff/staff-crumbs";
+import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { listClassTypes } from "@/lib/box/class-types";
 import { getTraining } from "@/lib/box/trainings";
 import { BoxError } from "@/lib/box/errors";
-import { TrainingForm } from "@/components/staff/training-form";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/member/module-page";
+import { TrainingForm } from "@/components/trainings/training-form";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (

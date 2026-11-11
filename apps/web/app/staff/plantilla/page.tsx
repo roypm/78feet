@@ -1,4 +1,4 @@
-import { LoadingState } from "@/components/feedback/loading-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
@@ -9,10 +9,10 @@ import { calendarHref } from "@/lib/box/calendar-navigation";
 import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
 import { listCoaches } from "@/lib/box/staff-users";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
-import { TemplateSchedule } from "@/components/staff/template-schedule";
-import { BoxTabs } from "@/components/member/box-tabs";
-import { KindTabs } from "@/components/member/kind-tabs";
-import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/member/module-page";
+import { TemplateSchedule } from "@/components/boxes/template-schedule/template-schedule";
+import { BoxTabs } from "@/components/boxes/box-tabs";
+import { KindTabs } from "@/components/common/filters/kind-tabs";
+import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/common/layout/module-page";
 
 export default function Page({
   searchParams,

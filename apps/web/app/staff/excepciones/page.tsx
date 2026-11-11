@@ -1,7 +1,7 @@
 
-import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
-import { ListPagination } from "@/components/member/list-pagination";
+import { EmptyState } from "@/components/common/feedback/empty-state";
+import { LoadingState } from "@/components/common/feedback/loading-state";
+import { ListPagination } from "@/components/common/lists/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
 import { Suspense } from "react";
 import { addDays, localDateString } from "@78feet/domain";
@@ -10,9 +10,9 @@ import { listExceptionsPage } from "@/lib/box/exceptions";
 import { listBoxes } from "@/lib/box/boxes";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listCoaches } from "@/lib/box/staff-users";
-import { ExtraClassForm } from "@/components/staff/extra-class-form";
-import { ExceptionsList } from "@/components/staff/exceptions-list";
-import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/member/module-page";
+import { ExtraClassForm } from "@/components/classes/extra-class-form";
+import { ExceptionsList } from "@/components/classes/exceptions-list";
+import { ModuleBody, ModuleHeader, ModulePage, ModulePrimaryAction } from "@/components/common/layout/module-page";
 
 export default function Page({
   searchParams,
