@@ -2,22 +2,10 @@ import { DomainError } from "./errors";
 import { assignPool, packBalance, quotaUsed } from "./quota";
 import { quotaPeriodForConsumption } from "./billing-period";
 import { instanceHasStarted, intervalsOverlap, memberCanCancel } from "./time";
-import type {
-  Booking,
-  BookingPool,
-  ClassInstance,
-  CreditGrant,
-  MembershipSnapshot,
-  TariffSnapshot,
-} from "./types";
+import type { Booking, BookingPool, ClassInstance, CreditGrant, MembershipSnapshot, TariffSnapshot } from "./types";
 
-export function activeBookingsOnInstance(
-  bookings: readonly Booking[],
-  instanceId: string,
-): Booking[] {
-  return bookings.filter(
-    (booking) => booking.instanceId === instanceId && booking.status === "active",
-  );
+export function activeBookingsOnInstance(bookings: readonly Booking[], instanceId: string): Booking[] {
+  return bookings.filter((booking) => booking.instanceId === instanceId && booking.status === "active");
 }
 
 export function memberHasOverlap(params: {
@@ -46,6 +34,7 @@ export function evaluateBooking(params: {
   bookings: readonly Booking[];
   instancesById: ReadonlyMap<string, Pick<ClassInstance, "date" | "startAt" | "endAt">>;
   grants: readonly Pick<CreditGrant, "userId" | "quantity">[];
+  consumption?: { usedDirected: number; usedOpen: number; packBalance: number };
   directedAdjustment?: number;
   openAdjustment?: number;
 }): { pool: BookingPool } {
@@ -80,27 +69,33 @@ export function evaluateBooking(params: {
     quotaOpen: params.tariff.quotaOpen,
     directedAdjustment: params.directedAdjustment,
     openAdjustment: params.openAdjustment,
-    usedDirected: quotaUsed({
-      bookings: params.bookings,
-      instancesById: params.instancesById,
-      userId: params.userId,
-      periodDate: params.instance.date,
-      period,
-      kind: "directed",
-    }),
-    usedOpen: quotaUsed({
-      bookings: params.bookings,
-      instancesById: params.instancesById,
-      userId: params.userId,
-      periodDate: params.instance.date,
-      period,
-      kind: "open",
-    }),
-    packBalance: packBalance({
-      grants: params.grants,
-      bookings: params.bookings,
-      userId: params.userId,
-    }),
+    usedDirected:
+      params.consumption?.usedDirected ??
+      quotaUsed({
+        bookings: params.bookings,
+        instancesById: params.instancesById,
+        userId: params.userId,
+        periodDate: params.instance.date,
+        period,
+        kind: "directed",
+      }),
+    usedOpen:
+      params.consumption?.usedOpen ??
+      quotaUsed({
+        bookings: params.bookings,
+        instancesById: params.instancesById,
+        userId: params.userId,
+        periodDate: params.instance.date,
+        period,
+        kind: "open",
+      }),
+    packBalance:
+      params.consumption?.packBalance ??
+      packBalance({
+        grants: params.grants,
+        bookings: params.bookings,
+        userId: params.userId,
+      }),
   });
 
   return { pool };

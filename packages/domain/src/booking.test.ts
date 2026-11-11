@@ -8,13 +8,7 @@ import {
   evaluateStaffCancellation,
 } from "./booking";
 import { packBalance, weeklyUsed } from "./quota";
-import {
-  instanceMap,
-  makeBooking,
-  makeGrant,
-  makeInstance,
-  resetIds,
-} from "./test/fixtures";
+import { instanceMap, makeBooking, makeGrant, makeInstance, resetIds } from "./test/fixtures";
 import type { MembershipSnapshot, TariffSnapshot } from "./types";
 
 function expectCode(run: () => unknown, code: ErrorCode): void {
@@ -58,6 +52,27 @@ describe("evaluateBooking", () => {
       grants: [],
     });
     expect(result.pool).toBe("quota_directed");
+  });
+
+  it("uses aggregated consumption without requiring historical booking rows", () => {
+    const instance = makeInstance({ date: "2026-10-27", kind: "directed", title: "WOD" });
+    const params = {
+      now: atBoxTime("2026-10-26", "09:00"),
+      instance,
+      membership,
+      tariff: monthly,
+      userId,
+      bookings: [],
+      instancesById: instanceMap([instance]),
+      grants: [],
+    };
+    expect(evaluateBooking({ ...params, consumption: { usedDirected: 2, usedOpen: 0, packBalance: 1 } }).pool).toBe(
+      "pack",
+    );
+    expectCode(
+      () => evaluateBooking({ ...params, consumption: { usedDirected: 2, usedOpen: 0, packBalance: 0 } }),
+      "QUOTA_EXHAUSTED",
+    );
   });
 
   it("rejects a class that already started", () => {

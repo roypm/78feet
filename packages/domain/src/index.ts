@@ -6,6 +6,7 @@ export {
   type ErrorCode,
 } from "./errors";
 export {
+  STORAGE_INT_MAX,
   adminDayQuerySchema,
   adminWeekQuerySchema,
   apiErrorSchema,

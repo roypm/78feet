@@ -2,17 +2,16 @@ import {
   billingPeriodKindLabel,
   isSubscriptionBilling,
   localDateString,
-  packBalance,
   periodStartForDate,
   quotaAdjustmentTotal,
   quotaPeriodEndDate,
   quotaPeriodForConsumption,
   quotaPeriodStartDate,
-  quotaUsed,
   subscriptionPeriodLabel,
 } from "@78feet/domain";
+import { memberConsumption } from "./consumption";
 import { prisma } from "../db";
-import { isoDateFromDb, isoDateToDb } from "./time";
+import { isoDateToDb } from "./time";
 import { formatMonth, formatWeekRange } from "./format";
 import { listQuotaAdjustments } from "./quota-adjustments";
 import { profileImageUrl } from "./profile-images";
@@ -63,70 +62,32 @@ export async function getMemberSummary(userId: string, now = new Date()): Promis
     where: { userId, endedAt: null },
     include: { tariff: true },
   });
-  const grants = await prisma.creditGrant.findMany({
-    where: { userId },
-    select: { userId: true, quantity: true },
-  });
-  const bookings = await prisma.booking.findMany({
-    where: { userId, OR: [{ status: "active" }, { quotaReturned: false }] },
-    include: { instance: { select: { id: true, date: true } } },
-  });
-  const instancesById = new Map(
-    bookings.map((booking) => [
-      booking.instanceId,
-      { date: isoDateFromDb(booking.instance.date) },
-    ]),
-  );
-  const domainBookings = bookings.map((booking) => ({
-    id: booking.id,
-    instanceId: booking.instanceId,
-    userId: booking.userId,
-    pool: booking.pool,
-    status: booking.status,
-    quotaReturned: booking.quotaReturned,
-    createdBy: booking.createdBy,
-    cancelledAt: booking.cancelledAt,
-    cancelledBy: booking.cancelledBy,
-  }));
   const tariff = membership?.tariff ?? null;
   const period = tariff ? quotaPeriodForConsumption(tariff.consumptionModel) : null;
   const quotaStart = period ? quotaPeriodStartDate(today, period) : null;
   const periodEnd = period ? quotaPeriodEndDate(today, period) : null;
-  const adjustments = period && quotaStart
-    ? await listQuotaAdjustments(prisma, userId, period, isoDateToDb(quotaStart))
-    : [];
+  const adjustments =
+    period && quotaStart ? await listQuotaAdjustments(prisma, userId, period, isoDateToDb(quotaStart)) : [];
   const directedAdjustment = quotaAdjustmentTotal(adjustments, "directed");
   const openAdjustment = quotaAdjustmentTotal(adjustments, "open");
+  const consumption = await memberConsumption(prisma, userId, today, period);
   const quota = {
     period,
     periodStart: quotaStart,
     periodEnd,
-    periodLabel: period === "month" && quotaStart
-      ? formatMonth(quotaStart.slice(0, 7))
-      : period === "week" && quotaStart && periodEnd
-        ? formatWeekRange(quotaStart, periodEnd)
-        : null,
-    directedUsed: period ? quotaUsed({
-      bookings: domainBookings,
-      instancesById,
-      userId,
-      periodDate: today,
-      period,
-      kind: "directed",
-    }) : 0,
+    periodLabel:
+      period === "month" && quotaStart
+        ? formatMonth(quotaStart.slice(0, 7))
+        : period === "week" && quotaStart && periodEnd
+          ? formatWeekRange(quotaStart, periodEnd)
+          : null,
+    directedUsed: consumption.usedDirected,
     directedLimit: tariff?.quotaDirected ?? null,
     directedAdjustment,
-    openUsed: period ? quotaUsed({
-      bookings: domainBookings,
-      instancesById,
-      userId,
-      periodDate: today,
-      period,
-      kind: "open",
-    }) : 0,
+    openUsed: consumption.usedOpen,
     openLimit: tariff?.quotaOpen ?? null,
     openAdjustment,
-    packBalance: packBalance({ grants, bookings: domainBookings, userId }),
+    packBalance: consumption.packBalance,
   };
 
   const tariffView = tariff

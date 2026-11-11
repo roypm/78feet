@@ -12,6 +12,7 @@ import {
   type ClassInstance,
 } from "@78feet/domain";
 import { Prisma } from "@prisma/client";
+import { memberConsumption } from "./consumption";
 import { prisma } from "../db";
 import { isUniqueViolation } from "./db";
 import { lockInstanceRow, lockUserRow } from "./locks";
@@ -110,127 +111,108 @@ export async function reserveForMember(params: {
 }): Promise<BookingView> {
   const now = params.now ?? new Date();
   try {
-    return await prisma.$transaction(async (tx) => {
-      await lockInstanceRow(tx, params.instanceId);
-      await lockUserRow(tx, params.memberId);
+    return await prisma.$transaction(
+      async (tx) => {
+        await lockInstanceRow(tx, params.instanceId);
+        await lockUserRow(tx, params.memberId);
 
-      const instance = await tx.classInstance.findUnique({
-        where: { id: params.instanceId },
-        include: { classType: { select: { name: true } } },
-      });
-      if (!instance) throw new BoxError(404, "FORBIDDEN", "La clase no existe");
+        const instance = await tx.classInstance.findUnique({
+          where: { id: params.instanceId },
+          include: { classType: { select: { name: true } } },
+        });
+        if (!instance) throw new BoxError(404, "FORBIDDEN", "La clase no existe");
 
-      const user = await tx.user.findUnique({ where: { id: params.memberId } });
-      if (!user || user.role !== "member") {
-        throw new BoxError(404, "FORBIDDEN", "El socio no existe");
-      }
-      if (user.status !== "active") {
-        throw new BoxError(403, "FORBIDDEN", "El socio está de baja");
-      }
+        const user = await tx.user.findUnique({ where: { id: params.memberId } });
+        if (!user || user.role !== "member") {
+          throw new BoxError(404, "FORBIDDEN", "El socio no existe");
+        }
+        if (user.status !== "active") {
+          throw new BoxError(403, "FORBIDDEN", "El socio está de baja");
+        }
 
-      const membership = await tx.membership.findFirst({
-        where: { userId: user.id, endedAt: null },
-        include: { tariff: true },
-      });
-      const grants = await tx.creditGrant.findMany({
-        where: { userId: user.id },
-        select: { userId: true, quantity: true },
-      });
-      const classDate = isoDateFromDb(instance.date);
-      const quotaPeriod = membership
-        ? quotaPeriodForConsumption(membership.tariff.consumptionModel)
-        : null;
-      const adjustments = quotaPeriod
-        ? await listQuotaAdjustments(
-            tx,
-            user.id,
-            quotaPeriod,
-            isoDateToDb(quotaPeriodStartDate(classDate, quotaPeriod)),
-          )
-        : [];
-      const onInstance = await tx.booking.findMany({
-        where: { instanceId: instance.id, status: "active" },
-      });
-      const own = await tx.booking.findMany({
-        where: {
+        const membership = await tx.membership.findFirst({
+          where: { userId: user.id, endedAt: null },
+          include: { tariff: true },
+        });
+        const classDate = isoDateFromDb(instance.date);
+        const quotaPeriod = membership ? quotaPeriodForConsumption(membership.tariff.consumptionModel) : null;
+        const adjustments = quotaPeriod
+          ? await listQuotaAdjustments(
+              tx,
+              user.id,
+              quotaPeriod,
+              isoDateToDb(quotaPeriodStartDate(classDate, quotaPeriod)),
+            )
+          : [];
+        const onInstance = await tx.booking.findMany({
+          where: { instanceId: instance.id, status: "active" },
+        });
+        const own = await tx.booking.findMany({
+          where: {
+            userId: user.id,
+            status: "active",
+            instance: { startAt: { lt: instance.endAt }, endAt: { gt: instance.startAt } },
+          },
+          include: {
+            instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } },
+          },
+        });
+
+        const domainInstance = toDomainInstance(instance);
+        const bookings = new Map<string, Booking>();
+        const instancesById = new Map<string, Pick<ClassInstance, "date" | "startAt" | "endAt">>();
+        instancesById.set(domainInstance.id, domainInstance);
+        for (const row of onInstance) bookings.set(row.id, toDomainBooking(row));
+        for (const row of own) {
+          bookings.set(row.id, toDomainBooking(row));
+          instancesById.set(row.instance.id, toDomainInstance(row.instance));
+        }
+
+        const consumption = await memberConsumption(tx, user.id, classDate, quotaPeriod);
+        const decision = evaluateBooking({
+          now,
+          instance: domainInstance,
+          membership: membership
+            ? { userId: membership.userId, tariffId: membership.tariffId, endedAt: membership.endedAt }
+            : null,
+          tariff: membership
+            ? {
+                id: membership.tariff.id,
+                consumptionModel: membership.tariff.consumptionModel,
+                quotaDirected: membership.tariff.quotaDirected,
+                quotaOpen: membership.tariff.quotaOpen,
+              }
+            : null,
           userId: user.id,
-          OR: [{ status: "active" }, { quotaReturned: false }],
-        },
-        include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
-      });
+          bookings: [...bookings.values()],
+          instancesById,
+          grants: [],
+          consumption,
+          directedAdjustment: quotaAdjustmentTotal(adjustments, "directed"),
+          openAdjustment: quotaAdjustmentTotal(adjustments, "open"),
+        });
 
-      const domainInstance = toDomainInstance(instance);
-      const bookings = new Map<string, Booking>();
-      const instancesById = new Map<string, Pick<ClassInstance, "date" | "startAt" | "endAt">>();
-      instancesById.set(domainInstance.id, domainInstance);
-      for (const row of onInstance) bookings.set(row.id, toDomainBooking(row));
-      for (const row of own) {
-        bookings.set(row.id, toDomainBooking(row));
-        instancesById.set(row.instance.id, toDomainInstance(row.instance));
-      }
-
-      const decision = evaluateBooking({
-        now,
-        instance: domainInstance,
-        membership: membership
-          ? { userId: membership.userId, tariffId: membership.tariffId, endedAt: membership.endedAt }
-          : null,
-        tariff: membership
-          ? {
-              id: membership.tariff.id,
-              consumptionModel: membership.tariff.consumptionModel,
-              quotaDirected: membership.tariff.quotaDirected,
-              quotaOpen: membership.tariff.quotaOpen,
-            }
-          : null,
-        userId: user.id,
-        bookings: [...bookings.values()],
-        instancesById,
-        grants,
-        directedAdjustment: quotaAdjustmentTotal(adjustments, "directed"),
-        openAdjustment: quotaAdjustmentTotal(adjustments, "open"),
-      });
-
-      const created = await tx.booking.create({
-        data: {
-          instanceId: instance.id,
-          userId: user.id,
-          pool: decision.pool,
-          status: "active",
-          createdBy: params.createdBy,
-        },
-      });
-      return toView(created, instance);
-    }, { timeout: 20_000 });
+        const created = await tx.booking.create({
+          data: {
+            instanceId: instance.id,
+            userId: user.id,
+            pool: decision.pool,
+            status: "active",
+            createdBy: params.createdBy,
+          },
+        });
+        return toView(created, instance);
+      },
+      { timeout: 20_000 },
+    );
   } catch (error) {
     if (isUniqueViolation(error)) throw new DomainError("OVERLAP");
     throw error;
   }
 }
 
-export async function cancelMemberBooking(
-  bookingId: string,
-  actorId: string,
-  now = new Date(),
-): Promise<BookingView> {
-  const existing = await prisma.booking.findUnique({
-    where: { id: bookingId },
-    include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
-  });
-  if (!existing || existing.status !== "active" || existing.userId !== actorId) {
-    throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
-  }
-  const decision = evaluateMemberCancellation(now, existing.instance.startAt);
-  const updated = await prisma.booking.update({
-    where: { id: existing.id },
-    data: {
-      status: "cancelled",
-      quotaReturned: decision.quotaReturned,
-      cancelledAt: now,
-      cancelledBy: actorId,
-    },
-  });
-  return toView(updated, existing.instance);
+export async function cancelMemberBooking(bookingId: string, actorId: string, now = new Date()): Promise<BookingView> {
+  return cancelBooking(bookingId, actorId, true, now, true);
 }
 
 export async function cancelStaffBooking(
@@ -239,24 +221,49 @@ export async function cancelStaffBooking(
   returnQuota: boolean,
   now = new Date(),
 ): Promise<BookingView> {
-  const existing = await prisma.booking.findUnique({
+  return cancelBooking(bookingId, actorId, returnQuota, now, false);
+}
+
+async function cancelBooking(
+  bookingId: string,
+  actorId: string,
+  returnQuota: boolean,
+  now: Date,
+  memberOnly: boolean,
+): Promise<BookingView> {
+  const target = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
+    select: { instanceId: true, userId: true },
   });
-  if (!existing || existing.status !== "active") {
+  if (!target || (memberOnly && target.userId !== actorId))
     throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
-  }
-  const decision = evaluateStaffCancellation(returnQuota);
-  const updated = await prisma.booking.update({
-    where: { id: existing.id },
-    data: {
-      status: "cancelled",
-      quotaReturned: decision.quotaReturned,
-      cancelledAt: now,
-      cancelledBy: actorId,
-    },
+  return prisma.$transaction(async (tx) => {
+    await lockInstanceRow(tx, target.instanceId);
+    await lockUserRow(tx, target.userId);
+    const existing = await tx.booking.findUnique({
+      where: { id: bookingId },
+      include: { instance: { include: { classType: { select: { name: true } }, box: { select: { name: true } } } } },
+    });
+    if (!existing || existing.status !== "active") throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
+    const decision = memberOnly
+      ? evaluateMemberCancellation(now, existing.instance.startAt)
+      : evaluateStaffCancellation(returnQuota);
+    const updated = await tx.booking.updateMany({
+      where: { id: bookingId, status: "active" },
+      data: { status: "cancelled", quotaReturned: decision.quotaReturned, cancelledAt: now, cancelledBy: actorId },
+    });
+    if (updated.count === 0) throw new BoxError(404, "FORBIDDEN", "La reserva no existe");
+    return toView(
+      {
+        ...existing,
+        status: "cancelled",
+        quotaReturned: decision.quotaReturned,
+        cancelledAt: now,
+        cancelledBy: actorId,
+      },
+      existing.instance,
+    );
   });
-  return toView(updated, existing.instance);
 }
 
 export type MemberBookingView = BookingView & {
@@ -371,10 +378,15 @@ export async function listBookingHistoryPage(userId: string, page = 1, now = new
       skip: window.skip,
       take: window.take,
     });
-    return rows.map((row) => mapHistoryRow(row as BookingRow & {
-      instance: InstanceRow & {
-        coach: { id: string; firstName: string; lastName: string; profileImage: { updatedAt: Date } | null } | null;
-      };
-    }, now));
+    return rows.map((row) =>
+      mapHistoryRow(
+        row as BookingRow & {
+          instance: InstanceRow & {
+            coach: { id: string; firstName: string; lastName: string; profileImage: { updatedAt: Date } | null } | null;
+          };
+        },
+        now,
+      ),
+    );
   });
 }
