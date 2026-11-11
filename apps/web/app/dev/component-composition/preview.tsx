@@ -11,6 +11,8 @@ import { MemberProfile } from "@/components/members/member-profile";
 import { TrainingForm } from "@/components/trainings/training-form";
 import { useTheme } from "@/components/providers/theme-provider";
 import { Button } from "@/components/ui/button";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 const modes = ["demo", "worst", "empty", "one", "pending"] as const;
 type Mode = (typeof modes)[number];
@@ -93,123 +95,133 @@ export function CompositionPreview({ initialMode, initialPage = 1 }: { initialMo
   }
 
   return (
-    <main data-theme={resolvedTheme} className="min-h-dvh bg-background p-4 pb-32 text-foreground">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
-        <h1 className="text-xl font-semibold">Composición de componentes · desarrollo</h1>
-        <p className="text-sm text-muted-foreground">
-          Datos ficticios. Los formularios de muestra no envían peticiones; la ficha se presenta en lectura.
-        </p>
-        <Button variant="outline" onClick={() => applyTheme(resolvedTheme === "dark" ? "light" : "dark")}>
-          Cambiar claro/oscuro
-        </Button>
-        <BoxTabs boxes={boxes} includeAll allHref="#all" hrefFor={(id) => `#box-${id}`} />
-        <form
-          key={mode}
-          onSubmit={(event) => {
-            event.preventDefault();
-            setConfirmed(true);
-          }}
-          className="flex min-w-0 flex-col gap-4 rounded-lg bg-card p-4"
-        >
-          <PaymentFields
-            disabled={pending}
-            amountCents={mode === "one" ? 0 : worst ? 123456789 : undefined}
-            method={empty ? "" : "bizum"}
+    <SidebarProvider defaultOpen={false} className="min-h-dvh">
+      <main data-theme={resolvedTheme} className="flex min-h-dvh min-w-0 flex-1 bg-background text-foreground">
+        <ModulePage>
+          <ModuleHeader
+            title="Composición de componentes · desarrollo"
+            description={
+              worst ? label : "Datos ficticios. Los formularios de muestra no envían peticiones; la ficha se presenta en lectura."
+            }
+            action={
+              <Button variant="outline" onClick={() => applyTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+                Cambiar claro/oscuro
+              </Button>
+            }
           />
-          <FormActions
-            pending={pending}
-            onCancel={() => setConfirmed(false)}
-            submitLabel={label}
-            pendingLabel="Guardando los cambios del formulario…"
-          />
-        </form>
-        <ConfirmDialog
-          open={confirming}
-          onOpenChange={setConfirming}
-          busy={pending}
-          title={label}
-          description={
-            worst
-              ? `${label}. Se cancelará 1 reserva y se devolverá el cupo. Revisa la información antes de confirmar.`
-              : "Confirmación de muestra."
-          }
-          confirmLabel={label}
-          onConfirm={() => {
-            setConfirmed(true);
-            setConfirming(false);
-          }}
-          trigger={<Button variant="outline">Abrir confirmación</Button>}
-        />
-        {confirmed ? <p role="status">Acción de muestra completada.</p> : null}
-        <section className="flex min-w-0 flex-col gap-3">
-          <h2 className="font-medium">Historial de pagos · muestra</h2>
-          <fieldset disabled className="min-w-0">
-            <legend className="sr-only">Pagos de muestra, acciones deshabilitadas</legend>
-            <MemberPaymentsTable payments={payments} />
-          </fieldset>
-          <ListPagination
-            pageInfo={{ page: paymentPage, pageSize: 25, total: totalPayments, totalPages }}
-            path="/dev/component-composition"
-            filters={{ data: mode }}
-          />
-        </section>
-        <fieldset disabled className="min-w-0">
-          <legend className="sr-only">Ficha de lectura</legend>
-          <MemberProfile {...profile} />
-        </fieldset>
-        <div
-          key={`training-${mode}`}
-          className="flex h-[42rem] min-w-0 flex-col rounded-lg bg-card"
-          onSubmitCapture={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-        >
-          <TrainingForm
-            types={empty ? [] : [{ id: "directed", name: label }]}
-            training={
-              empty
-                ? undefined
-                : {
-                    id: "demo",
-                    name: label,
-                    classTypeId: "directed",
-                    hasAssignedClasses: false,
-                    phases: [
-                      {
-                        name: mode === "one" ? "J" : label,
-                        blocks: [
-                          {
-                            body: worst
-                              ? "4 rondas: 12 repeticiones, descanso de 90 segundos.\nAjustar la carga al nivel del grupo."
-                              : "1 ronda",
-                          },
-                        ],
-                      },
-                    ],
+          <ModuleBody width="full" inset="content">
+            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-32">
+              <BoxTabs boxes={boxes} includeAll allHref="#all" hrefFor={(id) => `#box-${id}`} />
+              <form
+                key={mode}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setConfirmed(true);
+                }}
+                className="flex min-w-0 flex-col gap-4 rounded-lg bg-card p-4"
+              >
+                <PaymentFields
+                  disabled={pending}
+                  amountCents={mode === "one" ? 0 : worst ? 123456789 : undefined}
+                  method={empty ? "" : "bizum"}
+                />
+                <FormActions
+                  pending={pending}
+                  onCancel={() => setConfirmed(false)}
+                  submitLabel={label}
+                  pendingLabel="Guardando los cambios del formulario…"
+                />
+              </form>
+              <ConfirmDialog
+                open={confirming}
+                onOpenChange={setConfirming}
+                busy={pending}
+                title={label}
+                description={
+                  worst
+                    ? `${label}. Se cancelará 1 reserva y se devolverá el cupo. Revisa la información antes de confirmar.`
+                    : "Confirmación de muestra."
+                }
+                confirmLabel={label}
+                onConfirm={() => {
+                  setConfirmed(true);
+                  setConfirming(false);
+                }}
+                trigger={<Button variant="outline">Abrir confirmación</Button>}
+              />
+              {confirmed ? <p role="status">Acción de muestra completada.</p> : null}
+              <section className="flex min-w-0 flex-col gap-3">
+                <h2 className="font-medium">Historial de pagos · muestra</h2>
+                <fieldset disabled className="min-w-0">
+                  <legend className="sr-only">Pagos de muestra, acciones deshabilitadas</legend>
+                  <MemberPaymentsTable payments={payments} />
+                </fieldset>
+                <ListPagination
+                  pageInfo={{ page: paymentPage, pageSize: 25, total: totalPayments, totalPages }}
+                  path="/dev/component-composition"
+                  filters={{ data: mode }}
+                />
+              </section>
+              <fieldset disabled className="min-w-0">
+                <legend className="sr-only">Ficha de lectura</legend>
+                <MemberProfile {...profile} />
+              </fieldset>
+              <div
+                key={`training-${mode}`}
+                className="flex h-[42rem] min-w-0 flex-col rounded-lg bg-card"
+                onSubmitCapture={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+              >
+                <TrainingForm
+                  types={empty ? [] : [{ id: "directed", name: label }]}
+                  training={
+                    empty
+                      ? undefined
+                      : {
+                          id: "demo",
+                          name: label,
+                          classTypeId: "directed",
+                          hasAssignedClasses: false,
+                          phases: [
+                            {
+                              name: mode === "one" ? "J" : label,
+                              blocks: [
+                                {
+                                  body: worst
+                                    ? "4 rondas: 12 repeticiones, descanso de 90 segundos.\nAjustar la carga al nivel del grupo."
+                                    : "1 ronda",
+                                },
+                              ],
+                            },
+                          ],
+                        }
                   }
-            }
-          />
-        </div>
-      </div>
-      <nav
-        aria-label="Datos de prueba"
-        className="fixed inset-x-2 bottom-2 flex flex-wrap justify-center gap-1 rounded-md border bg-muted p-2 text-foreground"
-      >
-        {modes.map((item) => (
-          <Button key={item} size="sm" variant={item === mode ? "secondary" : "ghost"} onClick={() => changeMode(item)}>
-            {
+                />
+              </div>
+            </div>
+          </ModuleBody>
+        </ModulePage>
+        <nav
+          aria-label="Datos de prueba"
+          className="fixed inset-x-2 bottom-2 flex flex-wrap justify-center gap-1 rounded-md border bg-muted p-2 text-foreground"
+        >
+          {modes.map((item) => (
+            <Button key={item} size="sm" variant={item === mode ? "secondary" : "ghost"} onClick={() => changeMode(item)}>
               {
-                demo: "Demo data",
-                worst: "Worst case",
-                empty: "Empty",
-                one: "One",
-                pending: "Pending",
-              }[item]
-            }
-          </Button>
-        ))}
-      </nav>
-    </main>
+                {
+                  demo: "Demo data",
+                  worst: "Worst case",
+                  empty: "Empty",
+                  one: "One",
+                  pending: "Pending",
+                }[item]
+              }
+            </Button>
+          ))}
+        </nav>
+      </main>
+    </SidebarProvider>
   );
 }

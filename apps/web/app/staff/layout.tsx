@@ -3,11 +3,23 @@ import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/current";
 import { StaffShell } from "@/components/common/navigation/staff-shell";
 import { LoadingState } from "@/components/common/feedback/loading-state";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 import { getProfileImageUrlForUser } from "@/lib/box/profile-images";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div className="mx-auto w-full max-w-5xl px-4 py-8"><LoadingState variant="profile" label="Cargando el panel…" /></div>}>
+    <Suspense
+      fallback={
+        <main className="flex min-h-dvh min-w-0 bg-background text-foreground">
+          <ModulePage>
+            <ModuleHeader title="Cargando el panel…" sidebarTrigger={false} />
+            <ModuleBody>
+              <LoadingState variant="profile" label="Cargando el panel…" />
+            </ModuleBody>
+          </ModulePage>
+        </main>
+      }
+    >
       <StaffGate>{children}</StaffGate>
     </Suspense>
   );

@@ -8,7 +8,11 @@ const TAB_ROW_MIN_H = "min-h-8";
 const DESC_ROW_MIN_H = "min-h-5";
 
 export function ModulePage({ children }: { children: ReactNode }) {
-  return <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>;
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:gap-4 md:p-4">
+      {children}
+    </div>
+  );
 }
 
 export function ModuleHeader({
@@ -18,6 +22,7 @@ export function ModuleHeader({
   action,
   eyebrow,
   toolbar,
+  sidebarTrigger = true,
   children,
 }: {
   title: string;
@@ -27,17 +32,19 @@ export function ModuleHeader({
   action?: ReactNode;
   eyebrow?: ReactNode;
   toolbar?: ReactNode;
+  /** Oculta el control cuando el shell aún no está montado. */
+  sidebarTrigger?: boolean;
   /** Alias de `toolbar` (compat). */
   children?: ReactNode;
 }) {
   const belowToolbar = toolbar ?? children;
 
   return (
-    <header className="shrink-0 border-b border-border bg-header px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 md:px-6 md:pt-3">
+    <header className="shrink-0 rounded-xl border border-border bg-header px-4 py-3 md:px-6 md:py-4">
       {eyebrow ? <div className="mb-1.5">{eyebrow}</div> : null}
       <div className="flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <SidebarTrigger className="-ml-2 size-11 shrink-0 md:hidden" />
+          {sidebarTrigger ? <SidebarTrigger className="-ml-2 size-11 shrink-0 md:hidden" /> : null}
           <h1 className="min-w-0 shrink-0 text-xl font-semibold wrap-break-word">{title}</h1>
           {tabs ? (
             <div className={cn("flex min-w-0 max-w-full flex-1 items-center overflow-x-auto overscroll-x-contain touch-pan-x", TAB_ROW_MIN_H)}>
@@ -51,11 +58,11 @@ export function ModuleHeader({
           </div>
         ) : null}
       </div>
-      <div className="mt-1.5 flex flex-col gap-2">
-        <div className={cn("flex items-center", DESC_ROW_MIN_H)}>
+      <div className="mt-1.5 flex min-w-0 flex-col gap-2">
+        <div className={cn("flex min-w-0 items-center", DESC_ROW_MIN_H)}>
           {description ? (
             typeof description === "string" ? (
-              <p className="text-sm leading-5 text-muted-foreground">{description}</p>
+              <p className="min-w-0 wrap-break-word text-sm leading-5 text-muted-foreground">{description}</p>
             ) : (
               description
             )
@@ -92,19 +99,21 @@ export function ModuleBody({
   /** `content`: mismo aire que Plantilla (pt-2, gap-3). */
   inset?: "default" | "content";
 }) {
+  const panelClass = "min-h-0 min-w-0 flex-1 rounded-xl border border-border bg-background";
+
   if (fill) {
-    return <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>;
+    return <div className={cn("flex flex-col overflow-hidden", panelClass)}>{children}</div>;
   }
 
   const padding = inset === "content" ? moduleContentInset : "px-4 py-6 md:px-6";
   const stackGap = inset === "content" ? "gap-3" : "gap-6";
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", padding)}>
+    <div className={cn("flex flex-col overflow-x-auto overflow-y-auto", panelClass, padding)}>
       <div
         className={
           width === "reading"
-            ? cn("flex w-full max-w-2xl flex-col", stackGap)
+            ? cn("flex w-full min-w-0 max-w-2xl flex-col", stackGap)
             : cn("flex min-w-0 flex-col", stackGap)
         }
       >

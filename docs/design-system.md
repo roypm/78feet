@@ -36,7 +36,7 @@ Paleta neutra alineada con las capturas de la app móvil legacy (`assets/brand/r
 | Texto secundario | `#707070` | `#C8C8C8` | `--muted-foreground`, `--color-text-muted` |
 | Superficie secundaria | `#E0E0E0` (secondary/accent) · `#F8E8D8` (muted) | `#404040` | `--secondary`, `--muted` |
 
-Grises neutros en claro y oscuro; la cabecera de módulo separa el título del contenido y las cards forman la superficie elevada sobre el lienzo.
+Grises neutros en claro y oscuro; las cabeceras de módulo usan la superficie `header` y las cards forman la superficie elevada sobre el lienzo.
 
 ### Feedback semántico
 
@@ -59,7 +59,8 @@ Los colores semánticos se reservan para feedback, badges y estados. No sustituy
 Escala de Tailwind con base de 4 px: `1` = 4, `2` = 8, `3` = 12, `4` = 16, `6` = 24 y `8` = 32 px.
 
 - Padding lateral habitual: `px-4` en pantallas estrechas y `md:px-6` en escritorio.
-- Las cabeceras de módulo usan una banda de superficie propia. En calendarios y Horario, sede y Dirigidas/Open (si aplica) van en una fila junto al título y se desplazan en horizontal si no caben; con más de tres sedes, la sede es un desplegable. En listados, los filtros van en la barra del cuerpo, no en el título. Título y acción se ajustan en varias líneas si falta ancho. En el panel staff, las pantallas que cuelgan de otra muestran migas en el hueco encima del título (`StaffCrumbs`): la sección es un enlace, la página actual no. Hoy, Semana, Plantilla, Horario, los listados y la app del socio no llevan miga. El detalle de una clase usa Hoy, Semana o Excepciones según desde dónde se abrió; una entrada directa usa Semana. La miga no repite el box.
+- Todos los módulos del staff y del socio comparten esta jerarquía: el panel principal conserva un margen interior; el título y la descripción viven en una card `bg-header`; el contenido vive en una segunda card con borde, radio `rounded-xl` y fondo `bg-background`. Las dos cards se separan con `gap-3` en móvil y `gap-4` en escritorio. Las cards internas, tablas y formularios mantienen sus propias superficies. Carga, error y contenido normal usan la misma composición. El cuerpo sigue siendo el dueño del scroll; los calendarios y formularios de altura completa conservan su scroll interno.
+- En calendarios y Horario, sede y Dirigidas/Open (si aplica) van en una fila junto al título y se desplazan en horizontal si no caben; con más de tres sedes, la sede es un desplegable. En listados, los filtros van en la barra del cuerpo, no en el título. Título y acción se ajustan en varias líneas si falta ancho. En el panel staff, las pantallas que cuelgan de otra muestran migas en el hueco encima del título (`StaffCrumbs`): la sección es un enlace, la página actual no. Hoy, Semana, Plantilla, Horario, los listados y la app del socio no llevan miga. El detalle de una clase usa Hoy, Semana o Excepciones según desde dónde se abrió; una entrada directa usa Semana. La miga no repite el box.
 - Los listados largos ocupan el ancho disponible. Las fichas de lectura limitan su ancho para facilitar la lectura; tablas y calendario pueden usar todo el espacio.
 - Separación típica de listas: `gap-3`; entre secciones: `gap-6`. El cuerpo de módulos densos usa `pt-2` y `gap-3` para aprovechar la altura.
 - El shell ocupa el alto visible (`100dvh`) y el contenido de cada módulo gestiona su propio scroll. En web táctil se respetan safe areas y los inputs mantienen 16 px para evitar zoom automático en iOS. En el alta y la edición de un entrenamiento, Cancelar y Guardar se quedan al pie del módulo; el texto del formulario se desplaza en el hueco de encima y el último campo puede quedar entero por encima de la barra.

@@ -662,6 +662,8 @@ Los componentes de negocio se agrupan en `account`, `calendar`, `bookings`, `cla
 
 Los hooks y tipos específicos permanecen junto a sus componentes. Las subcarpetas se crean para conjuntos reales de piezas, como `calendar/calendar-board`, `boxes/hours` y `boxes/template-schedule`. Los helpers sin UI pertenecen a `lib` y las reglas de negocio a `packages/domain`. Se usan imports directos, sin archivos de reexportación generales.
 
+`common/layout/module-page.tsx` centraliza la composición visual de los dashboards de staff y socio: `ModulePage` enmarca el módulo dentro del shell, `ModuleHeader` agrupa título y descripción, y `ModuleBody` contiene el contenido. Las rutas normales, sus fallbacks de carga y los estados de error usan la misma jerarquía; los cuerpos de altura completa conservan el scroll interno de calendarios y formularios.
+
 `FormActions` compone Cancelar y el envío con espera para formularios; `ConfirmDialog` centraliza las confirmaciones, incluido su trigger opcional. Los formularios de registro y corrección de pagos comparten `PaymentFields` y el catálogo de métodos de `payments-view.ts`. `BoxTabs` prepara las opciones de sede y delega su presentación en `QueryFilter`, contando solo las sedes reales para decidir entre chips y desplegable.
 
 La ficha de socio compone operaciones locales de edición personal, contraseña, tarifa, box de pago y estado de cuenta. Los diálogos conservan su propio estado de apertura y comparten el bloqueo de envío de la ficha. El alta de socio tiene un único propietario del estado de envío. Ficha y gestión de cupo comparten `formatAvailableQuota`; el editor de entrenamiento delega los cambios de cada fase en `TrainingPhaseEditor`, manteniendo el guardado y las confirmaciones en `TrainingEditor`.
