@@ -1,4 +1,5 @@
 {
+  "buildCommand": "pnpm run build:deploy",
   "crons": [
     {
       "path": "/api/v1/cron/materialize",

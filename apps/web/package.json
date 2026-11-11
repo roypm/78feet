@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "prisma generate && next dev",
     "build": "next build --webpack && node scripts/check-built-css.mjs",
+    "build:deploy": "prisma migrate deploy && prisma generate && pnpm build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
