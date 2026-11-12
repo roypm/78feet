@@ -41,6 +41,8 @@ export function StaffCalendarBoard({
   const blockWidth = STAFF_DAY_COLUMN_PX - BLOCK_INSET * 2;
   const emptyMessage = view === "open" ? emptyOpen : emptyDirected;
 
+  const boxSlug = boxes.find((box) => box.id === boxId)?.slug;
+
   return (
     <ModulePage>
       <ModuleHeader
@@ -51,8 +53,8 @@ export function StaffCalendarBoard({
             <BoxTabs boxes={boxes} boxId={boxId ?? ""} hrefFor={(id) => calendarHref(basePath, semana, view, id)} />
             <KindTabs
               view={view}
-              directedHref={calendarHref(basePath, semana, "dirigidas", boxId)}
-              openHref={calendarHref(basePath, semana, "open", boxId)}
+              directedHref={calendarHref(basePath, semana, "dirigidas", boxSlug)}
+              openHref={calendarHref(basePath, semana, "open", boxSlug)}
             />
           </ModuleHeaderTabStack>
         }
@@ -62,15 +64,11 @@ export function StaffCalendarBoard({
           {classes.length === 0 ? (
             <EmptyState compact title={emptyMessage} description="Podés consultar otra semana o añadir una clase puntual desde Excepciones." href="/staff/excepciones" action="Ver excepciones" />
           ) : null}
-          {openingHours ? (
-            <p className="text-xs text-muted-foreground">Las franjas tramadas indican que el box está cerrado.</p>
-          ) : null}
-
           <div className="flex w-max max-w-full min-h-0 flex-1 flex-col gap-2 self-start">
             <WeekNav
               basePath={basePath}
               view={view}
-              boxId={boxId}
+              boxSlug={boxSlug}
               week={week}
               width="calendar"
             />

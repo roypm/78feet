@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, type ComponentProps } from "react";
+import { ResourceImage } from "@/components/common/media/resource-image";
 import { FormActions } from "@/components/common/forms/form-actions";
 import { ConfirmDialog } from "@/components/common/dialogs/confirm-dialog";
 import { ListPagination } from "@/components/common/lists/list-pagination";
 import { MemberPaymentsTable } from "@/components/payments/member-payments-table";
 import { PaymentFields } from "@/components/payments/payment-fields";
-import { BoxTabs } from "@/components/boxes/box-tabs";
+import { ListOptions } from "@/components/common/lists/list-options";
+import { PERSON_SORTS } from "@/lib/box/list-sorting";
 import { MemberProfile } from "@/components/members/member-profile";
 import { TrainingForm } from "@/components/trainings/training-form";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -28,7 +30,8 @@ export function CompositionPreview({ initialMode, initialPage = 1 }: { initialMo
   const label = worst ? "María José de la Cruz y Fernández — preparación de competición y movilidad" : "Entrenamiento";
   const boxes = Array.from({ length: empty ? 0 : mode === "one" ? 1 : worst ? 4 : 3 }, (_, index) => ({
     id: String(index),
-    name: worst ? `Box ${index + 1} — Centro de preparación física y entrenamiento funcional` : `Box ${index + 1}`,
+    slug: `box-${index + 1}`,
+    name: worst ? `Box de fuerza funcional y movilidad ${index + 1}` : `Box ${index + 1}`,
   }));
   const totalPayments = empty ? 0 : mode === "one" ? 1 : worst ? 26 : 25;
   const totalPages = Math.max(1, Math.ceil(totalPayments / 25));
@@ -111,7 +114,10 @@ export function CompositionPreview({ initialMode, initialPage = 1 }: { initialMo
           />
           <ModuleBody width="full" inset="content">
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-32">
-              <BoxTabs boxes={boxes} includeAll allHref="#all" hrefFor={(id) => `#box-${id}`} />
+              <ListOptions path="/dev/component-composition" order={PERSON_SORTS[0].value} sortOptions={PERSON_SORTS} filters={[{
+                key: "box", label: "Box de pago", value: worst ? boxes[0]?.slug ?? "todos" : "todos",
+                options: [{ value: "todos", label: "Todos" }, ...boxes.map((box) => ({ value: box.slug, label: box.name }))],
+              }]} />
               <form
                 key={mode}
                 onSubmit={(event) => {
@@ -152,7 +158,15 @@ export function CompositionPreview({ initialMode, initialPage = 1 }: { initialMo
               {confirmed ? <p role="status">Acción de muestra completada.</p> : null}
               <section className="flex min-w-0 flex-col gap-3">
                 <h2 className="font-medium">Historial de pagos · muestra</h2>
-                <fieldset disabled className="min-w-0">
+                <section className="flex min-w-0 flex-col gap-3">
+                <h2 className="text-base font-medium">Imagen de tipo de clase</h2>
+                <ResourceImage
+                  src={empty ? undefined : worst ? "/api/v1/class-type-images/db_missing" : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect width='200' height='100' fill='%23ff931d'/%3E%3C/svg%3E"}
+                  alt={worst ? "Imagen actual del entrenamiento de fuerza y movilidad" : "Imagen actual"}
+                  className="h-32 w-full rounded-md object-cover"
+                />
+              </section>
+              <fieldset disabled className="min-w-0">
                   <legend className="sr-only">Pagos de muestra, acciones deshabilitadas</legend>
                   <MemberPaymentsTable payments={payments} />
                 </fieldset>
@@ -160,6 +174,14 @@ export function CompositionPreview({ initialMode, initialPage = 1 }: { initialMo
                   pageInfo={{ page: paymentPage, pageSize: 25, total: totalPayments, totalPages }}
                   path="/dev/component-composition"
                   filters={{ data: mode }}
+                />
+              </section>
+              <section className="flex min-w-0 flex-col gap-3">
+                <h2 className="text-base font-medium">Imagen de tipo de clase</h2>
+                <ResourceImage
+                  src={empty ? undefined : worst ? "/api/v1/class-type-images/db_missing" : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect width='200' height='100' fill='%23ff931d'/%3E%3C/svg%3E"}
+                  alt={worst ? "Imagen actual del entrenamiento de fuerza y movilidad" : "Imagen actual"}
+                  className="h-32 w-full rounded-md object-cover"
                 />
               </section>
               <fieldset disabled className="min-w-0">

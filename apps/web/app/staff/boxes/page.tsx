@@ -12,7 +12,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Sedes" />
           <ModuleBody width="full">
-            <LoadingState variant="form" label="Cargando las sedes…" />
+            <LoadingState variant="table" label="Cargando las sedes…" />
           </ModuleBody>
         </ModulePage>
       }
@@ -32,7 +32,7 @@ async function Boxes() {
         title="Sedes"
         description="Creá sedes y cambiá su nombre. Cada una nace con plantilla vacía y horario 07:00–21:00; el detalle se configura en Plantilla y Horario del box."
       />
-      <ModuleBody inset="content">
+      <ModuleBody width="full" inset="content">
         <BoxesPanel boxes={boxes} />
       </ModuleBody>
     </ModulePage>

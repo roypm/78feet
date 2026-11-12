@@ -7,15 +7,15 @@ describe("calendar navigation", () => {
   });
 
   it("keeps the selected week when changing between directed and open sessions", () => {
-    expect(calendarHref("/calendario", "2026-11-02", "open")).toBe("/calendario?semana=2026-11-02&tipo=open");
+    expect(calendarHref("/calendario", "2026-11-02", "open")).toBe("/calendario?semana=2026-11-02&grilla=open");
     expect(calendarHref("/calendario", "2026-11-02", "dirigidas")).toBe("/calendario?semana=2026-11-02");
   });
 
   it("keeps staff navigation in its own module with the same filters", () => {
-    expect(calendarHref("/staff/semana", "2026-11-09", "open")).toBe("/staff/semana?semana=2026-11-09&tipo=open");
-    expect(calendarHref("/staff/semana", undefined, "open")).toBe("/staff/semana?tipo=open");
+    expect(calendarHref("/staff/semana", "2026-11-09", "open")).toBe("/staff/semana?semana=2026-11-09&grilla=open");
+    expect(calendarHref("/staff/semana", undefined, "open")).toBe("/staff/semana?grilla=open");
     expect(calendarHref("/staff/semana", "2026-11-09", "open", "box-2")).toBe(
-      "/staff/semana?box=box-2&semana=2026-11-09&tipo=open",
+      "/staff/semana?box=box-2&semana=2026-11-09&grilla=open",
     );
     expect(calendarHref("/calendario", undefined, "dirigidas", "box-1")).toBe("/calendario?box=box-1");
   });

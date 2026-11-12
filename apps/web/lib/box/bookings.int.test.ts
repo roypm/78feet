@@ -155,7 +155,7 @@ describe.skipIf(!hasDatabase)("reservar y cancelar", () => {
     let classTypeId = kind === "open" ? openTypeId : directedTypeId;
     if (!classTypeId) {
       const classType = await prisma.classType.create({
-        data: { name: `Clase ${suffix}-${kind}`, kind, imageKey: "placeholder.png" },
+        data: { slug: crypto.randomUUID(), name: `Clase ${suffix}-${kind}`, kind, imageKey: null },
       });
       classTypeIds.push(classType.id);
       classTypeId = classType.id;

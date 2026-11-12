@@ -3,7 +3,6 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { Spinner } from "@/components/ui/spinner";
-import { EmptyState } from "@/components/common/feedback/empty-state";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
 import { ProfileAvatar } from "@/components/common/media/profile-avatar";
@@ -12,8 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConfirmDialog } from "@/components/common/dialogs/confirm-dialog";
 import { ListSearchToolbar } from "@/components/common/lists/list-search-toolbar";
+import { SearchEmptyState } from "@/components/common/lists/search-empty-state";
 import { SearchInput } from "@/components/ui/search-input";
-import { Button } from "@/components/ui/button";
 import { emptyField, displayPhone } from "@/lib/box/format";
 import { matchesSearch, searchHaystack } from "@/lib/ui/search";
 
@@ -29,7 +28,7 @@ export type TeamMember = {
   profileImageUrl: string | null;
 };
 
-export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[]; currentUserId: string; action?: ReactNode }) {
+export function TeamTable({ staff, currentUserId, action, filters, emptyState }: { staff: TeamMember[]; currentUserId: string; action?: ReactNode; filters?: ReactNode; emptyState: ReactNode }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => staff.filter((person) => matchesSearch(query, searchHaystack([
@@ -81,14 +80,15 @@ export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[
   return (
     <>
       <div className="flex flex-col gap-3">
-        <ListSearchToolbar action={action}>
+        <ListSearchToolbar action={action} filters={filters}>
           <SearchInput ref={searchRef} aria-label="Buscar en el equipo" placeholder="Buscar por nombre, usuario o contacto…"
             value={query} onValueChange={setQuery} />
         </ListSearchToolbar>
-        {staff.length > 0 && filtered.length === 0 ? (
-          <EmptyState compact title="Sin coincidencias en el equipo" description="Probá con otro nombre, usuario, teléfono, correo o rol.">
-            <Button type="button" variant="outline" className="min-h-11" onClick={clearQuery}>Limpiar búsqueda</Button>
-          </EmptyState>
+        {staff.length === 0 ? emptyState : filtered.length === 0 ? (
+          <SearchEmptyState
+            title="No hay cuentas que coincidan con la búsqueda."
+            onClear={clearQuery}
+          />
         ) : (
           <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
             <Table className="min-w-[24rem] table-fixed xl:min-w-[64rem]">
@@ -103,14 +103,7 @@ export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {staff.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="px-3 py-6 text-center text-sm text-muted-foreground">
-                      <EmptyState compact title="No hay cuentas de equipo" description="Usá el alta de equipo para crear una cuenta de coach o admin." />
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map((person) => {
+                {filtered.map((person) => {
                     const isAdminAccount = person.role === "admin" && person.firstName === "Admin" && person.lastName === "Box";
                     const active = person.status === "active";
                     const isCurrentUser = person.id === currentUserId;
@@ -193,8 +186,7 @@ export function TeamTable({ staff, currentUserId, action }: { staff: TeamMember[
                         </TableCell>
                       </TableRow>
                     );
-                  })
-                )}
+                  })}
               </TableBody>
             </Table>
           </div>

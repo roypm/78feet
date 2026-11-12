@@ -3,7 +3,7 @@
 import { FormActions } from "@/components/common/forms/form-actions";
 
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 
 import { useState, type FormEvent } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
@@ -310,7 +310,7 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
       </ModulePrimaryAction>
 
       {tariffs.length === 0 ? (
-        <EmptyState title="Todavía no hay tarifas" description="Creá una tarifa para poder asignarla a los socios."><Button type="button" className="min-h-11" onClick={openCreate}>Nueva tarifa</Button></EmptyState>
+        <ListEmptyBlock title="Todavía no hay tarifas" />
       ) : (
         <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
           <Table className="min-w-[44rem] text-sm">

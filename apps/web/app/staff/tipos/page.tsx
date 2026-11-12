@@ -12,7 +12,7 @@ export default function Page() {
         <ModulePage>
           <ModuleHeader title="Tipos de clase" />
           <ModuleBody width="full">
-            <LoadingState variant="catalog" label="Cargando los tipos de clase…" />
+            <LoadingState variant="table" label="Cargando los tipos de clase…" />
           </ModuleBody>
         </ModulePage>
       }

@@ -1,26 +1,26 @@
+import { resolveFilter } from "@/lib/box/filter-url";
 
 import { ClassTypeThumb } from "@/components/class-types/class-type-thumb";
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { localDateString } from "@78feet/domain";
 import { requireStaff } from "@/lib/auth/current";
 import { listDay } from "@/lib/box/staff-calendar";
 import { groupDayByKind, kindViewFromParam, viewKind } from "@/lib/box/day-groups";
-import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { formatDay, formatTime, kindGroupLabel } from "@/lib/box/format";
 import { BoxTabs } from "@/components/boxes/box-tabs";
 import { KindTabs } from "@/components/common/filters/kind-tabs";
 import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/components/common/layout/module-page";
-import { ProfileAvatar } from "@/components/common/media/profile-avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 function todayClassMeta(item: {
   startAt: string;
   endAt: string;
-  coachName: string | null;
   status: string;
   bookedCount: number;
   capacity: number;
@@ -33,7 +33,7 @@ function todayClassMeta(item: {
     .join(" · ");
 }
 
-export default function Page({ searchParams }: { searchParams: Promise<{ tipo?: string; box?: string }> }) {
+export default function Page({ searchParams }: { searchParams: Promise<{ grilla?: string; box?: string }> }) {
   return (
     <Suspense
       fallback={
@@ -50,16 +50,12 @@ export default function Page({ searchParams }: { searchParams: Promise<{ tipo?: 
   );
 }
 
-async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string; box?: string }> }) {
+async function Today({ searchParams }: { searchParams: Promise<{ grilla?: string; box?: string }> }) {
   const user = await requireStaff();
   const query = await searchParams;
   const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
-  const view = kindViewFromParam(query.tipo);
-  const canonical = canonicalBoxRedirect(boxes, query.box, user.preferenceBoxId, (id) =>
-    view === "open" ? `/staff/hoy?box=${id}&tipo=open` : `/staff/hoy?box=${id}`,
-  );
-  if (canonical) redirect(canonical);
-  const box = pickBox(boxes, query.box, user.preferenceBoxId);
+  const view = kindViewFromParam(query.grilla);
+  const box = pickBox(boxes, resolveFilter(boxes, query.box)?.id, user.preferenceBoxId);
   const activeKind = viewKind(view);
   const today = localDateString(new Date());
   const classes = await listDay(today, new Date(), box.id);
@@ -75,12 +71,12 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string; 
             <BoxTabs
               boxes={boxes}
               boxId={box.id}
-              hrefFor={(id) => (view === "open" ? `/staff/hoy?box=${id}&tipo=open` : `/staff/hoy?box=${id}`)}
+              hrefFor={(id) => (view === "open" ? `/staff/hoy?box=${id}&grilla=open` : `/staff/hoy?box=${id}`)}
             />
             <KindTabs
               view={view}
-              directedHref={`/staff/hoy?box=${box.id}`}
-              openHref={`/staff/hoy?box=${box.id}&tipo=open`}
+              directedHref={`/staff/hoy?box=${box.slug}`}
+              openHref={`/staff/hoy?box=${box.slug}&grilla=open`}
               className="xl:hidden"
             />
           </ModuleHeaderTabStack>
@@ -88,72 +84,52 @@ async function Today({ searchParams }: { searchParams: Promise<{ tipo?: string; 
       />
       <ModuleBody width="full" inset="content">
         {classes.length === 0 ? (
-          <EmptyState title="Hoy no hay clases programadas" description="Podés consultar las próximas clases en Semana." href="/staff/semana" action="Ver semana" />
+          <ListEmptyBlock title="Hoy no hay clases programadas" href="/staff/semana" action="Ver semana" />
         ) : (
           <div className="flex flex-col gap-3 xl:grid xl:grid-cols-2 xl:items-start">
             {groups.map((group) => (
-              <section
+              <Card
                 key={group.kind}
-                className={
-                  group.kind === activeKind
-                    ? "flex min-w-0 flex-col gap-3"
-                    : "hidden min-w-0 flex-col gap-3 xl:flex"
-                }
+                size="sm"
+                role="region"
+                aria-labelledby={`today-${group.kind}`}
+                className={group.kind === activeKind ? "min-w-0" : "hidden min-w-0 xl:flex"}
               >
-                <h2 className="text-sm font-medium text-muted-foreground">{kindGroupLabel(group.kind)}</h2>
-                {group.items.length === 0 ? (
-                  <EmptyState compact title="Sin clases en esta grilla hoy" />
-                ) : (
-                  <ul className="grid gap-3 lg:grid-cols-2 xl:grid-cols-1">
-                    {group.items.map((item) => {
-                      const cancelled = item.status === "cancelled";
-                      const meta = todayClassMeta(item);
-                      return (
-                        <li
-                          key={item.id}
-                          className={
-                            cancelled
-                              ? "relative flex min-w-0 items-center gap-3 rounded-lg bg-card p-3 ring-2 ring-destructive/60"
-                              : "relative flex min-w-0 items-center gap-3 rounded-lg bg-card p-3 ring-1 ring-foreground/10"
-                          }
-                        >
-                          <Link
-                            href={`/staff/clases/${item.id}?desde=hoy`}
-                            prefetch={true}
-                            aria-label={`${item.name}, ${meta}${item.coachName ? `, coach ${item.coachName}` : ""}`}
-                            className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/40"
-                          />
-                          <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
-                            <ClassTypeThumb
-                              imageUrl={item.imageUrl}
-                              className={
-                                cancelled
-                                  ? "pointer-events-none size-full opacity-40 saturate-50"
-                                  : "pointer-events-none size-full"
-                              }
-                            />
-                            {cancelled ? (
-                              <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-destructive/80 px-0.5 text-center text-[9px] font-semibold leading-tight text-white">
-                                Cancelada
+                <CardHeader className="border-b">
+                  <CardTitle><h2 id={`today-${group.kind}`}>{kindGroupLabel(group.kind)}</h2></CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {group.items.length === 0 ? (
+                    <ListEmptyBlock title="Sin clases en esta grilla hoy" />
+                  ) : (
+                    <ul className="divide-y divide-border">
+                      {group.items.map((item) => {
+                        const cancelled = item.status === "cancelled";
+                        const meta = todayClassMeta(item);
+                        return (
+                          <li key={item.id}>
+                            <Link
+                              href={`/staff/clases/${item.id}?desde=hoy`}
+                              prefetch={true}
+                              aria-label={`${item.name}, ${meta}${cancelled ? ", Cancelada" : ""}`}
+                              className="flex min-w-0 items-center gap-2 rounded-md px-2 py-2 pointer-hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                            >
+                              <ClassTypeThumb imageUrl={item.imageUrl} className="size-10 shrink-0 rounded-md" />
+                              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                <span className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                                  <span className="min-w-0 wrap-break-word font-medium">{item.name}</span>
+                                  {cancelled ? <Badge variant="destructive">Cancelada</Badge> : null}
+                                </span>
+                                <span className="text-sm text-muted-foreground tabular-nums">{meta}</span>
                               </span>
-                            ) : null}
-                          </div>
-                          <span className="pointer-events-none relative min-w-0 flex-1">
-                            <span className="block truncate font-medium">{item.name}</span>
-                            <span className="block truncate text-sm text-muted-foreground tabular-nums">{meta}</span>
-                            {item.coachName ? (
-                              <span className="mt-1 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-                                <ProfileAvatar name={item.coachName} imageUrl={item.coachProfileImageUrl} size="sm" />
-                                <span className="min-w-0 truncate">{item.coachName}</span>
-                              </span>
-                            ) : null}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </section>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

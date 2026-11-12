@@ -12,7 +12,6 @@ export function EmptyState({
   action,
   children,
   compact = false,
-  layout = "default",
   className,
 }: {
   title: string;
@@ -21,8 +20,6 @@ export function EmptyState({
   action?: string;
   children?: ReactNode;
   compact?: boolean;
-  /** Listados staff: mismo ancho que la tabla; texto centrado con ancho cómodo. */
-  layout?: "default" | "panel";
   className?: string;
 }) {
   return (
@@ -31,15 +28,13 @@ export function EmptyState({
         "flex-none rounded-lg border border-border bg-card",
         compact
           ? "items-start gap-3 p-4 text-left"
-          : layout === "panel"
-            ? "min-h-[min(12rem,45vh)] w-full px-4 py-8 md:min-h-48 md:px-6 md:py-10"
-            : "min-h-48 py-8",
+          : "min-h-48 py-8",
         className,
       )}
     >
       <EmptyHeader
         className={cn(
-          compact ? "max-w-none items-start" : layout === "panel" ? "w-full max-w-md" : undefined,
+          compact ? "max-w-none items-start" : undefined,
         )}
       >
         {!compact && (
@@ -53,7 +48,7 @@ export function EmptyState({
       {(children || (href && action)) && (
         <EmptyContent
           className={cn(
-            compact ? "max-w-none items-start" : layout === "panel" ? "w-full max-w-md" : undefined,
+            compact ? "max-w-none items-start" : undefined,
           )}
         >
           {href && action && (

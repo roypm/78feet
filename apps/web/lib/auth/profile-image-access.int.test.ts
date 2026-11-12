@@ -92,7 +92,7 @@ describe.skipIf(!hasDatabase)("profile image access", () => {
     });
 
     const classType = await prisma.classType.create({
-      data: { name: `WOD ${suffix}`, kind: "directed", imageKey: "placeholder.png" },
+      data: { slug: crypto.randomUUID(), name: `WOD ${suffix}`, kind: "directed", imageKey: null },
     });
     classTypeId = classType.id;
     const today = new Date();

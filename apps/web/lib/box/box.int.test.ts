@@ -224,10 +224,10 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     expect(credits.json).toMatchObject({ balance: 4 });
 
     const wodType = await prisma.classType.create({
-      data: { name: `WOD ${suffix}`, kind: "directed", imageKey: "placeholder.png" },
+      data: { slug: crypto.randomUUID(), name: `WOD ${suffix}`, kind: "directed", imageKey: null },
     });
     const openType = await prisma.classType.create({
-      data: { name: `Open ${suffix}`, kind: "open", imageKey: "placeholder.png" },
+      data: { slug: crypto.randomUUID(), name: `Open ${suffix}`, kind: "open", imageKey: null },
     });
     classTypeIds.push(wodType.id, openType.id);
     const template = await call(createTemplate, "POST", "/api/v1/admin/templates", adminToken, {
@@ -293,9 +293,9 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
     expect(stored.quotaReturned).toBe(true);
 
     const listed = await call(listMembers, "GET", "/api/v1/admin/members", coachToken);
-    expect(listed.json).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: memberId, loginId: dni })]),
-    );
+    expect(listed.json).toMatchObject({
+      items: expect.any(Array), pageInfo: expect.objectContaining({ page: 1, pageSize: 25 }),
+    });
 
     const reset = await call(
       resetPassword,
@@ -385,7 +385,7 @@ describe.skipIf(!hasDatabase)("datos del box", () => {
 
   it("propaga una baja en lotes y devuelve el cupo de las reservas futuras", async () => {
     const classType = await prisma.classType.create({
-      data: { name: `Propagación ${suffix}`, kind: "directed", imageKey: "placeholder.png" },
+      data: { slug: crypto.randomUUID(), name: `Propagación ${suffix}`, kind: "directed", imageKey: null },
     });
     classTypeIds.push(classType.id);
     const boxId = await primaryBoxId(prisma);

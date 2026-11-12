@@ -236,13 +236,19 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
     const memberId = (member.json as { id: string }).id;
     userIds.push(memberId);
 
-    const listed = await call(unpaid, "GET", "/api/v1/admin/unpaid", coachToken);
-    expect(listed.status).toBe(200);
-    const rows = listed.json as {
-      asOf: string;
-      members: { id: string; billingPeriod: string; periodStart: string }[];
-    };
-    const row = rows.members.find((item) => item.id === memberId);
+    async function findUnpaidMember() {
+      for (let page = 1; ; page++) {
+        const listed = await call(unpaid, "GET", `/api/v1/admin/unpaid?page=${page}`, coachToken);
+        expect(listed.status).toBe(200);
+        const data = listed.json as {
+          items: { id: string; billingPeriod: string; periodStart: string }[];
+          pageInfo: { totalPages: number };
+        };
+        const row = data.items.find((item) => item.id === memberId);
+        if (row || page >= data.pageInfo.totalPages) return row;
+      }
+    }
+    const row = await findUnpaidMember();
     expect(row).toBeDefined();
 
     const recorded = await call(pay, "POST", "/api/v1/admin/payments", coachToken, {
@@ -282,9 +288,6 @@ describe.skipIf(!hasDatabase)("panel de staff", () => {
     );
     expect(removed.status).toBe(200);
 
-    const listedAgain = await call(unpaid, "GET", "/api/v1/admin/unpaid", coachToken);
-    expect(listedAgain.status).toBe(200);
-    const againRows = (listedAgain.json as { members: { id: string }[] }).members;
-    expect(againRows.some((item) => item.id === memberId)).toBe(true);
+    expect(await findUnpaidMember()).toBeDefined();
   });
 });

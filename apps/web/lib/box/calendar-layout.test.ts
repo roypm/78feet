@@ -11,7 +11,7 @@ function klass(start: string, end: string): CalendarClass {
     endAt: atBoxTime("2026-10-29", end).toISOString(),
     name: "Fuerza",
     classTypeId: "type-1",
-    imageUrl: "/uploads/class-types/placeholder.png",
+    imageUrl: "/api/v1/class-type-images/db_demo",
     kind: "directed",
     status: "scheduled",
     capacity: 12,

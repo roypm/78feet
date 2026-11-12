@@ -1,5 +1,5 @@
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { ListPagination } from "@/components/common/lists/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
@@ -24,7 +24,7 @@ export default function Page({
       fallback={
         <ModulePage>
           <ModuleHeader title="Excepciones" />
-          <ModuleBody>
+          <ModuleBody width="full">
             <LoadingState variant="list" label="Cargando excepciones…" />
           </ModuleBody>
         </ModulePage>
@@ -53,10 +53,9 @@ async function Exceptions({ searchParams }: { searchParams: Promise<{ pagina?: s
         title="Excepciones"
         description="Solo lo que no sigue la plantilla al pie de la letra: clases extra, instancias modificadas o canceladas. Podés añadir una extra en cualquier fecha futura, también más allá del calendario visible en Semana."
       />
-      <ModuleBody inset="content">
+      <ModuleBody width="full" inset="content">
         {classTypes.length === 0 ? (
-          <EmptyState
-            layout="panel"
+          <ListEmptyBlock
             title="Primero hace falta un tipo de clase"
             description={user.role === "admin" ? "Creá un tipo antes de añadir clases extra." : "Pedile al admin que cree un tipo de clase para poder añadir sesiones."}
             href={user.role === "admin" ? "/staff/tipos" : undefined}

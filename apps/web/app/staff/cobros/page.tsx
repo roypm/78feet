@@ -1,3 +1,5 @@
+import { PAYMENT_SORTS, selectedSort, listOptionsHref } from "@/lib/box/list-sorting";
+import { resolveFilter } from "@/lib/box/filter-url";
 
 import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { LoadingState } from "@/components/common/feedback/loading-state";
@@ -8,13 +10,12 @@ import { requireStaff } from "@/lib/auth/current";
 import { listRegisteredPaymentsPage } from "@/lib/box/registered-payments";
 import { listBoxes } from "@/lib/box/boxes";
 import { formatPrice } from "@/lib/box/format";
-import { paymentBoxListHref } from "@/lib/box/payment-navigation";
 import { ListSearchToolbar } from "@/components/common/lists/list-search-toolbar";
 import { RegisteredPaymentsTable } from "@/components/payments/registered-payments-table";
-import { BoxTabs } from "@/components/boxes/box-tabs";
+import { ListOptions } from "@/components/common/lists/list-options";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 
-export default function Page({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string }> }) {
+export default function Page({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string; orden?: string }> }) {
   return (
     <Suspense
       fallback={
@@ -31,12 +32,14 @@ export default function Page({ searchParams }: { searchParams: Promise<{ pagina?
   );
 }
 
-async function Registered({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string }> }) {
+async function Registered({ searchParams }: { searchParams: Promise<{ pagina?: string; box?: string; orden?: string }> }) {
   await requireStaff();
   const query = await searchParams;
+  const order = selectedSort(PAYMENT_SORTS, query.orden);
   const boxes = await listBoxes();
-  const paymentBoxId = boxes.some((box) => box.id === query.box) ? query.box : undefined;
-  const data = await listRegisteredPaymentsPage(paymentBoxId, pageNumber(query.pagina));
+  const selectedBox = resolveFilter(boxes, query.box);
+  const paymentBoxId = selectedBox?.id;
+  const data = await listRegisteredPaymentsPage(paymentBoxId, pageNumber(query.pagina), order);
   const boxLabel = paymentBoxId ? boxes.find((box) => box.id === paymentBoxId)?.name : null;
   const summary =
     data.totals.count === 0
@@ -51,31 +54,22 @@ async function Registered({ searchParams }: { searchParams: Promise<{ pagina?: s
       <ModuleBody width="full" inset="content">
         <ListSearchToolbar
           filters={
-            <BoxTabs
-              boxes={boxes}
-              boxId={paymentBoxId}
-              includeAll
-              allHref="/staff/cobros"
-              ariaLabel="Box de pago"
-              hrefFor={(id) => paymentBoxListHref("/staff/cobros", id)}
-            />
+            <ListOptions path="/staff/cobros" order={order} sortOptions={PAYMENT_SORTS} filters={[{
+              key: "box", label: "Box de pago", value: selectedBox?.slug ?? "todos",
+              options: [{ value: "todos", label: "Todos" }, ...boxes.map((box) => ({ value: box.slug, label: box.name }))],
+            }]} />
           }
         />
         {data.items.length === 0 ? (
             <ListEmptyBlock
-              title="No hay cobros registrados"
-              description={
-                paymentBoxId
-                  ? "En este box de pago todavía no hay pagos dados de alta en el sistema."
-                  : "Cuando el staff registre un pago, aparecerá aquí con la fecha de alta y el box de pago del socio en ese momento."
-              }
-              href="/staff/impagos"
-              action="Ver impagos"
+              title={selectedBox ? "No hay cobros con estos filtros" : "Todavía no hay cobros registrados"}
+              href={selectedBox ? listOptionsHref("/staff/cobros", {}, order, PAYMENT_SORTS[0].value) : undefined}
+              action={selectedBox ? "Restablecer filtros" : undefined}
             />
           ) : (
             <RegisteredPaymentsTable payments={data.items} showPaymentBox={!paymentBoxId} />
           )}
-          <ListPagination pageInfo={data.pageInfo} path="/staff/cobros" filters={{ box: paymentBoxId }} />
+          <ListPagination pageInfo={data.pageInfo} path="/staff/cobros" filters={{ box: selectedBox?.slug, orden: order === PAYMENT_SORTS[0].value ? undefined : order }} />
       </ModuleBody>
     </ModulePage>
   );

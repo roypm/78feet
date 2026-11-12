@@ -1,8 +1,7 @@
 import { DomainError } from "./errors";
-import { assignPool, packBalance, quotaUsed } from "./quota";
-import { quotaPeriodForConsumption } from "./billing-period";
+import { assignPool } from "./quota";
 import { instanceHasStarted, intervalsOverlap, memberCanCancel } from "./time";
-import type { Booking, BookingPool, ClassInstance, CreditGrant, MembershipSnapshot, TariffSnapshot } from "./types";
+import type { Booking, BookingPool, ClassInstance, MembershipSnapshot, TariffSnapshot } from "./types";
 
 export function activeBookingsOnInstance(bookings: readonly Booking[], instanceId: string): Booking[] {
   return bookings.filter((booking) => booking.instanceId === instanceId && booking.status === "active");
@@ -33,8 +32,7 @@ export function evaluateBooking(params: {
   userId: string;
   bookings: readonly Booking[];
   instancesById: ReadonlyMap<string, Pick<ClassInstance, "date" | "startAt" | "endAt">>;
-  grants: readonly Pick<CreditGrant, "userId" | "quantity">[];
-  consumption?: { usedDirected: number; usedOpen: number; packBalance: number };
+  consumption: { usedDirected: number; usedOpen: number; packBalance: number };
   directedAdjustment?: number;
   openAdjustment?: number;
 }): { pool: BookingPool } {
@@ -61,7 +59,6 @@ export function evaluateBooking(params: {
     throw new DomainError("FULL");
   }
 
-  const period = quotaPeriodForConsumption(params.tariff.consumptionModel) ?? "week";
   const pool = assignPool({
     consumptionModel: params.tariff.consumptionModel,
     classKind: params.instance.kind,
@@ -69,33 +66,7 @@ export function evaluateBooking(params: {
     quotaOpen: params.tariff.quotaOpen,
     directedAdjustment: params.directedAdjustment,
     openAdjustment: params.openAdjustment,
-    usedDirected:
-      params.consumption?.usedDirected ??
-      quotaUsed({
-        bookings: params.bookings,
-        instancesById: params.instancesById,
-        userId: params.userId,
-        periodDate: params.instance.date,
-        period,
-        kind: "directed",
-      }),
-    usedOpen:
-      params.consumption?.usedOpen ??
-      quotaUsed({
-        bookings: params.bookings,
-        instancesById: params.instancesById,
-        userId: params.userId,
-        periodDate: params.instance.date,
-        period,
-        kind: "open",
-      }),
-    packBalance:
-      params.consumption?.packBalance ??
-      packBalance({
-        grants: params.grants,
-        bookings: params.bookings,
-        userId: params.userId,
-      }),
+    ...params.consumption,
   });
 
   return { pool };

@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import { FormActions } from "@/components/common/forms/form-actions";
 import { PaymentFields } from "@/components/payments/payment-fields";
 import DevCompositionPage from "@/app/dev/component-composition/page";
+import { ListOptions } from "@/components/common/lists/list-options";
+import { PERSON_SORTS } from "@/lib/box/list-sorting";
+import { ResourceImage } from "@/components/common/media/resource-image";
 import { BoxTabs } from "@/components/boxes/box-tabs";
 
 vi.stubGlobal("React", React);
@@ -68,6 +71,7 @@ describe("composición de formularios", () => {
 describe("selector de sede", () => {
   const boxes = Array.from({ length: 4 }, (_, index) => ({
     id: String(index),
+    slug: `box-${index + 1}`,
     name: `Box ${index + 1}`,
   }));
   const hrefFor = (id: string) => `/staff/cobros?box=${id}`;
@@ -105,5 +109,40 @@ describe("muestras solo de desarrollo", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe("imágenes sin almacenamiento local", () => {
+  it("conserva tamaño y etiqueta cuando falta la imagen", () => {
+    const html = render(createElement(ResourceImage, {
+      alt: "Imagen actual del entrenamiento de fuerza y movilidad",
+      className: "h-32 w-full", width: 240, height: 128,
+    }));
+    expect(html).not.toContain("<img");
+    expect(html).toContain('role="img"');
+    expect(html).toContain("Imagen actual del entrenamiento de fuerza y movilidad");
+    expect(html).toContain("width:240px;height:128px");
+    expect(html).not.toContain("/uploads/");
+  });
+});
+
+describe("panel de filtros y ordenación", () => {
+  it("cuenta filtros aplicados y excluye Todos", () => {
+    const html = render(createElement(ListOptions, {
+      path: "/staff/equipo", order: "nombre-desc", sortOptions: PERSON_SORTS,
+      filters: [
+        { key: "estado", label: "Estado", value: "baja", options: [{ value: "baja", label: "Dados de baja" }] },
+        { key: "rol", label: "Rol", value: "todos", options: [{ value: "todos", label: "Todos" }] },
+      ],
+    }));
+    expect(html).toContain("Filtrar y ordenar");
+    expect(html).toContain('aria-label="1 filtro activo"');
+  });
+  it("no muestra un contador cuando no hay filtros activos", () => {
+    const html = render(createElement(ListOptions, {
+      path: "/staff/socios", order: PERSON_SORTS[0].value, sortOptions: PERSON_SORTS,
+      filters: [{ key: "estado", label: "Estado", value: "todos", options: [{ value: "todos", label: "Todos" }] }],
+    }));
+    expect(html).not.toContain("filtros activos");
   });
 });

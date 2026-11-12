@@ -37,6 +37,8 @@ export function MemberCalendarBoard({
   const axis = calendarAxis(classes, hours);
   const height = columnHeight(classes, axis.axisStart, axis.axisEnd, pxPerHour);
 
+  const boxSlug = boxes.find((box) => box.id === boxId)?.slug;
+
   return (
     <ModulePage>
       <ModuleHeader
@@ -47,8 +49,8 @@ export function MemberCalendarBoard({
             <BoxTabs boxes={boxes} boxId={boxId ?? ""} hrefFor={(id) => calendarHref(basePath, semana, view, id)} />
             <KindTabs
               view={view}
-              directedHref={calendarHref(basePath, semana, "dirigidas", boxId)}
-              openHref={calendarHref(basePath, semana, "open", boxId)}
+              directedHref={calendarHref(basePath, semana, "dirigidas", boxSlug)}
+              openHref={calendarHref(basePath, semana, "open", boxSlug)}
             />
           </ModuleHeaderTabStack>
         }
@@ -69,7 +71,7 @@ export function MemberCalendarBoard({
         }
         toolbar={
           <div className="flex w-full justify-center">
-            <WeekNav basePath={basePath} view={view} boxId={boxId} week={week} width="content" />
+            <WeekNav basePath={basePath} view={view} boxSlug={boxSlug} week={week} width="content" />
           </div>
         }
       />

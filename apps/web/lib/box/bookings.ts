@@ -186,7 +186,6 @@ export async function reserveForMember(params: {
           userId: user.id,
           bookings: [...bookings.values()],
           instancesById,
-          grants: [],
           consumption,
           directedAdjustment: quotaAdjustmentTotal(adjustments, "directed"),
           openAdjustment: quotaAdjustmentTotal(adjustments, "open"),

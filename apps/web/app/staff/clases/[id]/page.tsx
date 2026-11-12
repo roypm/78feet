@@ -69,7 +69,7 @@ async function ClassDetail({
   const query = await searchParams;
   const now = new Date();
   const startAt = new Date(instance.startAt);
-  const back = staffClassOriginBack(parseStaffClassOrigin(query.desde), instance.date, now, instance.boxId);
+  const back = staffClassOriginBack(parseStaffClassOrigin(query.desde), instance.date, now, instance.boxSlug);
   const canAddMember = instance.status === "scheduled" && !instanceHasStarted(now, startAt);
   const canRemoveMember = instance.status === "scheduled" && instance.roster.length > 0;
 

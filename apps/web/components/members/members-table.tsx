@@ -1,7 +1,5 @@
 "use client";
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
-
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { Spinner } from "@/components/ui/spinner";
@@ -9,6 +7,7 @@ import { usesPeriodicQuota } from "@78feet/domain";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MemberListSearch } from "@/components/members/member-list-search";
 import { ListSearchToolbar } from "@/components/common/lists/list-search-toolbar";
+import { SearchEmptyState } from "@/components/common/lists/search-empty-state";
 import { displayPhone, emptyField, memberFullName } from "@/lib/box/format";
 import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
 import { cn } from "cn";
@@ -16,6 +15,7 @@ import { ProfileAvatar } from "@/components/common/media/profile-avatar";
 
 export type MemberListRow = {
   id: string;
+  status: "active" | "inactive";
   firstName: string;
   lastName: string;
   dni: string | null;
@@ -35,6 +35,7 @@ function memberAriaLabel(member: MemberListRow): string {
   const name = memberFullName(member.firstName, member.lastName);
   const parts = [
     name,
+    member.status === "inactive" ? "Dado de baja" : "Activo",
     member.dni,
     member.phone,
     member.email,
@@ -90,7 +91,17 @@ function CellText({
   );
 }
 
-export function MembersTable({ members, action, filters }: { members: MemberListRow[]; action?: ReactNode; filters?: ReactNode }) {
+export function MembersTable({
+  members,
+  action,
+  filters,
+  emptyState,
+}: {
+  members: MemberListRow[];
+  action?: ReactNode;
+  filters?: ReactNode;
+  emptyState: ReactNode;
+}) {
   const searchRef = useRef<HTMLInputElement>(null);
   const { router, pending } = useActionFeedback();
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -128,8 +139,12 @@ export function MembersTable({ members, action, filters }: { members: MemberList
       <ListSearchToolbar action={action} filters={filters}>
         <MemberListSearch ref={searchRef} value={query} onChange={setQuery} />
       </ListSearchToolbar>
-      {filtered.length === 0 ? (
-        <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra los socios de la página actual. Podés limpiar el texto o consultar otra página."><button type="button" className="min-h-11 text-primary" onClick={clearQuery}>Limpiar búsqueda</button></EmptyState>
+      {members.length === 0 ? (
+        emptyState
+      ) : filtered.length === 0 ? (
+        <SearchEmptyState
+          onClear={clearQuery}
+        />
       ) : null}
       {filtered.length > 0 ? (
     <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
@@ -172,6 +187,9 @@ export function MembersTable({ members, action, filters }: { members: MemberList
                     <ProfileAvatar name={fullName} imageUrl={member.profileImageUrl} size="sm" />
                     <div className="min-w-0">
                     <span className="inline-flex items-center gap-2 font-medium wrap-break-word">{fullName}{pending && openingId === member.id && <Spinner aria-label="Abriendo socio" />}</span>
+                    {member.status === "inactive" ? (
+                      <span className="mt-0.5 block text-sm text-muted-foreground">Dado de baja</span>
+                    ) : null}
                     <span className="mt-0.5 block truncate text-sm text-muted-foreground sm:hidden">
                       {[member.dni, member.phone ? displayPhone(member.phone) : null].filter(Boolean).join(" · ") || null}
                     </span>

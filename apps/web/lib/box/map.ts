@@ -87,9 +87,10 @@ export function toDomainBooking(row: {
   };
 }
 
-export function typeView(row: { id: string; name: string; kind: "directed" | "open"; imageKey: string | null }) {
+export function typeView(row: { slug: string; id: string; name: string; kind: "directed" | "open"; imageKey: string | null }) {
   return {
     id: row.id,
+    slug: row.slug,
     name: row.name,
     kind: row.kind,
     imageKey: row.imageKey,

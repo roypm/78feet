@@ -1,7 +1,5 @@
 export type Role = "member" | "coach" | "admin";
 export type UserStatus = "active" | "inactive";
-/** @deprecated use TariffConsumption */
-export type TariffKind = "monthly" | "pack";
 export type TariffConsumption = "weekly_quota" | "monthly_quota" | "pack";
 export type QuotaPeriod = "week" | "month";
 export type TariffBilling = "monthly" | "quarterly" | "semiannual" | "annual" | "none" | "one_time";

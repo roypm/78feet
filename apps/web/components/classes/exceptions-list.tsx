@@ -1,7 +1,7 @@
 
 import { ClassTypeThumb } from "@/components/class-types/class-type-thumb";
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import type { ExceptionInstance } from "@/lib/box/exceptions";
 import { exceptionCardStatusLabel } from "@/lib/box/exceptions";
@@ -10,10 +10,8 @@ import { formatDay, formatTime } from "@/lib/box/format";
 export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
   if (items.length === 0) {
     return (
-      <EmptyState
-        layout="panel"
+      <ListEmptyBlock
         title="No hay excepciones desde hoy"
-        description="Las clases extra y los cambios puntuales aparecerán acá. Usá Añadir clase extra si necesitás una sesión fuera de la plantilla."
       />
     );
   }

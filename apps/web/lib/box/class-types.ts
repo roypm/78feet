@@ -2,6 +2,7 @@ import { type ClassTypePatch } from "@78feet/domain";
 import { prisma } from "../db";
 import { BoxError } from "./errors";
 import { typeView } from "./map";
+import { createWithSlug } from "./slugs";
 import { removeClassTypeImage } from "./images";
 
 export type ClassTypeView = ReturnType<typeof typeView>;
@@ -22,9 +23,9 @@ export async function createClassType(input: {
   kind: "directed" | "open";
   imageKey: string | null;
 }): Promise<ClassTypeView> {
-  const row = await prisma.classType.create({
-    data: { name: input.name, kind: input.kind, imageKey: input.imageKey },
-  });
+  const row = await createWithSlug(input.name, (slug) => prisma.classType.create({
+    data: { slug, name: input.name, kind: input.kind, imageKey: input.imageKey },
+  }));
   return typeView(row);
 }
 

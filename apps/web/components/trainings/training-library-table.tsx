@@ -1,12 +1,11 @@
 "use client";
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
 
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ListSearchToolbar } from "@/components/common/lists/list-search-toolbar";
+import { SearchEmptyState } from "@/components/common/lists/search-empty-state";
 import { SearchInput } from "@/components/ui/search-input";
-import { Button } from "@/components/ui/button";
 import { matchesSearch, searchHaystack } from "@/lib/ui/search";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { Spinner } from "@/components/ui/spinner";
@@ -22,12 +21,12 @@ export type StaffTrainingCard = {
 
 export function TrainingLibraryTable({
   trainings,
-  hasTypeFilter,
+  emptyState,
   action,
   filters,
 }: {
   trainings: StaffTrainingCard[];
-  hasTypeFilter: boolean;
+  emptyState: ReactNode;
   action?: ReactNode;
   filters?: ReactNode;
 }) {
@@ -53,18 +52,10 @@ export function TrainingLibraryTable({
         <SearchInput ref={searchRef} aria-label="Buscar entrenamientos en esta página" placeholder="Buscar por nombre o tipo…"
           value={query} onValueChange={setQuery} />
       </ListSearchToolbar>
-      {trainings.length === 0 ? (
-        <EmptyState
-          layout="panel"
-          title={hasTypeFilter ? "Este tipo todavía no tiene entrenamientos" : "Todavía no hay entrenamientos"}
-          description="Usá Nuevo entrenamiento para añadir fases y bloques a la biblioteca."
-          href={hasTypeFilter ? "/staff/biblioteca" : "/staff/biblioteca/nuevo"}
-          action={hasTypeFilter ? "Ver todos" : "Nuevo entrenamiento"}
+      {trainings.length === 0 ? emptyState : filtered.length === 0 ? (
+        <SearchEmptyState
+          onClear={clearQuery}
         />
-      ) : filtered.length === 0 ? (
-        <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra por nombre o tipo los entrenamientos de esta página. Probá otra búsqueda o consultá otra página.">
-          <Button type="button" variant="outline" className="min-h-11" onClick={clearQuery}>Limpiar búsqueda</Button>
-        </EmptyState>
       ) : (
         <>
           <ul className="flex flex-col gap-2 md:hidden">

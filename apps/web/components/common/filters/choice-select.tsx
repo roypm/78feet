@@ -29,7 +29,7 @@ export function ChoiceSelect({
         if (option) router.push(option.href);
       }}
     >
-      <SelectTrigger aria-label={label} className="min-h-11 w-fit max-w-56 min-w-36 sm:min-h-8">
+      <SelectTrigger aria-label={label} className="min-h-11 w-fit max-w-56 min-w-36">
         <SelectValue>
           {(selected) => (
             <span className="min-w-0 truncate">{options.find((option) => option.value === selected)?.label}</span>

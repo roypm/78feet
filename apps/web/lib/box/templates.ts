@@ -51,7 +51,7 @@ function toView(row: {
   startTime: Date;
   endTime: Date;
   classTypeId: string;
-  classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
+  classType: { slug: string; id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
   coachId: string | null;
   defaultCapacity: number;
   active: boolean;

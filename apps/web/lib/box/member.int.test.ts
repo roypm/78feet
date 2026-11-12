@@ -119,7 +119,7 @@ describe.skipIf(!hasDatabase)("pantallas del socio", () => {
     const today = localDateString(new Date());
     const startAt = new Date(Date.now() + 3 * 60 * 60 * 1000);
     const classType = await prisma.classType.create({
-      data: { name: `WOD ${suffix}`, kind: "directed", imageKey: "placeholder.png" },
+      data: { slug: crypto.randomUUID(), name: `WOD ${suffix}`, kind: "directed", imageKey: null },
     });
     classTypeIds.push(classType.id);
     const row = await prisma.classInstance.create({

@@ -1,5 +1,5 @@
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { ListPagination } from "@/components/common/lists/list-pagination";
 import { pageNumber } from "@/lib/box/pagination";
@@ -23,7 +23,7 @@ export default function Page({
       fallback={
         <ModulePage>
           <ModuleHeader title="Mis reservas" />
-          <ModuleBody>
+          <ModuleBody width="full">
             <LoadingState variant="list" label="Cargando tus reservas…" />
           </ModuleBody>
         </ModulePage>
@@ -42,9 +42,9 @@ async function Bookings({ searchParams }: { searchParams: Promise<{ pagina?: str
   return (
     <ModulePage>
       <ModuleHeader title="Mis reservas" description="Clases futuras a las que estás apuntado." />
-      <ModuleBody>
+      <ModuleBody width="full">
       {bookings.length === 0 ? (
-        <EmptyState title="Todavía no tenés reservas" description="Elegí una clase del calendario para reservar tu plaza." href="/calendario" action="Ver calendario" />
+        <ListEmptyBlock title="Todavía no tenés reservas" href="/calendario" action="Ver calendario" />
       ) : (
         <ul className="flex flex-col gap-3">
           {bookings.map((booking) => (

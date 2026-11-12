@@ -1,6 +1,6 @@
 import type { ClassKind } from "@78feet/domain";
 
-/** Lo que elige el selector: la vista, que es lo que viaja en `?tipo=`. */
+/** Lo que elige el selector: la vista, que es lo que viaja en `?grilla=`. */
 export type KindView = "dirigidas" | "open";
 
 export function kindViewFromParam(value: string | undefined): KindView {

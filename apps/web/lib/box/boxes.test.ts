@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { canonicalBoxRedirect, orderBoxes, pickBox, type BoxSummary } from "./boxes";
+import { orderBoxes, pickBox, type BoxSummary } from "./boxes";
 
 const boxes: BoxSummary[] = [
-  { id: "a", name: "Box 1" },
-  { id: "b", name: "Box 2" },
-  { id: "c", name: "Box 3" },
+  { id: "a", slug: "box-1", name: "Box 1" },
+  { id: "b", slug: "box-2", name: "Box 2" },
+  { id: "c", slug: "box-3", name: "Box 3" },
 ];
 
 describe("orderBoxes", () => {
@@ -26,21 +26,5 @@ describe("pickBox", () => {
 
   it("falls back to the first box when preference is missing", () => {
     expect(pickBox(boxes, undefined, null).id).toBe("a");
-  });
-});
-
-describe("canonicalBoxRedirect", () => {
-  it("returns null when the request is missing or valid", () => {
-    expect(canonicalBoxRedirect(boxes, undefined, "b", (id) => `/x?box=${id}`)).toBeNull();
-    expect(canonicalBoxRedirect(boxes, "c", "b", (id) => `/x?box=${id}`)).toBeNull();
-  });
-
-  it("returns a canonical href when the request is unknown", () => {
-    expect(canonicalBoxRedirect(boxes, "missing", "b", (id) => `/calendario?box=${id}`)).toBe(
-      "/calendario?box=b",
-    );
-    expect(canonicalBoxRedirect(boxes, "missing", null, (id) => `/calendario?box=${id}`)).toBe(
-      "/calendario?box=a",
-    );
   });
 });

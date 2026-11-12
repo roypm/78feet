@@ -98,7 +98,7 @@ export async function getStaffInstance(id: string, now = new Date()) {
     where: { id },
     include: {
       classType: true,
-      box: { select: { id: true, name: true } },
+      box: { select: { id: true, name: true, slug: true } },
       template: { select: { weekday: true, active: true } },
       coach: { select: { id: true, firstName: true, lastName: true, profileImage: { select: { updatedAt: true } } } },
       training: { include: { classType: true } },
@@ -117,6 +117,7 @@ export async function getStaffInstance(id: string, now = new Date()) {
   return {
     id: row.id,
     boxId: row.box.id,
+    boxSlug: row.box.slug,
     boxName: row.box.name,
     date,
     startAt: row.startAt.toISOString(),

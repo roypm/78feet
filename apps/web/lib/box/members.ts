@@ -1,8 +1,8 @@
+import { personOrder, type PersonSort } from "./list-sorting";
 import { paginate, type PageWindow } from "./pagination";
 import type { Prisma } from "@prisma/client";
 import {
   localDateString,
-  packBalance,
   quotaAdjustmentTotal,
   quotaPeriodForConsumption,
   quotaPeriodStartDate,
@@ -131,12 +131,12 @@ async function cancelFutureBookings(
   return bookings.length;
 }
 
-export async function listMembersPage(status: "active" | "inactive" | "all", page = 1) {
+export async function listMembersPage(status: "active" | "inactive" | "all", page = 1, order: PersonSort = "apellidos-asc") {
   const total = await prisma.user.count({ where: { role: "member", ...(status === "all" ? {} : { status }) } });
-  return paginate(total, page, (window) => listMembers(status, window));
+  return paginate(total, page, (window) => listMembers(status, window, order));
 }
 
-export async function listMembers(status: "active" | "inactive" | "all", window?: PageWindow) {
+export async function listMembers(status: "active" | "inactive" | "all", window?: PageWindow, order: PersonSort = "apellidos-asc") {
   const users = await prisma.user.findMany({
     ...window,
     where: {
@@ -160,7 +160,7 @@ export async function listMembers(status: "active" | "inactive" | "all", window?
         take: 1,
       },
     },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+    orderBy: personOrder(order),
   });
   const ids = users.map((user) => user.id);
   const [grants, spent] = ids.length ? await Promise.all([
@@ -231,72 +231,11 @@ export async function getMember(id: string) {
     include: {
       profileImage: { select: { updatedAt: true } },
       paymentBox: { select: { id: true, name: true } },
-      memberships: {
-        include: membershipInclude,
-        orderBy: { startedAt: "desc" },
-      },
-      creditGrantsReceived: { orderBy: { createdAt: "desc" } },
-      bookingsAsMember: {
-        include: { instance: { include: { classType: { select: { name: true } } } } },
-        orderBy: { createdAt: "desc" },
-      },
-      paymentsReceived: { orderBy: { createdAt: "desc" } },
+      memberships: { where: { endedAt: null }, include: membershipInclude, take: 1 },
     },
   });
-  if (!user || user.role !== "member") {
-    throw new BoxError(404, "FORBIDDEN", "El socio no existe");
-  }
-  const current = user.memberships.find((membership) => membership.endedAt === null) ?? null;
-  const balance = packBalance({
-    userId: user.id,
-    grants: user.creditGrantsReceived.map((grant) => ({
-      userId: grant.userId,
-      quantity: grant.quantity,
-    })),
-    bookings: user.bookingsAsMember.map((booking) => ({
-      id: booking.id,
-      instanceId: booking.instanceId,
-      userId: booking.userId,
-      pool: booking.pool,
-      status: booking.status,
-      quotaReturned: booking.quotaReturned,
-      createdBy: booking.createdBy,
-      cancelledAt: booking.cancelledAt,
-      cancelledBy: booking.cancelledBy,
-    })),
-  });
-  return {
-    ...userView(user),
-    membership: membershipView(current),
-    membershipHistory: user.memberships.map((membership) => membershipView(membership)),
-    credits: {
-      balance,
-      grants: user.creditGrantsReceived.map((grant) => ({
-        id: grant.id,
-        quantity: grant.quantity,
-        note: grant.note,
-        createdAt: grant.createdAt.toISOString(),
-      })),
-    },
-    bookings: user.bookingsAsMember.map((booking) => ({
-      id: booking.id,
-      instanceId: booking.instanceId,
-      status: booking.status,
-      pool: booking.pool,
-      quotaReturned: booking.quotaReturned,
-      date: isoDateFromDb(booking.instance.date),
-      name: booking.instance.classType.name,
-      startAt: booking.instance.startAt.toISOString(),
-    })),
-    payments: user.paymentsReceived.map((payment) => ({
-      id: payment.id,
-      billingPeriod: payment.billingPeriod,
-      periodStart: payment.periodStart ? isoDateFromDb(payment.periodStart) : null,
-      amountCents: payment.amountCents,
-      method: payment.method,
-      createdAt: payment.createdAt.toISOString(),
-    })),
-  };
+  if (!user || user.role !== "member") throw new BoxError(404, "FORBIDDEN", "El socio no existe");
+  return { ...userView(user), membership: membershipView(user.memberships[0] ?? null) };
 }
 
 export async function updateMember(id: string, patch: PatchMember) {

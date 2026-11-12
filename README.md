@@ -30,6 +30,8 @@ pnpm --filter web db:migrate
 pnpm --filter web db:seed
 ```
 
+Después de `prisma generate` o de cambiar el esquema, reiniciá `pnpm dev` para cargar el cliente actualizado.
+
 El seed solo crea el admin si no existe, con `ADMIN_LOGIN_ID` (por defecto `admin`) y `ADMIN_PASSWORD`.
 
 ```bash

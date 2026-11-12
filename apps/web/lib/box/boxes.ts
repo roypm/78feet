@@ -2,17 +2,19 @@ import { defaultBoxHours, type CreateBox } from "@78feet/domain";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { isUniqueViolation } from "./db";
+import { createWithSlug } from "./slugs";
 import { BoxError } from "./errors";
 
 export type BoxSummary = {
   id: string;
   name: string;
+  slug: string;
 };
 
 export async function listBoxes(): Promise<BoxSummary[]> {
   return prisma.box.findMany({
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    select: { id: true, name: true },
+    select: { id: true, name: true, slug: true },
   });
 }
 
@@ -29,22 +31,11 @@ export function pickBox(
   requested: string | undefined,
   preferenceBoxId?: string | null,
 ): BoxSummary {
-  const match = requested ? boxes.find((box) => box.id === requested) : undefined;
+  const match = boxes.find((box) => box.id === requested);
   const preferred = preferenceBoxId ? boxes.find((box) => box.id === preferenceBoxId) : undefined;
   const box = match ?? preferred ?? boxes[0];
   if (!box) throw new BoxError(500, "FORBIDDEN", "No hay ningún box");
   return box;
-}
-
-/** When `?box=` is set but unknown, return the URL that matches the fallback box. */
-export function canonicalBoxRedirect(
-  boxes: readonly BoxSummary[],
-  requested: string | undefined,
-  preferenceBoxId: string | null | undefined,
-  hrefFor: (boxId: string) => string,
-): string | null {
-  if (!requested || boxes.some((box) => box.id === requested)) return null;
-  return hrefFor(pickBox(boxes, undefined, preferenceBoxId).id);
 }
 
 async function assertUniqueName(name: string, exceptId?: string): Promise<void> {
@@ -59,14 +50,15 @@ export async function createBox(input: CreateBox): Promise<BoxSummary> {
   const hours = defaultBoxHours();
   await assertUniqueName(input.name);
   try {
-    return await prisma.box.create({
+    return await createWithSlug(input.name, (slug) => prisma.box.create({
       data: {
+        slug,
         name: input.name,
         weeklyHours: hours.weekly as Prisma.InputJsonValue,
         exceptions: hours.exceptions as Prisma.InputJsonValue,
       },
-      select: { id: true, name: true },
-    });
+      select: { id: true, name: true, slug: true },
+    }));
   } catch (error) {
     if (isUniqueViolation(error)) throw new BoxError(409, "FORBIDDEN", "Ya hay un box con ese nombre");
     throw error;
@@ -74,15 +66,15 @@ export async function createBox(input: CreateBox): Promise<BoxSummary> {
 }
 
 export async function renameBox(id: string, input: CreateBox): Promise<BoxSummary> {
-  const current = await prisma.box.findUnique({ where: { id }, select: { id: true, name: true } });
+  const current = await prisma.box.findUnique({ where: { id }, select: { id: true, name: true, slug: true } });
   if (!current) throw new BoxError(404, "FORBIDDEN", "El box no existe");
-  if (current.name === input.name) return { id, name: input.name };
+  if (current.name === input.name) return current;
   await assertUniqueName(input.name, id);
   try {
     return await prisma.box.update({
       where: { id },
       data: { name: input.name },
-      select: { id: true, name: true },
+      select: { id: true, name: true, slug: true },
     });
   } catch (error) {
     if (isUniqueViolation(error)) throw new BoxError(409, "FORBIDDEN", "Ya hay un box con ese nombre");
@@ -91,7 +83,7 @@ export async function renameBox(id: string, input: CreateBox): Promise<BoxSummar
 }
 
 export async function requireBox(id: string): Promise<BoxSummary> {
-  const box = await prisma.box.findUnique({ where: { id }, select: { id: true, name: true } });
+  const box = await prisma.box.findUnique({ where: { id }, select: { id: true, name: true, slug: true } });
   if (!box) throw new BoxError(404, "FORBIDDEN", "El box no existe");
   return box;
 }

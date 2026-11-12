@@ -18,23 +18,6 @@ export function bookingCountsTowardQuota(booking: Pick<Booking, "status" | "quot
   return booking.status === "active" || booking.quotaReturned === false;
 }
 
-export function weeklyUsed(params: {
-  bookings: readonly Booking[];
-  instancesById: ReadonlyMap<string, Pick<ClassInstance, "date">>;
-  userId: string;
-  weekDate: string;
-  kind: ClassKind;
-}): number {
-  return quotaUsed({
-    bookings: params.bookings,
-    instancesById: params.instancesById,
-    userId: params.userId,
-    periodDate: params.weekDate,
-    period: "week",
-    kind: params.kind,
-  });
-}
-
 export function quotaUsed(params: {
   bookings: readonly Booking[];
   instancesById: ReadonlyMap<string, Pick<ClassInstance, "date">>;

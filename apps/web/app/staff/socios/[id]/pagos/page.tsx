@@ -1,7 +1,7 @@
 import { pageNumber } from "@/lib/box/pagination";
 import { ListPagination } from "@/components/common/lists/list-pagination";
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
@@ -64,9 +64,9 @@ async function MemberPayments({ params, searchParams }: PageProps) {
       />
       <ModuleBody width="full" inset="content">
         {data.payments.length === 0 ? (
-          <EmptyState
+          <ListEmptyBlock
             title="Todavía no hay pagos registrados"
-            description="Los pagos que registre el staff aparecerán en este historial."
+
             href={`/staff/socios/${id}`}
             action="Volver al socio"
           />

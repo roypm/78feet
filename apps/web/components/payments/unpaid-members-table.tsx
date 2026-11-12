@@ -1,6 +1,5 @@
 "use client";
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
@@ -9,6 +8,7 @@ import { formatPrice } from "@/lib/box/format";
 import { matchesMemberSearch, memberHaystack } from "@/lib/staff/member-search";
 import { MarkPaidButton } from "@/components/payments/mark-paid-button";
 import { ListSearchToolbar } from "@/components/common/lists/list-search-toolbar";
+import { SearchEmptyState } from "@/components/common/lists/search-empty-state";
 import { MemberListSearch } from "@/components/members/member-list-search";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -25,7 +25,15 @@ export type UnpaidMemberRow = {
   periodLabel: string;
 };
 
-export function UnpaidMembersTable({ members, filters }: { members: UnpaidMemberRow[]; filters?: ReactNode }) {
+export function UnpaidMembersTable({
+  members,
+  filters,
+  emptyState,
+}: {
+  members: UnpaidMemberRow[];
+  filters?: ReactNode;
+  emptyState: ReactNode;
+}) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const filtered = useMemo(
@@ -61,8 +69,10 @@ export function UnpaidMembersTable({ members, filters }: { members: UnpaidMember
           placeholder="Buscar por nombre, tarifa o periodo…"
         />
       </ListSearchToolbar>
-      {filtered.length === 0 ? (
-        <EmptyState compact title="Sin coincidencias en esta página" description="La búsqueda filtra los impagos de la página actual. Podés limpiar el texto o consultar otra página."><button type="button" className="min-h-11 text-primary" onClick={clearQuery}>Limpiar búsqueda</button></EmptyState>
+      {members.length === 0 ? emptyState : filtered.length === 0 ? (
+        <SearchEmptyState
+          onClear={clearQuery}
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
           <Table className="min-w-[20rem] md:min-w-[36rem]">

@@ -10,14 +10,14 @@ import type { CalendarWeek, CalendarView } from "./types";
 export function WeekNav({
   basePath,
   view,
-  boxId,
+  boxSlug,
   week,
   align,
   width = "content",
 }: {
   basePath: string;
   view: CalendarView;
-  boxId?: string;
+  boxSlug?: string;
   week: CalendarWeek;
   align?: "start" | "center";
   width?: "content" | "calendar";
@@ -27,7 +27,7 @@ export function WeekNav({
   const navDisabled = "flex min-h-8 shrink-0 items-center rounded-sm px-2 text-sm text-muted-foreground";
 
   const chips = (
-    <WeekChips basePath={basePath} view={view} boxId={boxId} week={week} />
+    <WeekChips basePath={basePath} view={view} boxSlug={boxSlug} week={week} />
   );
 
   if (width === "calendar") {
@@ -37,7 +37,7 @@ export function WeekNav({
         className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1"
       >
         {week.canPrev ? (
-          <Link href={calendarHref(basePath, week.prev, view, boxId)} prefetch={true} className={navLink}>
+          <Link href={calendarHref(basePath, week.prev, view, boxSlug)} prefetch={true} className={navLink}>
             Anterior
           </Link>
         ) : (
@@ -46,7 +46,7 @@ export function WeekNav({
         <div className="flex min-w-0 justify-center overflow-x-auto px-1">{chips}</div>
         {week.canNext ? (
           <Link
-            href={calendarHref(basePath, week.next, view, boxId)}
+            href={calendarHref(basePath, week.next, view, boxSlug)}
             prefetch={true}
             className={cn(navLink, "justify-self-end")}
           >
@@ -68,7 +68,7 @@ export function WeekNav({
       )}
     >
       {week.canPrev ? (
-        <Link href={calendarHref(basePath, week.prev, view, boxId)} prefetch={true} className={navLink}>
+        <Link href={calendarHref(basePath, week.prev, view, boxSlug)} prefetch={true} className={navLink}>
           Anterior
         </Link>
       ) : (
@@ -76,7 +76,7 @@ export function WeekNav({
       )}
       <div className="flex min-w-0 max-w-[min(100%,20rem)] overflow-x-auto sm:max-w-none">{chips}</div>
       {week.canNext ? (
-        <Link href={calendarHref(basePath, week.next, view, boxId)} prefetch={true} className={navLink}>
+        <Link href={calendarHref(basePath, week.next, view, boxSlug)} prefetch={true} className={navLink}>
           Siguiente
         </Link>
       ) : (
@@ -89,18 +89,18 @@ export function WeekNav({
 function WeekChips({
   basePath,
   view,
-  boxId,
+  boxSlug,
   week,
 }: {
   basePath: string;
   view: CalendarView;
-  boxId?: string;
+  boxSlug?: string;
   week: CalendarWeek;
 }) {
   return (
     <SegmentSlideList role="group" aria-label="Semanas del calendario" className="flex gap-0.5 rounded-md bg-muted p-0.5">
       {week.weeks.map((item) => (
-        <WeekChip key={item.start} item={item} active={item.start === week.start} basePath={basePath} view={view} boxId={boxId} />
+        <WeekChip key={item.start} item={item} active={item.start === week.start} basePath={basePath} view={view} boxSlug={boxSlug} />
       ))}
     </SegmentSlideList>
   );
@@ -111,13 +111,13 @@ function WeekChip({
   active,
   basePath,
   view,
-  boxId,
+  boxSlug,
 }: {
   item: CalendarWeek["weeks"][number];
   active: boolean;
   basePath: string;
   view: CalendarView;
-  boxId?: string;
+  boxSlug?: string;
 }) {
   const slide = useSegmentSlide();
   const chip = formatWeekChip(item.start);
@@ -131,7 +131,7 @@ function WeekChip({
   );
   return (
     <Link
-      href={calendarHref(basePath, item.start, view, boxId)}
+      href={calendarHref(basePath, item.start, view, boxSlug)}
       prefetch={true}
       aria-current={active ? "page" : undefined}
       aria-label={`Semana del ${formatWeekRange(item.start, item.end)}`}

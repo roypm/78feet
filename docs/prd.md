@@ -64,6 +64,8 @@ Cada cuenta nueva sigue el tema del sistema por defecto. Puede elegir Sistema, C
 
 ## 3. Acceso
 
+**Decisión para el refactor:** cada cuenta tendrá correo real obligatorio, conservado como dato de cuenta. El acceso seguirá siendo DNI + contraseña para socios y usuario + contraseña para staff. No se enviarán ni recibirán correos: sin verificación, enlaces de acceso ni recuperación por email. El staff mantiene el control de altas y resets. Su implementación se ejecutará según [el plan de refactor](../PLAN-REFACTOR.md); el código actual todavía permite correo opcional.
+
 - Los **socios** entran con **DNI + contraseña**. Los **staff** entran con **usuario + contraseña** (el coach que entrena tiene dos cuentas con el mismo DNI, así que el identificador del staff es un usuario elegido por el admin).
 - El staff **fija la contraseña** en el alta y la **resetea** cuando haga falta. El socio no la cambia desde la app.
 - Al crear una cuenta de staff, el admin debe indicar el DNI de la persona. El DNI puede coincidir con el de su cuenta de socio; el acceso del staff sigue usando un usuario elegido por el admin.
@@ -142,7 +144,7 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 - Cambiar la **imagen** de un tipo no cancela reservas.
 - No se borra un tipo que tenga clases de hoy en adelante, ni uno que tenga entrenamientos en la biblioteca. Las instancias pasadas siguen apuntando al tipo, para conservar nombre e imagen.
 - El admin lo mantiene desde el panel de staff. El bloque del calendario es la imagen del tipo y la ocupación, o el nombre y el aforo si no hay imagen.
-- En las cards de Tipos y de Excepciones, el hueco de la foto queda en un recuadro neutro si no hay imagen. El nombre sigue al lado.
+- En la tabla de Tipos y las cards de Excepciones, el hueco de la foto queda en un recuadro neutro si no hay imagen. El nombre sigue al lado.
 
 ### 5.2 Plantilla y semanas
 
@@ -273,4 +275,8 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 
 ### Paginación de listados
 
-Socios (activos y bajas), Impagos y Biblioteca (staff y socio) muestran 25 resultados por página. La navegación permite anterior/siguiente y muestra rango, total y página actual. Cambiar un filtro vuelve a la primera página. Una página eliminada o fuera de rango muestra la última disponible.
+Socios (activos y bajas), Impagos y Biblioteca (staff y socio) muestran 25 resultados por página. Socios, Equipo, Impagos, Cobros registrados y ambas Bibliotecas agrupan filtros y ordenación en un panel común; el buscador se mantiene fuera. La ordenación afecta a todos los resultados filtrados antes de paginar. La navegación permite anterior/siguiente y muestra rango, total y página actual. Cambiar un filtro vuelve a la primera página. Una página eliminada o fuera de rango muestra la última disponible.
+
+### URLs de filtros
+
+Los filtros por sede y tipo de clase usan identificadores legibles y estables (slugs), asignados al crear el registro y conservados al renombrarlo. Las fichas de socios, equipo, entrenamientos y clases conservan UUID. En listados que ofrecen «Todos», la ruta base corresponde a Todos; Socios usa `estado=activos` o `estado=baja`. Los calendarios siguen abriendo la sede por defecto.

@@ -1,3 +1,4 @@
+import { trainingOrder, type TrainingSort } from "./list-sorting";
 import { paginate, type PageWindow } from "./pagination";
 import {
   assertDirectedClassType,
@@ -25,7 +26,7 @@ function trainingView(
     classTypeId: string;
     createdAt: Date;
     updatedAt: Date;
-    classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
+    classType: { slug: string; id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
     phases: { id: string; name: string; position: number; blocks: { id: string; body: string; position: number }[] }[];
   },
 ) {
@@ -53,7 +54,7 @@ export function trainingCard(row: {
   id: string;
   name: string;
   updatedAt: Date;
-  classType: { id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
+  classType: { slug: string; id: string; name: string; kind: "directed" | "open"; imageKey: string | null };
 }) {
   return {
     id: row.id,
@@ -64,27 +65,27 @@ export function trainingCard(row: {
   };
 }
 
-export async function listTrainingsPage(classTypeId?: string, page = 1) {
+export async function listTrainingsPage(classTypeId?: string, page = 1, order: TrainingSort = "recientes") {
   const total = await prisma.training.count({ where: classTypeId ? { classTypeId } : undefined });
-  return paginate(total, page, (window) => listTrainings(classTypeId, window));
+  return paginate(total, page, (window) => listTrainings(classTypeId, window, order));
 }
 
-export async function listTrainings(classTypeId?: string, window?: PageWindow) {
+export async function listTrainings(classTypeId?: string, window?: PageWindow, order: TrainingSort = "recientes") {
   const rows = await prisma.training.findMany({
     ...window,
     where: classTypeId ? { classTypeId } : undefined,
     include: { classType: true },
-    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+    orderBy: trainingOrder(order),
   });
   return rows.map(trainingCard);
 }
 
-export async function listStaffTrainingsPage(classTypeId?: string, page = 1) {
+export async function listStaffTrainingsPage(classTypeId?: string, page = 1, order: TrainingSort = "recientes") {
   const total = await prisma.training.count({ where: classTypeId ? { classTypeId } : undefined });
-  return paginate(total, page, (window) => listStaffTrainings(classTypeId, window));
+  return paginate(total, page, (window) => listStaffTrainings(classTypeId, window, order));
 }
 
-export async function listStaffTrainings(classTypeId?: string, window?: PageWindow) {
+export async function listStaffTrainings(classTypeId?: string, window?: PageWindow, order: TrainingSort = "recientes") {
   const rows = await prisma.training.findMany({
     ...window,
     where: classTypeId ? { classTypeId } : undefined,
@@ -92,7 +93,7 @@ export async function listStaffTrainings(classTypeId?: string, window?: PageWind
       classType: true,
       phases: { select: { name: true, position: true }, orderBy: { position: "asc" } },
     },
-    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+    orderBy: trainingOrder(order),
   });
   return rows.map((row) => ({
     ...trainingCard(row),

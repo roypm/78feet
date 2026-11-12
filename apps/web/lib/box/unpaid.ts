@@ -1,3 +1,4 @@
+import { personOrder, type PersonSort } from "./list-sorting";
 import type { Prisma } from "@prisma/client";
 import { paginate, type PageWindow } from "./pagination";
 import {
@@ -25,14 +26,14 @@ function unpaidWhere(today: string, paymentBoxId?: string): Prisma.UserWhereInpu
   };
 }
 
-export async function listUnpaidPage(onDate?: string, page = 1, paymentBoxId?: string) {
+export async function listUnpaidPage(onDate?: string, page = 1, paymentBoxId?: string, order: PersonSort = "apellidos-asc") {
   const today = onDate ?? localDateString(new Date());
   const total = await prisma.user.count({ where: unpaidWhere(today, paymentBoxId) });
-  const result = await paginate(total, page, async (window) => (await listUnpaid(today, window, paymentBoxId)).members);
+  const result = await paginate(total, page, async (window) => (await listUnpaid(today, window, paymentBoxId, order)).members);
   return { ...result, asOf: today };
 }
 
-export async function listUnpaid(onDate?: string, window?: PageWindow, paymentBoxId?: string) {
+export async function listUnpaid(onDate?: string, window?: PageWindow, paymentBoxId?: string, order: PersonSort = "apellidos-asc") {
   const today = onDate ?? localDateString(new Date());
   const members = await prisma.user.findMany({
     ...window,
@@ -44,7 +45,7 @@ export async function listUnpaid(onDate?: string, window?: PageWindow, paymentBo
         select: { tariff: { select: { name: true, billingPeriod: true, priceCents: true } } },
       },
     },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+    orderBy: personOrder(order),
   });
   const rows = members.flatMap((user) => {
     const tariff = user.memberships[0]?.tariff;

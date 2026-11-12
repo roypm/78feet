@@ -1,3 +1,7 @@
+## Estado del proyecto
+
+El proyecto está en desarrollo, sin usuarios en producción. Los datos actuales son de prueba y prescindibles. Priorizar una única implementación vigente. No añadir compatibilidad hacia atrás, formatos antiguos, alias, redirecciones de legado ni implementaciones paralelas salvo petición explícita o dependencia externa comprobada. Al sustituir un comportamiento, actualizar sus consumidores y eliminar el anterior. Se permite reiniciar la base de datos de desarrollo y recrear sus datos cuando sea necesario para el cambio solicitado. Esta autorización no se extiende a producción ni a otros entornos.
+
 ## Setup Roy
 Optional resources for AI-assisted work are installed in `docs/setup-roy/`. When the user names a resource or the task clearly fits the pack, inspect the installed tree and its available guidance, then read the relevant resources and follow those that apply. Use only paths that actually exist. Otherwise work normally.
 

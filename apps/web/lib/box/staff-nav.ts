@@ -13,16 +13,16 @@ export function staffClassOriginBack(
   origin: StaffClassOrigin,
   instanceDate: string,
   now = new Date(),
-  boxId?: string,
+  boxSlug?: string,
 ): { href: string; label: "Hoy" | "Semana" | "Excepciones" } {
   if (origin === "hoy") {
-    return { href: boxId ? `/staff/hoy?box=${boxId}` : "/staff/hoy", label: "Hoy" };
+    return { href: boxSlug ? `/staff/hoy?box=${boxSlug}` : "/staff/hoy", label: "Hoy" };
   }
   if (origin === "excepciones") return { href: "/staff/excepciones", label: "Excepciones" };
   const today = localDateString(now);
   const start = weekStartDate(instanceDate);
   const params = new URLSearchParams();
-  if (boxId) params.set("box", boxId);
+  if (boxSlug) params.set("box", boxSlug);
   if (start !== weekStartDate(today)) params.set("semana", start);
   const query = params.toString();
   return { href: query ? `/staff/semana?${query}` : "/staff/semana", label: "Semana" };

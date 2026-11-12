@@ -1,12 +1,12 @@
+import { resolveFilter } from "@/lib/box/filter-url";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/current";
 import { kindViewFromParam } from "@/lib/box/day-groups";
 import { listClassTypes } from "@/lib/box/class-types";
 import { listTemplates } from "@/lib/box/templates";
 import { calendarHref } from "@/lib/box/calendar-navigation";
-import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { listCoaches } from "@/lib/box/staff-users";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { TemplateSchedule } from "@/components/boxes/template-schedule/template-schedule";
@@ -17,7 +17,7 @@ import { ModuleBody, ModuleHeader, ModulePage, ModuleHeaderTabStack } from "@/co
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string; box?: string }>;
+  searchParams: Promise<{ grilla?: string; box?: string }>;
 }) {
   return (
     <Suspense
@@ -35,17 +35,13 @@ export default function Page({
   );
 }
 
-async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: string; box?: string }> }) {
+async function Plantilla({ searchParams }: { searchParams: Promise<{ grilla?: string; box?: string }> }) {
   const user = await requireStaff();
   const query = await searchParams;
   const boxes = await listBoxes();
   const ordered = orderBoxes(boxes, user.preferenceBoxId);
-  const view = kindViewFromParam(query.tipo);
-  const canonical = canonicalBoxRedirect(ordered, query.box, user.preferenceBoxId, (id) =>
-    calendarHref("/staff/plantilla", undefined, view, id),
-  );
-  if (canonical) redirect(canonical);
-  const box = pickBox(ordered, query.box, user.preferenceBoxId);
+  const view = kindViewFromParam(query.grilla);
+  const box = pickBox(ordered, resolveFilter(ordered, query.box)?.id, user.preferenceBoxId);
   const canWrite = user.role === "admin";
   const [types, templates, coaches, hours] = await Promise.all([
     listClassTypes(),
@@ -64,8 +60,8 @@ async function Plantilla({ searchParams }: { searchParams: Promise<{ tipo?: stri
             <BoxTabs boxes={ordered} boxId={box.id} hrefFor={(id) => calendarHref("/staff/plantilla", undefined, view, id)} />
             <KindTabs
               view={view}
-              directedHref={calendarHref("/staff/plantilla", undefined, "dirigidas", box.id)}
-              openHref={calendarHref("/staff/plantilla", undefined, "open", box.id)}
+              directedHref={calendarHref("/staff/plantilla", undefined, "dirigidas", box.slug)}
+              openHref={calendarHref("/staff/plantilla", undefined, "open", box.slug)}
             />
           </ModuleHeaderTabStack>
         }

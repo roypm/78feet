@@ -1,16 +1,16 @@
 import type { ReactNode } from "react";
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { NavigationLink } from "@/components/common/navigation/navigation-link";
+import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
-/** Vacío de listado staff: filtros arriba y bloque a ancho de listado. */
+/** A single replacement for list results: controls stay outside this block. */
 export function ListEmptyBlock({
-  filters,
   title,
   description,
   href,
   action,
   children,
 }: {
-  filters?: ReactNode;
   title: string;
   description?: ReactNode;
   href?: string;
@@ -18,11 +18,21 @@ export function ListEmptyBlock({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex w-full flex-col gap-3">
-      {filters}
-      <EmptyState layout="panel" title={title} description={description} href={href} action={action}>
-        {children}
-      </EmptyState>
-    </div>
+    <Empty className="min-h-36 flex-none gap-3 rounded-lg border border-solid border-border bg-card px-4 py-6 md:px-6">
+      <EmptyHeader className="w-full max-w-lg">
+        <EmptyTitle>{title}</EmptyTitle>
+        {description ? <EmptyDescription>{description}</EmptyDescription> : null}
+      </EmptyHeader>
+      {children || (href && action) ? (
+        <EmptyContent className="max-w-lg">
+          {href && action ? (
+            <Button nativeButton={false} variant="outline" className="min-h-11" render={<NavigationLink href={href} />}>
+              {action}
+            </Button>
+          ) : null}
+          {children}
+        </EmptyContent>
+      ) : null}
+    </Empty>
   );
 }

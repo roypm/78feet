@@ -7,14 +7,17 @@ export function QueryFilter({
   options,
   active,
   chipCount,
+  forceSelect = false,
 }: {
   ariaLabel: string;
   options: readonly ChoiceOption[];
   active: string;
   chipCount: number;
+  /** Use a dropdown even when the adaptive default would render chips. */
+  forceSelect?: boolean;
 }) {
   if (options.length === 0) return null;
-  if (chipCount > CHOICE_CHIP_MAX) {
+  if (forceSelect || chipCount > CHOICE_CHIP_MAX) {
     return <ChoiceSelect label={ariaLabel} value={active} options={options} />;
   }
   return (

@@ -164,11 +164,12 @@ Catálogo del admin. El panel de staff lo mantiene. Plantilla e instancia apunta
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid | |
+| `slug` | text, único | Identificador legible de URL, inmutable al renombrar; colisiones con sufijo numérico. |
 | `name` | text | "Crossfit", "Endurance". Staff, detalle y Mis reservas. En el bloque, con foto no se pinta; sin foto sí. |
 | `kind` | enum | `directed` \| `open`. Se fija al crear el tipo y no se cambia. |
 | `image_key` | text, nullable | clave del archivo, ya encuadrado. `null` = sin imagen. Las imágenes subidas se guardan como binario compartido en Postgres para que funcionen en todos los despliegues y dispositivos. Sustituirlo no cancela reservas. |
 
-Invariantes: un tipo puede no tener `image_key`. El coach no inserta filas. No se borra un tipo con alguna instancia `scheduled` de hoy en adelante ni con algún entrenamiento (`CLASS_TYPE_IN_USE`); las pasadas siguen apuntándolo. `class_type_image` guarda el binario (JPEG, PNG o WebP, máximo 5 MB) en Neon; una ruta autenticada sirve las imágenes en web y móvil, sin un servicio externo de almacenamiento ni recorte. Las claves antiguas siguen usando la ruta estática mientras el archivo exista.
+Invariantes: un tipo puede no tener `image_key`. El coach no inserta filas. No se borra un tipo con alguna instancia `scheduled` de hoy en adelante ni con algún entrenamiento (`CLASS_TYPE_IN_USE`); las pasadas siguen apuntándolo. `class_type_image` guarda el binario (JPEG, PNG o WebP, máximo 5 MB) en Neon; una ruta autenticada sirve las imágenes en web y móvil, sin un servicio externo de almacenamiento ni recorte.
 
 ### `class_type_image`
 
@@ -188,6 +189,7 @@ Una sede de la empresa. Puede haber más de una. En esta v1 no se borra.
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid | |
+| `slug` | text, único | Identificador legible de URL, inmutable al renombrar; colisiones con sufijo numérico. |
 | `name` | text, único | El dato que ya existía se llama Box 1. La unicidad es el texto guardado. |
 | `weekly_hours` | jsonb | Siete días ISO (lunes = 1). Cada día tiene cero o más intervalos `[openTime, closeTime)`. |
 | `exceptions` | jsonb | Excepciones por fecha. Si existe la fecha, sus intervalos sustituyen el día semanal. Una lista vacía cierra el día. Solo se guardan para hoy o una fecha futura. |
@@ -550,6 +552,8 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 ## 6. Auth y sesión
 
+**Destino acordado del refactor:** Better Auth con correo real obligatorio guardado en la cuenta y plugin Username para DNI de socio/usuario de staff. Sin acceso por correo ni flujos de envío, recepción, verificación o recuperación por email. Las sesiones, revocación y el modelo de correo para personas con dos cuentas se validarán en R1 del [plan de refactor](../PLAN-REFACTOR.md). Los puntos siguientes describen la implementación actual, todavía sin migrar a Better Auth.
+
 - `argon2id` para las contraseñas. Nunca se devuelven ni se registran.
 - Login por `login_id` (DNI del socio, usuario del staff) + contraseña.
 - JWT firmado, `exp` 90 días, claims mínimos: `sub`, `role`, `tv`.
@@ -650,7 +654,7 @@ La comprobación de migraciones recorre todos los archivos SQL en orden cronoló
 
 El filtrado de texto de Socios, Impagos y Biblioteca staff se aplica en el cliente a la página cargada; Equipo filtra la lista de cuentas cargada. Comparten la normalización de mayúsculas y acentos en `lib/ui/search.ts`, sin parámetros ni peticiones adicionales de búsqueda. Biblioteca staff solo indexa nombre y tipo, no el contenido del entrenamiento.
 
-Los GET de `/api/v1/admin/members`, `/api/v1/admin/unpaid`, `/api/v1/admin/trainings` y `/api/v1/trainings` aceptan `page=N`. Con `page` devuelven `{ items, pageInfo: { page, pageSize, total, totalPages } }`; Impagos añade `asOf` y Biblioteca de socio añade `types`. Sin `page`, mantienen el contrato anterior para los consumidores existentes y selectores internos.
+Los GET de `/api/v1/admin/members`, `/api/v1/admin/unpaid`, `/api/v1/admin/trainings` y `/api/v1/trainings` devuelven siempre `{ items, pageInfo: { page, pageSize, total, totalPages } }`. `page=N` es opcional y por defecto vale 1. Impagos añade `asOf` y Biblioteca de socio añade `types`. Los selectores internos usan las funciones de servidor que necesitan listas completas.
 
 El saldo de bonos del listado se calcula con agregaciones `SUM(quantity)` de créditos y recuento de reservas consumidas para los IDs cargados: `pool=pack` y (`status=active` o `quotaReturned=false`). Impagos filtra en SQL por tarifa vigente y ausencia del pago de su periodo, antes de contar y paginar; no carga el historial de pagos.
 
@@ -687,3 +691,21 @@ El detalle de clase compone `InstanceDetailActions`, que presenta edición y can
 `CalendarBoard` conserva la entrada común y delega en las vistas explícitas de socio y staff. Ambas componen `WeekNav` y `CalendarGrid`, con `ClassBlock` compartido para las clases y las bandas de cierre dentro de la cuadrícula. `useCalendarScale` concentra las suscripciones a media queries y localStorage para el tamaño de la vista de socio; el staff conserva su escala fija. `calendarHref` centraliza los enlaces que mantienen la semana y la grilla elegidas.
 
 La navegación web comparte `AppShell` para staff y socios. Las secciones se filtran por rol. El estado de plegado se guarda en la cookie `sidebar_state` y se lee en los layouts del servidor; los datos de sesión se deduplican dentro de cada render mediante React `cache`.
+
+### Filtros legibles en la web
+
+`box=<slug>` identifica sedes en Hoy, Semana, Plantilla, Horario, Calendario, Impagos y Cobros. `tipo=<slug>` identifica tipos de clase en ambas Bibliotecas; `grilla=open` selecciona Open en calendarios, Hoy y Plantilla (Dirigidas por defecto). La web resuelve estos valores a UUID antes de consultar el dominio. La web solo interpreta slugs y `grilla`; un filtro desconocido no selecciona ningún registro y se aplica el valor por defecto. Los endpoints API y las rutas de fichas conservan sus UUID.
+
+`Box.slug` y `ClassType.slug` son obligatorios y únicos. La migración rellena los registros existentes; las altas normalizan el nombre, reservan «todos» y resuelven colisiones mediante el índice único y sufijos numéricos. Las ediciones de nombre no actualizan el slug.
+
+### Implementación vigente en desarrollo
+
+La aplicación no conserva contratos ni rutas retiradas. Las imágenes de tipos de clase se almacenan únicamente en `class_type_image`; las referencias locales de prueba se eliminan con la migración correspondiente. `evaluateBooking` recibe siempre el consumo agregado por SQL y usa las reservas consultadas para aforo y solapes. La ficha de socio carga datos personales y membresía vigente; el resumen de consumo y los pagos se consultan por sus funciones específicas. El cliente Prisma se comparte durante desarrollo; después de regenerarlo se reinicia el servidor.
+
+### Panel de filtros y ordenación
+
+`ListOptions` compone Popover, controles Select etiquetados y botones de aplicar/restablecer. El borrador vive solo mientras el panel está abierto; la selección aplicada procede de los parámetros del servidor. `orden` identifica opciones de una lista permitida por módulo; un valor desconocido usa el orden inicial. Los valores iniciales se omiten de la URL. Aplicar/restablecer construye una URL sin `pagina`; la paginación conserva filtros y orden. `list-sorting.ts` comparte etiquetas, normalización y criterios `orderBy` tipados. Las consultas ordenan en SQL antes de `skip`/`take`, siempre con ID como desempate. Equipo aplica rol y estado en la consulta de usuarios, restringida a coach/admin.
+
+### Vacíos de listados
+
+`ListEmptyBlock` centraliza la presentación de resultados vacíos con los primitives `Empty`, `EmptyHeader` y `EmptyContent`. Las tablas cliente reciben del servidor un `emptyState` contextual y lo renderizan antes de construir una tabla; `SearchEmptyState` reutiliza el mismo bloque para el filtrado de texto local. Las rutas generan enlaces de restablecimiento con `listOptionsHref` sin filtros ni página, conservando `orden`. No hay variantes visuales por módulo.

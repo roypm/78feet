@@ -1,5 +1,5 @@
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { ListPagination } from "@/components/common/lists/list-pagination";
 import { Suspense } from "react";
@@ -23,7 +23,7 @@ export default function Page({
       fallback={
         <ModulePage>
           <ModuleHeader title="Historial" description="Clases que ya empezaron, agrupadas por mes." />
-          <ModuleBody>
+          <ModuleBody width="full">
             <LoadingState variant="list" label="Cargando tu historial…" />
           </ModuleBody>
         </ModulePage>
@@ -52,9 +52,9 @@ async function History({ searchParams }: { searchParams: Promise<{ pagina?: stri
         title="Historial"
         description="Clases que ya empezaron, agrupadas por mes. No registra asistencia."
       />
-      <ModuleBody>
+      <ModuleBody width="full">
         {months.length === 0 ? (
-          <EmptyState title="Todavía no hay reservas anteriores" description="Acá aparecerán tus reservas cuando la clase haya empezado. Este historial no registra asistencia." href="/calendario" action="Ver calendario" />
+          <ListEmptyBlock title="Todavía no hay reservas anteriores" href="/calendario" action="Ver calendario" />
         ) : (
           <div className="flex flex-col gap-8">
             {months.map((group) => (

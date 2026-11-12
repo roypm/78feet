@@ -4,12 +4,12 @@ export function calendarHref(
   basePath: string,
   semana: string | undefined,
   view: KindView,
-  boxId?: string,
+  boxSlug?: string,
 ): string {
   const params = new URLSearchParams();
-  if (boxId) params.set("box", boxId);
+  if (boxSlug) params.set("box", boxSlug);
   if (semana) params.set("semana", semana);
-  if (view === "open") params.set("tipo", "open");
+  if (view === "open") params.set("grilla", "open");
   const query = params.toString();
   return query ? `${basePath}?${query}` : basePath;
 }

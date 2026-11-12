@@ -1,5 +1,5 @@
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
 import { requireMember } from "@/lib/auth/current";
@@ -16,7 +16,7 @@ export default function Page() {
       fallback={
         <ModulePage>
           <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo disponible y saldo de bono." />
-          <ModuleBody>
+          <ModuleBody width="full">
             <LoadingState variant="profile" label="Cargando tu tarifa…" />
           </ModuleBody>
         </ModulePage>
@@ -35,9 +35,9 @@ async function Tariff() {
   return (
     <ModulePage>
       <ModuleHeader title="Mi tarifa" description="Tu tarifa activa, cupo disponible y saldo de bono." />
-      <ModuleBody>
+      <ModuleBody width="full">
       {!tariff ? (
-        <EmptyState title="Sin membresía activa" description="Hablá con el staff del box para que te asigne una tarifa. Tu cuenta no permite cambiarla directamente." />
+        <ListEmptyBlock title="Sin membresía activa" description="Hablá con el staff del box para que te asigne una tarifa. Tu cuenta no permite cambiarla directamente." />
       ) : (
         <Card>
           <CardHeader>

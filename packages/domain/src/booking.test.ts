@@ -7,7 +7,7 @@ import {
   evaluateMemberCancellation,
   evaluateStaffCancellation,
 } from "./booking";
-import { packBalance, weeklyUsed } from "./quota";
+import { packBalance, quotaUsed } from "./quota";
 import { instanceMap, makeBooking, makeGrant, makeInstance, resetIds } from "./test/fixtures";
 import type { MembershipSnapshot, TariffSnapshot } from "./types";
 
@@ -49,7 +49,7 @@ describe("evaluateBooking", () => {
       userId,
       bookings: [],
       instancesById: instanceMap([instance]),
-      grants: [],
+      consumption: { usedDirected: 0, usedOpen: 0, packBalance: 0 },
     });
     expect(result.pool).toBe("quota_directed");
   });
@@ -64,7 +64,7 @@ describe("evaluateBooking", () => {
       userId,
       bookings: [],
       instancesById: instanceMap([instance]),
-      grants: [],
+      consumption: { usedDirected: 0, usedOpen: 0, packBalance: 0 },
     };
     expect(evaluateBooking({ ...params, consumption: { usedDirected: 2, usedOpen: 0, packBalance: 1 } }).pool).toBe(
       "pack",
@@ -87,7 +87,7 @@ describe("evaluateBooking", () => {
           userId,
           bookings: [],
           instancesById: instanceMap([instance]),
-          grants: [],
+          consumption: { usedDirected: 0, usedOpen: 0, packBalance: 0 },
         }),
       "FORBIDDEN",
     );
@@ -105,7 +105,7 @@ describe("evaluateBooking", () => {
           userId,
           bookings: [],
           instancesById: instanceMap([instance]),
-          grants: [],
+          consumption: { usedDirected: 0, usedOpen: 0, packBalance: 0 },
         }),
       "NO_MEMBERSHIP",
     );
@@ -132,7 +132,7 @@ describe("evaluateBooking", () => {
           userId,
           bookings,
           instancesById: instanceMap([first, second]),
-          grants: [],
+          consumption: { usedDirected: 0, usedOpen: 0, packBalance: 0 },
         }),
       "OVERLAP",
     );
@@ -165,7 +165,7 @@ describe("evaluateBooking", () => {
           userId,
           bookings,
           instancesById: instanceMap([first, second]),
-          grants: [],
+          consumption: { usedDirected: 0, usedOpen: 0, packBalance: 0 },
         }),
       "OVERLAP",
     );
@@ -196,7 +196,7 @@ describe("evaluateBooking", () => {
       userId,
       bookings,
       instancesById: instanceMap([first, second]),
-      grants: [],
+      consumption: { usedDirected: 0, usedOpen: 0, packBalance: 0 },
     });
     expect(result.pool).toBe("quota_open");
   });
@@ -216,7 +216,7 @@ describe("evaluateBooking", () => {
         makeBooking({ instanceId: second.id, userId, pool: "quota_directed" }),
       ],
       instancesById: instanceMap([first, second, target]),
-      grants: [],
+      consumption: { usedDirected: 2, usedOpen: 0, packBalance: 0 },
     });
     expect(result.pool).toBe("quota_directed");
   });
@@ -239,7 +239,7 @@ describe("evaluateBooking", () => {
           userId,
           bookings,
           instancesById: instanceMap([instance]),
-          grants: [],
+          consumption: { usedDirected: 0, usedOpen: 0, packBalance: 0 },
         }),
       "FULL",
     );
@@ -290,11 +290,11 @@ describe("cancellation", () => {
     expect(next[2]?.quotaReturned).toBe(false);
 
     expect(
-      weeklyUsed({
+      quotaUsed({
         bookings: next,
         instancesById: instanceMap([instance]),
         userId: "a",
-        weekDate: instance.date,
+        period: "week", periodDate: instance.date,
         kind: "directed",
       }),
     ).toBe(0);

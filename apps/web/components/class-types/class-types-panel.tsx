@@ -3,7 +3,7 @@
 import { PendingButton } from "@/components/common/feedback/pending-button";
 import { ClassTypeThumb } from "@/components/class-types/class-type-thumb";
 
-import { EmptyState } from "@/components/common/feedback/empty-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 
 import { useState, type FormEvent } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
@@ -12,6 +12,7 @@ import { api } from "@/lib/box/api";
 import { Field } from "@/components/common/forms/field";
 import { FormInput } from "@/components/common/forms/form-control";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogClose,
@@ -142,34 +143,46 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
         </Dialog>
       </ModulePrimaryAction>
       {types.length === 0 ? (
-        <EmptyState title="Todavía no hay tipos de clase" description="Creá un tipo con su nombre y grilla para empezar a programar clases. La imagen es opcional."><Button type="button" className="min-h-11" onClick={openCreate}>Crear tipo</Button></EmptyState>
+        <ListEmptyBlock title="Todavía no hay tipos de clase" />
       ) : (
-        <ul className="grid gap-3 lg:grid-cols-2">
-          {types.map((type) => (
-            <li
-              key={type.id}
-              className="relative flex min-w-0 items-center gap-3 rounded-lg bg-card p-3 ring-1 ring-foreground/10"
-            >
-              <button
-                type="button"
-                onClick={() => openEdit(type)}
-                aria-label={`Editar ${type.name}`}
-                className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:ring-1 [@media(hover:hover)_and_(pointer:fine)]:hover:ring-foreground/25"
-              />
-              <ClassTypeThumb
-                imageUrl={type.imageUrl}
-                className="pointer-events-none relative size-12 shrink-0 rounded-md"
-              />
-              <span className="pointer-events-none relative min-w-0 flex-1">
-                <span className="block truncate font-medium">{type.name}</span>
-                <span className="block text-sm text-muted-foreground">{kindName(type.kind)}</span>
-              </span>
-              <Button type="button" variant="ghost" className="relative z-10" disabled={pending} onClick={() => setDeleting(type)}>
-                Borrar
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-x-auto rounded-lg bg-card ring-1 ring-foreground/10">
+          <Table className="min-w-[28rem]">
+            <TableHeader>
+              <TableRow className="pointer-hover:bg-transparent">
+                <TableHead className="h-10 min-w-[12rem] px-3">Tipo de clase</TableHead>
+                <TableHead className="h-10 min-w-[6rem] px-3">Grilla</TableHead>
+                <TableHead className="h-10 w-0 px-3 text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {types.map((type) => (
+                <TableRow key={type.id} className="border-border">
+                  <TableCell className="min-w-[12rem] max-w-[24rem] px-3 py-2.5 align-middle">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <ClassTypeThumb imageUrl={type.imageUrl} className="size-10 shrink-0 rounded-md" />
+                      <span className="min-w-0 truncate font-medium" title={type.name}>{type.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap px-3 py-2.5 align-middle text-sm text-muted-foreground">
+                    {kindName(type.kind)}
+                  </TableCell>
+                  <TableCell className="w-0 whitespace-nowrap px-3 py-2.5 align-middle text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" size="sm" className="min-h-11 sm:min-h-8"
+                        disabled={pending} aria-label={`Editar ${type.name}`} onClick={() => openEdit(type)}>
+                        Editar
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" className="min-h-11 sm:min-h-8"
+                        disabled={pending} aria-label={`Borrar ${type.name}`} onClick={() => setDeleting(type)}>
+                        Borrar
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
       <ConfirmDialog
         open={deleting !== null}

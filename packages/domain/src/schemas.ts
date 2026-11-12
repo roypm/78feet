@@ -25,8 +25,6 @@ export const ownPreferencesSchema = z
 export const tariffConsumptionSchema = z.enum(["weekly_quota", "monthly_quota", "pack"]);
 export const tariffBillingSchema = z.enum(["monthly", "quarterly", "semiannual", "annual", "none", "one_time"]);
 export const paymentBillingSchema = z.enum(["monthly", "quarterly", "semiannual", "annual", "one_time"]);
-/** @deprecated */
-export const tariffKindSchema = z.enum(["monthly", "pack"]);
 export const classKindSchema = z.enum(["directed", "open"]);
 export const instanceStatusSchema = z.enum(["scheduled", "cancelled"]);
 export const bookingPoolSchema = z.enum(["quota_directed", "quota_open", "pack"]);

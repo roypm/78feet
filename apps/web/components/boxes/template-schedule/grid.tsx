@@ -66,7 +66,6 @@ export function TemplateKindPanel({
       ) : (
         <>
           {kindsWorking.length === 0 && <EmptyState compact title="Esta grilla todavía no tiene huecos" description={canWrite ? "Usá Añadir hueco o elegí un espacio abierto. Los cambios quedan en borrador hasta aplicar la plantilla." : "El admin todavía no ha añadido huecos a esta grilla."} />}
-          <p className="text-xs text-muted-foreground">Las franjas tramadas indican que el box está cerrado; no se pueden añadir clases ahí.</p>
           <div className="flex gap-1 overflow-x-auto pb-1 md:hidden" role="tablist" aria-label="Día de la plantilla">
             {DAYS.map((day, index) => {
               const weekday = index + 1;

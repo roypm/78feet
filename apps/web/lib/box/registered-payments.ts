@@ -1,3 +1,4 @@
+import { paymentOrder, type PaymentSort } from "./list-sorting";
 import { prisma } from "../db";
 import { isoDateFromDb } from "./time";
 import { memberFullName } from "./format";
@@ -31,7 +32,7 @@ function mapRegisteredPaymentRow(
   };
 }
 
-export async function listRegisteredPaymentsPage(paymentBoxId?: string, page = 1) {
+export async function listRegisteredPaymentsPage(paymentBoxId?: string, page = 1, order: PaymentSort = "recientes") {
   const where = paymentBoxId ? { paymentBoxId } : {};
   const [total, aggregates] = await Promise.all([
     prisma.payment.count({ where }),
@@ -40,7 +41,7 @@ export async function listRegisteredPaymentsPage(paymentBoxId?: string, page = 1
   const result = await paginate(total, page, async (window) => {
     const rows = await prisma.payment.findMany({
       where,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      orderBy: paymentOrder(order),
       skip: window.skip,
       take: window.take,
       include: {

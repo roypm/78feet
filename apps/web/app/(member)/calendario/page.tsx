@@ -1,11 +1,10 @@
+import { resolveFilter } from "@/lib/box/filter-url";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { eachDate } from "@78feet/domain";
 import { requireMember } from "@/lib/auth/current";
 import { listCalendar } from "@/lib/box/calendar";
-import { calendarHref } from "@/lib/box/calendar-navigation";
-import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { calendarAxisRange, getBoxHours } from "@/lib/box/hours";
 import { memberWeek } from "@/lib/box/week";
 import { CalendarBoard } from "@/components/calendar/calendar-board";
@@ -14,7 +13,7 @@ import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ semana?: string; tipo?: string; box?: string }>;
+  searchParams: Promise<{ semana?: string; grilla?: string; box?: string }>;
 }) {
   return (
     <Suspense
@@ -32,17 +31,13 @@ export default function Page({
   );
 }
 
-async function Calendar({ searchParams }: { searchParams: Promise<{ semana?: string; tipo?: string; box?: string }> }) {
+async function Calendar({ searchParams }: { searchParams: Promise<{ semana?: string; grilla?: string; box?: string }> }) {
   const user = await requireMember();
   const query = await searchParams;
   const now = new Date();
   const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
-  const view = query.tipo === "open" ? "open" : "dirigidas";
-  const canonical = canonicalBoxRedirect(boxes, query.box, user.preferenceBoxId, (id) =>
-    calendarHref("/calendario", query.semana, view, id),
-  );
-  if (canonical) redirect(canonical);
-  const box = pickBox(boxes, query.box, user.preferenceBoxId);
+  const view = query.grilla === "open" ? "open" : "dirigidas";
+  const box = pickBox(boxes, resolveFilter(boxes, query.box)?.id, user.preferenceBoxId);
   const week = memberWeek(now, query.semana);
   const [listed, hours] = await Promise.all([
     listCalendar(user.id, week.start, week.end, now, box.id),

@@ -1,3 +1,4 @@
+import { personOrder, type TeamSort } from "./list-sorting";
 import type { CreateStaff, PatchStaff } from "@78feet/domain";
 import { hashPassword } from "../auth/password";
 import { prisma } from "../db";
@@ -31,9 +32,11 @@ function staffView(user: {
   };
 }
 
-export async function listStaff() {
+export async function listStaff({ role, status, order = "rol" }: {
+  role?: "coach" | "admin"; status?: "active" | "inactive"; order?: TeamSort;
+} = {}) {
   const rows = await prisma.user.findMany({
-    where: { role: { in: ["coach", "admin"] } },
+    where: { role: role ?? { in: ["coach", "admin"] }, ...(status ? { status } : {}) },
     select: {
       id: true,
       loginId: true,
@@ -46,7 +49,7 @@ export async function listStaff() {
       email: true,
       profileImage: { select: { updatedAt: true } },
     },
-    orderBy: [{ role: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
+    orderBy: order === "rol" ? [{ role: "asc" }, ...personOrder("apellidos-asc")] : personOrder(order),
   });
   return rows.map(staffView);
 }

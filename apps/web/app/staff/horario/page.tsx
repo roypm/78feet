@@ -1,8 +1,8 @@
+import { resolveFilter } from "@/lib/box/filter-url";
 import { LoadingState } from "@/components/common/feedback/loading-state";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/current";
-import { listBoxes, orderBoxes, pickBox, canonicalBoxRedirect } from "@/lib/box/boxes";
+import { listBoxes, orderBoxes, pickBox } from "@/lib/box/boxes";
 import { getBoxHours } from "@/lib/box/hours";
 import { BoxTabs } from "@/components/boxes/box-tabs";
 import { HoursForm } from "@/components/boxes/hours/hours-form";
@@ -30,9 +30,7 @@ async function Hours({ searchParams }: { searchParams: Promise<{ box?: string }>
   const user = await requireAdmin();
   const query = await searchParams;
   const boxes = orderBoxes(await listBoxes(), user.preferenceBoxId);
-  const canonical = canonicalBoxRedirect(boxes, query.box, user.preferenceBoxId, (id) => `/staff/horario?box=${id}`);
-  if (canonical) redirect(canonical);
-  const box = pickBox(boxes, query.box, user.preferenceBoxId);
+  const box = pickBox(boxes, resolveFilter(boxes, query.box)?.id, user.preferenceBoxId);
   const hours = await getBoxHours(undefined, box.id);
 
   return (

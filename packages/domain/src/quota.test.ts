@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { DomainError } from "./errors";
-import { assignPool, bookingCountsTowardQuota, packBalance, weeklyUsed } from "./quota";
+import { assignPool, bookingCountsTowardQuota, packBalance, quotaUsed } from "./quota";
 import {
   instanceMap,
   makeBooking,
@@ -37,20 +37,20 @@ describe("weekly quota against the class week", () => {
     const instancesById = instanceMap([thisWeek, nextWeek]);
 
     expect(
-      weeklyUsed({
+      quotaUsed({
         bookings,
         instancesById,
         userId,
-        weekDate: "2026-10-27",
+        period: "week", periodDate: "2026-10-27",
         kind: "directed",
       }),
     ).toBe(0);
     expect(
-      weeklyUsed({
+      quotaUsed({
         bookings,
         instancesById,
         userId,
-        weekDate: "2026-11-02",
+        period: "week", periodDate: "2026-11-02",
         kind: "directed",
       }),
     ).toBe(1);
@@ -70,10 +70,10 @@ describe("weekly quota against the class week", () => {
     const instancesById = instanceMap([directed, open]);
 
     expect(
-      weeklyUsed({ bookings, instancesById, userId, weekDate: directed.date, kind: "directed" }),
+      quotaUsed({ bookings, instancesById, userId, period: "week", periodDate: directed.date, kind: "directed" }),
     ).toBe(1);
     expect(
-      weeklyUsed({ bookings, instancesById, userId, weekDate: open.date, kind: "open" }),
+      quotaUsed({ bookings, instancesById, userId, period: "week", periodDate: open.date, kind: "open" }),
     ).toBe(1);
   });
 });
@@ -92,11 +92,11 @@ describe("pack overflow and returned quota", () => {
     ];
     expect(bookingCountsTowardQuota(bookings[0]!)).toBe(false);
     expect(
-      weeklyUsed({
+      quotaUsed({
         bookings,
         instancesById: instanceMap([instance]),
         userId,
-        weekDate: instance.date,
+        period: "week", periodDate: instance.date,
         kind: "directed",
       }),
     ).toBe(0);
@@ -115,11 +115,11 @@ describe("pack overflow and returned quota", () => {
     ];
     expect(bookingCountsTowardQuota(bookings[0]!)).toBe(true);
     expect(
-      weeklyUsed({
+      quotaUsed({
         bookings,
         instancesById: instanceMap([instance]),
         userId,
-        weekDate: instance.date,
+        period: "week", periodDate: instance.date,
         kind: "directed",
       }),
     ).toBe(1);
@@ -135,11 +135,11 @@ describe("pack overflow and returned quota", () => {
       makeBooking({ instanceId: third.id, userId, pool: "pack" }),
     ];
     const instancesById = instanceMap([first, second, third]);
-    const usedDirected = weeklyUsed({
+    const usedDirected = quotaUsed({
       bookings,
       instancesById,
       userId,
-      weekDate: first.date,
+      period: "week", periodDate: first.date,
       kind: "directed",
     });
     const balance = packBalance({

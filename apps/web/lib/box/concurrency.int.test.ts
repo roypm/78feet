@@ -48,8 +48,8 @@ describe.skipIf(!enabled)("operaciones concurrentes", () => {
         },
       ],
     });
-    await db.box.create({ data: { id: boxId, name: `race-${boxId}`, weeklyHours: defaultBoxHours().weekly } });
-    await db.classType.create({ data: { id: typeId, name: "Prueba concurrente", kind: "directed" } });
+    await db.box.create({ data: { slug: `race-${boxId}`, id: boxId, name: `race-${boxId}`, weeklyHours: defaultBoxHours().weekly } });
+    await db.classType.create({ data: { slug: `race-${typeId}`, id: typeId, name: "Prueba concurrente", kind: "directed" } });
     await db.tariff.createMany({
       data: [tariffId, nextTariffId].map((id) => ({
         id,
