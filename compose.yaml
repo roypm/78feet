@@ -1,0 +1,93 @@
+name: feet-local
+x-app: &app
+  build:
+    context: .
+    dockerfile: infra/Dockerfile.dev
+  environment: &app-env
+    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+    DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+    JWT_SECRET: ${JWT_SECRET}
+    ADMIN_LOGIN_ID: ${ADMIN_LOGIN_ID}
+    ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    CRON_SECRET: ${CRON_SECRET}
+    NEXT_TELEMETRY_DISABLED: '1'
+services:
+  db:
+    image: postgres:17.6-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - '127.0.0.1:${DB_PORT}:5432'
+    volumes:
+      - dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  db-test:
+    image: postgres:17.6-bookworm
+    profiles: [test]
+    environment:
+      POSTGRES_USER: local_test
+      POSTGRES_PASSWORD: local_test_password
+      POSTGRES_DB: feet_test
+    ports:
+      - '127.0.0.1:${TEST_DB_PORT}:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U local_test -d feet_test']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  migrate:
+    <<: *app
+    command: ['pnpm', '--filter', 'web', 'db:migrate']
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    <<: *app
+    ports:
+      - '127.0.0.1:${WEB_PORT}:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'node', '-e', 'fetch("http://127.0.0.1:3000/login").then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))']
+      interval: 10s
+      timeout: 10s
+      start_period: 60s
+      retries: 12
+    develop:
+      watch:
+        - action: sync
+          path: apps/web
+          target: /workspace/apps/web
+          ignore: [node_modules/, .next/, '.env*', '*.tsbuildinfo', package.json]
+        - action: rebuild
+          path: pnpm-lock.yaml
+  seed:
+    <<: *app
+    profiles: [tools]
+    command: ['pnpm', '--filter', 'web', 'db:seed']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  test:
+    <<: *app
+    profiles: [test]
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgresql://local_test:local_test_password@db-test:5432/feet_test?schema=public
+      DIRECT_URL: postgresql://local_test:local_test_password@db-test:5432/feet_test?schema=public
+      TEST_DATABASE_URL: postgresql://local_test:local_test_password@db-test:5432/feet_test?schema=public
+    command: ['sh', '-c', 'pnpm --filter web db:migrate && pnpm test']
+    depends_on:
+      db-test:
+        condition: service_healthy
+volumes:
+  dev-data:

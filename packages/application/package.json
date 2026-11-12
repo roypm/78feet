@@ -1,0 +1,25 @@
+{
+  "name": "@78feet/application",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "seed": "tsx src/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx src/integration.test.ts"
+  },
+  "dependencies": {
+    "@78feet/db": "workspace:*",
+    "@78feet/domain": "workspace:*",
+    "better-auth": "1.7.22",
+    "drizzle-orm": "0.45.4"
+  },
+  "devDependencies": {
+    "@types/pg": "^8",
+    "@types/node": "^22",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}

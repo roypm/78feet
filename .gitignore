@@ -35,3 +35,6 @@ coverage/
 # Logs y sistema
 *.log
 .DS_Store
+
+# Configuración local de Compose
+/infra/local.env

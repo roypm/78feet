@@ -6,7 +6,16 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "test": "pnpm --filter @78feet/domain test && pnpm --filter web test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "local:up": "docker compose --project-name feet-local --env-file infra/local.env up -d --build --wait web",
+    "local:dev": "docker compose --project-name feet-local --env-file infra/local.env watch web",
+    "local:down": "docker compose --project-name feet-local --env-file infra/local.env --profile test --profile tools down",
+    "local:logs": "docker compose --project-name feet-local --env-file infra/local.env logs -f",
+    "local:migrate": "docker compose --project-name feet-local --env-file infra/local.env run --rm migrate",
+    "local:seed": "docker compose --project-name feet-local --env-file infra/local.env run --rm seed",
+    "local:test": "docker compose --project-name feet-local --env-file infra/local.env run --build --rm test",
+    "local:reset": "node infra/reset-local.mjs",
+    "test:db": "pnpm --filter @78feet/db test && pnpm --filter @78feet/application test"
   },
   "engines": {
     "node": ">=22"
