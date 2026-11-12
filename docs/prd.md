@@ -64,7 +64,7 @@ Cada cuenta nueva sigue el tema del sistema por defecto. Puede elegir Sistema, C
 
 ## 3. Acceso
 
-**Decisión para el refactor:** cada cuenta tendrá correo real obligatorio, conservado como dato de cuenta. El acceso seguirá siendo DNI + contraseña para socios y usuario + contraseña para staff. No se enviarán ni recibirán correos: sin verificación, enlaces de acceso ni recuperación por email. El staff mantiene el control de altas y resets. Su implementación se ejecutará según [el plan de refactor](../PLAN-REFACTOR.md); el código actual todavía permite correo opcional.
+**Decisión para el refactor:** cada cuenta tendrá correo real obligatorio, conservado como dato de cuenta. El acceso seguirá siendo DNI + contraseña para socios y usuario + contraseña para staff. No se enviarán ni recibirán correos: sin verificación, enlaces de acceso ni recuperación por email. El staff mantiene el control de altas y resets. Una persona socio y staff conserva dos cuentas con roles y contraseñas independientes; puede usar el mismo correo real en ambas. No se fusionan por correo ni se acumulan permisos. La dirección se guarda sin marcarla verificada; al no verificar no se demuestra propiedad del buzón. Su implementación se ejecutará según [el plan de refactor](../PLAN-REFACTOR.md); el código actual todavía permite correo opcional.
 
 - Los **socios** entran con **DNI + contraseña**. Los **staff** entran con **usuario + contraseña** (el coach que entrena tiene dos cuentas con el mismo DNI, así que el identificador del staff es un usuario elegido por el admin).
 - El staff **fija la contraseña** en el alta y la **resetea** cuando haga falta. El socio no la cambia desde la app.
@@ -199,7 +199,7 @@ El catálogo de tarifas lo administra **solo el admin**. El ciclo de consumo (se
 - El texto es una lista ordenada de **fases**. Cada fase tiene nombre (obligatorio, puede repetirse) y una lista ordenada de **bloques**. Un bloque es texto plano y conserva los saltos de línea: un movimiento por línea, y también se puede escribir «AMRAP 12» o «EMOM 10». No hay cronómetro, negrita, viñetas, fotos ni enlaces. No se guarda un entrenamiento sin fases, una fase sin bloques ni un bloque vacío. Se pueden quitar todas las fases: vuelven «Empezar en blanco» y «Usar estructura habitual»; el nombre y el tipo se conservan. Guardar sigue exigiendo al menos una fase con sus indicaciones.
 - No hay borrador, ni versiones, ni duplicar, ni búsqueda por el texto. Al guardar, el socio ve ese texto. Editarlo cambia lo que ven todas las clases que lo señalan, pasadas y futuras; si hay clases vinculadas, el staff confirma el impacto antes de guardar.
 - En el panel staff, el buscador de Biblioteca filtra por nombre o tipo dentro de la página cargada, sin buscar en el contenido de fases o bloques; conserva el filtro de tipo y la paginación.
-- Cualquier socio que haya entrado ve toda la biblioteca. No hace falta haber reservado. La lista va por el último editado, en una sola lista, sin páginas. El filtro abre en **Todos** y ofrece cada tipo dirigido que tenga al menos un entrenamiento. La ficha muestra nombre, tipo, fases y bloques. Sin imagen, sin fecha y sin autor.
+- Cualquier socio que haya entrado ve toda la biblioteca. No hace falta haber reservado. La lista va por el último editado, en una lista paginada de 25 resultados. El filtro abre en **Todos** y ofrece cada tipo dirigido que tenga al menos un entrenamiento. La ficha muestra nombre, tipo, fases y bloques. Sin imagen, sin fecha y sin autor.
 - El coach y el admin crean, editan y borran cualquier entrenamiento. No hay dueño. Al crear, el tipo se elige entre todos los tipos dirigidos, también los que aún no tienen ninguno. El alta y la edición están en el panel de staff. El módulo del socio es solo lectura.
 - Una clase tiene como máximo un entrenamiento, del mismo tipo, o ninguno. Varias clases pueden señalar el mismo. El coach y el admin lo asocian o lo quitan desde la clase, pasada o futura. En el detalle, debajo de la imagen, la hora, el coach, las plazas, el roster y el botón, se ve el nombre del entrenamiento y luego las fases. El nombre abre la ficha. Si no hay entrenamiento, esa parte no aparece. El bloque del calendario no cambia. Una clase cancelada sigue mostrando el plan.
 - Borrar un entrenamiento, o cambiarlo de tipo si eso lo suelta de alguna clase, pide confirmación y dice cuántas clases se quedan sin plan. Las reservas no se tocan.
@@ -259,7 +259,7 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 | 12 | Sin pagos online, sin notificaciones, sin asistencia, sin lista de espera. |
 | 13 | El roster se muestra como "Nombre I.". |
 | 14 | El staff controla las credenciales; las contraseñas se guardan hasheadas. |
-| 15 | El área de socio es solo para socios; el staff trabaja en la web. La app móvil de socios sigue pendiente en la hoja de ruta. |
+| 15 | Web y app nativa para socio, coach y admin; mismos permisos por cuenta. La web actual está implementada; Expo empieza tras recuperar la web en R6. |
 | 16 | Cualquier cambio de tarifa cancela las reservas futuras del socio. |
 | 17 | Un cambio de plantilla rige desde el lunes siguiente; la semana en curso no se toca. |
 | 18 | El aforo nunca queda por debajo de las reservas: si se baja, se cancelan todas las reservas de esa clase. |

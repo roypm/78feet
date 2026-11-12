@@ -128,3 +128,9 @@ Las listas paginadas comparten `ListPagination`: rango y total a la izquierda; A
 - Socios: Entrenamiento (Calendario, Mis reservas, Biblioteca) y Mi cuenta (Historial, Mi tarifa). Mi perfil permanece junto al avatar.
 - Pie fijo con cambio de tema y Cerrar sesión en una línea. El contenido central del menú tiene scroll si falta altura; cabecera y pie permanecen accesibles. En móvil se abre como panel y se cierra al navegar o usar Escape.
 - El menú recuerda su estado expandido por navegador. El enlace activo expone `aria-current`; los controles tienen etiquetas en español, foco visible y ayudas al plegarse. Los detalles de clase del staff conservan la sección de origen (Hoy, Semana o Excepciones); una entrada directa usa Semana.
+
+## Transición de runtime acordada R1
+
+El inventario de componentes anterior describe la web Next actual. Marca 77 FEET, assets, tokens, fuente de sistema, geometría, accesibilidad y comportamientos se conservan en R5; no hay rediseño. `NavigationLink` pasará a React Router; las fronteras de carga/errores de servidor pasarán a Query y rutas SPA. Deben conservar foco, historial, indicación pendiente, skeletons y separación entre error y vacío. Tailwind/PostCSS con webpack es actual; Vite lo sustituirá al portar, con comprobación de CSS de producción. No se afirma que ya esté implementado.
+
+Expo R7 para todos los roles comparte identidad visual y reglas de interacción; usa componentes nativos propios y tokens equivalentes, sin asumir que shadcn/HTML se reutiliza. Se comprobarán tamaños táctiles, áreas seguras, tema y lector de pantalla en dispositivo. Esta fase documental no modifica UI ni requiere un toggle de stress-test.

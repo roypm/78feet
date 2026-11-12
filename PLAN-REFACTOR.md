@@ -1,6 +1,6 @@
 # Plan de refactor de 78feet
 
-Fecha de corte: 12 de noviembre de 2026. Estado: planificación; migración todavía no iniciada.
+Fecha de corte: 12 de noviembre de 2026. Estado: R0, R1, R2 y R3 implementadas; evidencias R2 en §11 y cierre R3 en §14. R4 detenida por petición del usuario; migración de runtime pendiente.
 
 ## 1. Encargo y decisiones recuperadas
 
@@ -34,9 +34,7 @@ Fuentes: `docs/prd.md`, `docs/trd.md`, `docs/app-flow.md`, `docs/design-system.m
 - No hay todavía una composición Docker que represente el destino.
 - La hoja de ruta marca hechas las llescas 0–20, incluida la auditoría web 7–20; la 21, Expo, está pendiente. Esto es estado documental y no certifica que todos los tests pasen hoy.
 
-El árbol contiene numerosos cambios locales ya realizados. Forman parte del punto de partida, aunque no estén en un commit: filtros por slug, ordenación SQL, vacíos de listados, composición de UI, copia de horarios, agregación de consumo, consultas de ficha de socio, concurrencia y retirada de imágenes locales de prueba. No se descartan ni se reconstruye solo desde `HEAD`.
-
-Antes de empezar la implementación se registrará `git status`, diff, versiones y resultados de comprobaciones. No hacer commit, push ni publicación sin petición. Los datos de desarrollo pueden recrearse; esto no autoriza a borrar recursos remotos ni otros entornos.
+Corte R0 comprobado: HEAD `fb8c5e4ccf83c0e6aeb2cc15d7e0cf72f1933ab7`; `git status --porcelain=v1` y `git diff --stat` sin salida antes de esta tarea. La suposición anterior de numerosos cambios locales no se confirma en este corte. Se inventaría el árbol actual completo, sin descartar mejoras ya incorporadas. Node 22.23.1 y pnpm 11.16.0. No se hicieron commit, push, reset ni migraciones.
 
 ### 2.2 Inventario funcional que debe recuperarse
 
@@ -57,7 +55,7 @@ Antes de empezar la implementación se registrará `git status`, diff, versiones
 | Biblioteca | Listados socio/staff, nombre único o fecha Madrid, fases y bloques, confirmación al desvincular | rutas `trainings`, `admin/trainings` |
 | Operación | Materialización idempotente, seed, migraciones, imágenes autenticadas, errores estables | cron actual, Prisma, tests |
 
-Cada fila se desglosará en una checklist por endpoint, lectura de servidor y pantalla antes de portarla. Las rutas API actuales no cubren necesariamente todas las lecturas usadas por los componentes de servidor: hay que inventariar ambos caminos.
+Cada fila tiene referencia por endpoint, lectura/pantalla y escenario en [el inventario R0](docs/refactor-r0-r1/referencia.md). Las rutas API actuales no cubren necesariamente todas las lecturas usadas por los componentes de servidor: hay que inventariar ambos caminos.
 
 ### 2.3 Invariantes que no se negocian en el portado
 
@@ -144,11 +142,11 @@ No se configurará transporte de correo ni callbacks de envío. Desactivar verif
 
 Referencias oficiales para implementar y fijar versiones: [Username](https://better-auth.com/docs/plugins/username) y [Email & Password](https://better-auth.com/docs/authentication/email-password). El plugin permite iniciar sesión con username aunque el alta conserve un email. La configuración concreta y el bloqueo de rutas no utilizadas deben probarse al integrar.
 
-R1 verificará la implementación de estas reglas, sin reabrir la elección de biblioteca:
+R1 valida el diseño y un probe aislado de estas reglas; R3/R4 deben probar la implementación real, sin reabrir la elección de biblioteca:
 
 1. Alta administrativa con correo real obligatorio; DNI de socio y usuario de staff como identificadores; acceso por email rechazado.
 2. Roles excluyentes, sin autorregistro; el staff controla altas y resets.
-3. Resolver explícitamente la unicidad de email de Better Auth frente a la persona con cuenta de socio y cuenta de staff. No exigir correos distintos ni fabricar direcciones sin una decisión de producto: comprobar un modelo de identidad que conserve ambos accesos y permisos, y documentarlo antes de fijar el esquema.
+3. Resolución R1: dos ámbitos Better Auth (member/staff), misma configuración, tablas y sesiones separadas; mismo correo real permitido entre ámbitos. Cuenta de negocio con vínculo único `(authRealm, authUserId)`, rol excluyente y contraseña independiente. No fusionar por correo. Justificado por unicidad externa de email; ver TRD §2.1 y probe.
 4. Desactivar/resetear revoca el acceso existente; intentos limitados sin carreras.
 5. Sesión web segura y canal móvil soportado, con permisos consultados en el servidor.
 6. Ningún flujo genera correo ni exige verificarlo para acceder; la cuenta conserva el correo sin usarlo para recuperar credenciales.
@@ -275,4 +273,125 @@ Antes de producción siguen pendientes privacidad publicada, gestión de secreto
 | Confundir retirada de Neon con borrado remoto | Solo retirar dependencia/configuración local; recursos remotos fuera de ejecución |
 | Documentación que describe dos arquitecturas como actuales | Destino y estado señalados durante transición; consolidación obligatoria en R6 |
 
-Primer trabajo ejecutable al aprobar este plan: R0, seguido de la validación de integración de Better Auth y actualización coordinada de documentación en R1. Este archivo entrega la planificación solicitada; no afirma que Compose, Fastify, Drizzle o la SPA estén implementados ni que las comprobaciones del producto se hayan ejecutado en esta sesión.
+R0 y R1 cerradas en esta sesión con el alcance documental y experimental siguiente. Este cierre corresponde a R0/R1; R2 se registra al final. Fastify, Drizzle y SPA siguen pendientes.
+
+
+## 9. Cierre de R0 y R1 — 12/11/2026
+
+Workflow aplicado: `docs/setup-roy/workflows/01-feature-sdd-ponytail.md`, SDD auto. Anchor: AGENTS, plan, documentos vigentes y código. Specify: recuperar referencia y cerrar decisiones sin portar runtime. Clarify: mantener dos cuentas independientes y correo compartible; sin verificar propiedad del buzón. Plan/tasks: inventario → checks → probe de identidad → consolidación de cinco documentos → cross-check. Checklist/analyze: alcance limitado a R0/R1, sin decisión pendiente de identidad/esquema/transporte. Implement: inventario y documentación, Ponytail full. Converge: revisión cruzada, probe y diff; Ponytail off. Break UI omitido porque no se modifica interfaz.
+
+### R0 — completada como referencia, producto con fallos previos
+
+- [Inventario](docs/refactor-r0-r1/referencia.md): todos los métodos/rutas API con acceso y fuente; páginas/layouts con servicios importados; huecos HTTP de lecturas RSC, matriz funcional por rol y fixtures/escenarios de aceptación.
+- `pnpm test`: dominio **81 pasan** (9 archivos). Web **25 fallan, 142 pasan y 2 omitidos** (11 archivos fallan, 35 pasan). Fallos de timeouts, hooks, RESTRICT al limpiar y unicidad de membresía; no atribuirlos sin diagnóstico a una sola causa. Las integraciones sí cargaron variables; los dos omitidos son de foto tras fallo de preparación. [Log](docs/refactor-r0-r1/resultados.md#tests).
+- `pnpm typecheck`: **pasa** dominio/web. [Log](docs/refactor-r0-r1/resultados.md#tipos).
+- `pnpm --filter web lint`: **falla**, 21 errores y 1 warning. [Log](docs/refactor-r0-r1/resultados.md#lint).
+- `pnpm build`: **interrumpido por SIGTERM**, sin resultado de compilación ni CSS; no verde. [Log](docs/refactor-r0-r1/resultados.md#build).
+- No se ejecutó smoke visual/autenticado ni dispositivo. No hay medidas fiables de bytes/latencia por el build interrumpido y ausencia de captura de red. Se fija presupuesto relativo de no regresión en mismo entorno/dataset; medición reproducible obligatoria antes del corte R6. No inventar valores p50/p95. Los checks se lanzaron en paralelo; posible contención, causa no aislada.
+
+### R1 — completada como decisión y validación aislada
+
+- [TRD §2](docs/trd.md) fija responsabilidades, contrato Zod → Fastify/OpenAPI → tipos generados/fetch, DTO públicos, caché/invalidación, versiones compatibles por metadatos, auth y transporte web/móvil. Compatibilidad de rangos no acredita build conjunto.
+- [Probe](docs/refactor-r0-r1/auth-probe.mjs) ejecutado con Better Auth **1.7.22** fuera del monorepo: dos ámbitos admiten mismo email real no verificado; DNI/usuario y contraseñas independientes; siete rutas de correo/autoregistro bloqueadas por HTTP (404). [Resultado](docs/refactor-r0-r1/resultados.md#probe-de-identidad). Sin callback/transporte de correo. Esto valida encaje de biblioteca, no su integración de producción.
+- Identidad resuelta: socio y staff conservan cuentas de negocio y permisos excluyentes, con ámbitos/tablas/cookies distintos. Correo obligatorio por cuenta; sin email sintético, acceso por correo, envío/recepción/verificación/recuperación. Staff no admite identificador con `@`. Email no prueba propiedad ni enlaza permisos. Reset/baja revoca sesiones de la cuenta afectada sin alterar su otra cuenta.
+- PRD, TRD, app-flow, design-system y hoja de ruta coordinados: actual Next/Prisma/JWT separado del destino; biblioteca paginada y concurrencia sin excepción de sobreconsumo; móvil todos los roles tras R6; Docker local incluido y alojamiento pendiente. Grilling intacto.
+- No se instalaron dependencias del destino en el repo ni se crearon paquetes/infraestructura de R2. Aceptación posterior obligatoria: adapter Drizzle/Postgres, atomicidad del alta, revocación, concurrencia de intentos, CSRF y aislamiento de ámbitos en R3/R4; Expo/SecureStore en dispositivo en R7. Estos tests no se presentan como superados por el probe de memoria.
+
+Próximas entregas y criterios: [secuencia vigente](docs/hoja-de-ruta.md#refactor-previo-a-expo--secuencia-vigente). R2 debe dejar clon limpio operativo local y DB de tests aislada; R3 debe migrar/sembrar y probar invariantes; R4 debe completar API/auth/worker y contratos. No comenzar R5 sin las anteriores ni Expo sin R6. **R2 implementada según el cierre siguiente; sin commit ni push.**
+
+## 11. Cierre R2 — entorno local Docker
+
+Alcance SDD auto: clon limpio operativo sin Neon, datos de desarrollo persistentes, PostgreSQL de tests independiente, migración antes del arranque y seed/reset explícitos. Supuesto resuelto con R0/R1: se ejecuta Next/Prisma vigente hasta sustituirlo en R3–R5; no se crean API, worker ni paquetes vacíos. Revisión de requisitos y cruce especificación/plan/tareas: sin conflictos con las decisiones previas. Ponytail full aplicado solo a implementación; break-ui omitido porque no hay cambios de UI.
+
+Tareas implementadas:
+
+- Compose con PostgreSQL 17.6, volumen `feet-local_dev-data`, puertos loopback, healthcheck SQL, migración de una ejecución y Next con comprobación HTTP de `/login`.
+- Dockerfile Node 22.23.1/pnpm 11.16.0, instalación frozen, generación Prisma y recarga con Compose watch. El contexto excluye secretos y archivos Neon.
+- Configuración explícita por servicio desde `infra/local.env.example`; ejemplos para Compose y herramientas de host; comandos `local:up/dev/down/logs/migrate/seed/test/reset` en la raíz y README.
+- PostgreSQL de tests en otro contenedor, usuario, base, puerto y almacenamiento temporal. Vitest deja de cargar `.env` de desarrollo y exige `TEST_DATABASE_URL` local a `feet_test`; sin ella omite integración. El servicio test migra únicamente esa base.
+- Reset limitado al proyecto Compose `feet-local`, con argumento obligatorio `--confirm-local-data-loss`; parada normal conserva desarrollo. No se han leído secretos, ejecutado servicios Neon, borrado recursos remotos ni alterado el trabajo previo.
+
+Dependencias pendientes: R3 cambia migrate/seed a Drizzle y prueba el modelo destino; R4 añade Fastify con health/readiness diferenciados y el worker real, retirando el cron al sustituirlo; R5 añade Vite y proxy `/api`; R6 retira las dependencias/configuración históricas de Neon/Vercel. La comprobación HTTP actual no certifica readiness de la futura API. No se inicia R3, no se hace commit ni push.
+
+Verificación R2 (convergencia, Ponytail desactivado):
+
+- `docker compose --env-file infra/local.env.example config --quiet` y `git diff --check`: correctos.
+- `pnpm local:up`: imagen construida desde instalación frozen, 19 migraciones aplicadas, PostgreSQL y Next saludables; HTTP `/login` devuelve 200. Imagen inspeccionada sin `.env` privados ni `neon.ts`.
+- `pnpm local:seed`: correcto, un admin creado. `local:down` y nuevo arranque sin reconstrucción conservan ese admin; migrate vuelve a terminar correctamente sin reaplicar migraciones.
+- `pnpm local:test`: 81 tests de dominio y 169 web pasan, incluyendo 37 de integración sobre `db-test`; sin omisiones. `pnpm test` sin URL: 213 pasan y 37 de integración se omiten, sin cargar credenciales de desarrollo. URL remota ficticia rechazada por configuración antes de ejecutar tests.
+- `pnpm typecheck`: correcto. Reset sin confirmación rechazado; `pnpm local:reset --confirm-local-data-loss` correcto y volumen local ausente después. La composición queda parada y sin datos de esta verificación.
+- Recarga watch configurada; no se realizó interacción manual de edición ni revisión visual (sin cambios de UI). API/worker/Drizzle/Vite pendientes explícitamente de sus fases, no certificados por estos checks.
+
+R2 cerrada para las implementaciones existentes. Detención antes de R3; sin commit ni push. stop ponytail / normal mode.
+
+## 12. R3 — avance de persistencia, abierta en ese corte (superado por §14)
+
+Workflow 01 aplicado con SDD auto: anclaje en PRD/TRD, decisiones R1, esquema y las 19 migraciones Prisma; aceptación: nueva DB, migración inicial, seed, consultas acotadas y concurrencia real. Plan/tareas: reconstruir esquema final → añadir identidad R1 → migración/seed → portar persistencia → verificar y retirar consumidores sustituidos. Cross-check: no cambiar reglas puras ni empezar HTTP/worker R4. Ponytail full durante implementación; sin UI, break-ui no aplica. Convergencia parcial con Ponytail desactivado: **no se cierra R3**.
+
+Implementado en `packages/db`: Drizzle ORM 0.45.4, Kit 0.31.11 y pg 8.23.1; pool limitado/cierre, migrador con bloqueo asesor entre procesos, 16 tablas de negocio y ocho de Better Auth. Migración inicial generada con snapshot para evolución. El vínculo `(auth_realm, auth_user_id)` es único; dos columnas generadas y FK garantizan existencia en el ámbito correspondiente y un check exige rol coherente. Email/username solo viven en auth; se eliminan del nuevo modelo hash, JWT/tokenVersion y duplicación de contacto. No se ha integrado aún el adapter Better Auth.
+
+Se reconstruyeron las 19 migraciones Prisma sobre **feet_test local**, y se introspectó el resultado antes de escribir el destino. Se conservan cuatro índices únicos parciales, relaciones y sus acciones de borrado/actualización, cinco checks de negocio, bytea, fechas locales y timestamps con zona. La introspección de Kit produjo opclasses incorrectas en algunos índices compuestos; se retiraron las declaraciones explícitas para que PostgreSQL elija las correctas. Crédito negativo sigue permitido (`quantity <> 0`); no aplicar el antiguo check positivo. Las transformaciones históricas de títulos, sedes, slugs y ejes de tarifa ya están representadas por el modelo final, sin ejecutar esos backfills en la nueva inicial.
+
+Portado: consumo agregado SQL (sin historial en memoria), reserva con bloqueo clase → socio/relectura, ocupación agregada, solape acotado, cupo/bono y ajustes del periodo usando dominio puro; cancelación con relectura y devolución. Seed determinista e idempotente **de catálogo** (sede, tipo y tarifa); todavía falta provisionar cuentas/credenciales y fixtures completos.
+
+Verificación ejecutada con PostgreSQL **17.6** del servicio aislado `db-test`, puerto host **55439** (54330 no disponible). El runner exige URL local con nombre **feet_test** antes de recrear únicamente sus schemas `public`/`drizzle`; no se reseteó feet_dev ni otra base. Comando:
+
+```sh
+TEST_DB_PORT=55439 docker compose --env-file infra/local.env.example --profile test up -d --wait db-test
+TEST_DATABASE_URL=postgresql://local_test:local_test_password@127.0.0.1:55439/feet_test pnpm --filter @78feet/db test
+```
+
+- Pasa creación desde cero, segunda ejecución de migraciones, seed repetido, cuatro índices parciales, seis checks (incluido ámbito/rol), correo compartido entre ámbitos, FK de identidad, correcciones negativas de crédito y rollback.
+- Pasan carreras reales de membresía vigente, última plaza, último cupo entre clases, último bono y doble cancelación. Se comprueba un único ganador y saldo final en cupo/bono.
+- `pnpm --filter @78feet/db typecheck`, `drizzle-kit check`, `git diff --check`: pasan. Dominio: **81 tests pasan**, sin cambios en sus reglas.
+- **No ejecutados/cubiertos:** cambio de tarifa durante reserva, login concurrente/revocación/alta atómica con adapter Better Auth, solapes entre sedes, edición/restauración de clase, generación repetida, planes EXPLAIN con datos representativos, suite completa web/build. No se consideran correctos por las pruebas anteriores.
+
+Pendiente para cerrar R3: resto de consultas/proyecciones/listados/agregaciones y transacciones de persistencia, auditoría completa del orden de bloqueos (incluidas operaciones multiclase), seed con cuentas usando formato Better Auth real, integración del adapter para validar modelo y atomicidad, comparación automatizada completa del catálogo PostgreSQL y matriz restante de concurrencia/rendimiento. No comenzar R4 con esta fase abierta.
+
+**Restos temporales identificados para R6:** `apps/web/prisma` (esquema, 19 migraciones y seed), cliente Prisma/imports en `apps/web/lib` y consumidores RSC/rutas, generación Prisma del Dockerfile, comandos migrate/seed/test de Compose y scripts web, JWT/argon2 propios y configuración Neon/Vercel. Siguen teniendo consumidores; retirarlos ahora rompería la web. Compose conserva el runtime R2; no apunta la aplicación Prisma a la nueva DB Drizzle. Al migrar cada consumidor se retira su persistencia anterior; R6 elimina el conjunto restante. No hay commit ni push, ni implementación HTTP R4. stop ponytail / normal mode.
+
+## 13. Preparación R4 y ampliación autorizada de R3 — avance parcial (superado por §14)
+
+El encargo pide completar R4 mediante workflow 01. Al contrastar el árbol se confirma que R3 sigue abierta: `packages/db` contiene esquema/auth-schema, conexión, migrador, seed de catálogo, consumo y reserva/cancelación; no los demás casos de uso. El usuario autoriza completar primero R3 y después R4. No se interpreta esa autorización como cierre de R3.
+
+[Entregas funcionales y aceptación](docs/refactor-r4/entregas.md): E0 persistencia R3 → E1 identidad → E2 perfil/calendario/reservas → E3 socios/cobros/equipo → E4 operación/configuración/biblioteca → E5 cierre de contratos/cliente → E6 worker → E7 convergencia. El contrato se construye desde E1 junto a cada operación. Se incluyen lecturas RSC, sustitución de consumidores de auth antes de retirar JWT y retirada del cron al activar worker. R5 permanece fuera de alcance.
+
+Implementación de este corte: se amplía `packages/db/src/integration.test.ts` con carrera de clases solapadas entre sedes, comprobación del error OVERLAP y consumo final, cancelación ajena rechazada sin cambio de estado, cancelación propia tardía con rollback y cancelación staff sin devolución que mantiene el consumo. No cambia la lógica de negocio ni incorpora otro runtime.
+
+Evidencia ejecutada:
+
+- `TEST_DB_PORT=55439 docker compose --env-file infra/local.env.example --profile test up -d --wait db-test`: saludable; únicamente PostgreSQL aislado local.
+- `TEST_DATABASE_URL=postgresql://local_test:local_test_password@127.0.0.1:55439/feet_test pnpm --filter @78feet/db test`: pasa, incluida creación desde cero/replay/seed, restricciones y carreras previas, más los cuatro escenarios nuevos. El runner recrea solo `feet_test`.
+- `pnpm --filter @78feet/db typecheck`: pasa.
+
+**Trabajo incompleto:** no se cierra R3 ni R4. Siguen pendientes los casos de uso y consultas restantes de R3, auditoría de bloqueos y pruebas de tarifa concurrente/edición/restauración/EXPLAIN; después Better Auth real y revocación, Fastify y permisos por operación, validación/DTO/OpenAPI, cliente generado, worker y sustitución de auth/cron. Estas piezas no están implementadas ni verificadas por las pruebas anteriores. No se ejecutó suite completa/build ni smoke web; no hay cambios de UI. No se inició R5 ni se hizo commit/push. stop ponytail / normal mode.
+
+## 14. R3 — cierre de persistencia del destino
+
+Se retoma la autorización R3 → R4. Los casos de uso extraídos viven ahora en `packages/application`; `packages/db` conserva esquema, conexión y migraciones. La API y el futuro worker pueden consumir los mismos casos sin importar Next. El runtime Next/Prisma anterior sigue sin mezclarse con la base Drizzle: sus consumidores se sustituyen durante el corte de runtime, y no se certifican como migrados por este cierre.
+
+Implementado: reserva/cancelación/consumo; tarifa, créditos, ajustes, baja/reactivación; identidad y credencial Better Auth atómicas, reset/revocación por ámbito y seed de admin; extra/edición/cancelación/recuperación/restauración; horario/cierres y materialización; publicación de plantilla con propagación del dominio; biblioteca/fases/bloques y confirmaciones; catálogos/slugs; pagos/sede histórica; perfil/contacto/preferencias e imágenes privadas; proyecciones, opciones y listados paginados/ordenados, calendario/detalle/historial/resumen/impagos. La validación HTTP, DTO de salida y permisos por ruta se verifican en R4, no por existir estas funciones.
+
+[Auditoría de bloqueos](docs/refactor-r3/bloqueos.md): sede → clases ordenadas → socios ordenados en operaciones multiclase; clase → socio en reserva/cancelación; tarifa/baja solo modifican reservas tras bloquear socio, sin adquirir clases. Sede usa NO KEY UPDATE para permitir el KEY SHARE de las FK de preferencias/sede de pago y evitar el ciclo sede/socio. Biblioteca coordina nombres y sedes antes de tocar clases/entrenamientos.
+
+[Evidencia reproducible](docs/refactor-r3/verificacion.md): `TEST_DATABASE_URL=postgresql://local_test:local_test_password@127.0.0.1:55439/feet_test pnpm test:db` pasa sin omisiones, con PostgreSQL local 17.6. Incluye reconstrucción de las 19 migraciones en un schema temporal y comparación completa de columnas de negocio, FK/acciones, PK, checks, índices y predicados. Diferencias explícitas: identidad Better Auth y generación UUID en PostgreSQL en lugar de Prisma cliente.
+
+Pasan carreras de última plaza/cupo/bono, doble cancelación, solape entre sedes, correcciones de crédito/ajuste, tarifa/reserva, baja/reserva, edición de aforo/reserva, restauración/reserva, nombres normalizados y materialización simultánea/repetida. Se comprueban rollback, estado final, devoluciones y no resurrección de reservas/sesiones. Adapter Better Auth real: acceso username, mismo correo entre ámbitos, contraseñas independientes, siete rutas HTTP bloqueadas, reset revoca sesión, alta fallida no deja identidad huérfana. Seed de catálogo/admin repetido no duplica cuentas.
+
+Consultas verificadas con fixture temporal de 505 cuentas y 6011 reservas: páginas de 25 y orden antes de paginar, calendario y resumen/impagos. EXPLAIN ANALYZE/BUFFERS ejecutado para calendario, consumo e impagos; tiempos concretos en el log, sin presentarlos como p50/p95 o benchmark de producción. El fixture se revierte. Dominio: 81 tests pasan. Typecheck de DB/aplicación y `drizzle-kit check` pasan.
+
+**R3 cerrada para la persistencia del destino.** Pendientes propios de R4: montaje Fastify, auth HTTP con bloqueo concurrente de intentos/CSRF/roles, todas las operaciones y DTO públicos, OpenAPI/cliente, worker y corte de auth/cron anteriores. No se certifican todavía suite web, build, smoke ni migración de consumidores. No se inició R5 ni se hizo commit/push.
+
+
+## 15. Detención solicitada tras cerrar R3
+
+El usuario pide detener R4 y documentar R3. **R3 queda completada para la persistencia del destino**, con alcance, comandos y evidencia en §14. README, TRD y hoja de ruta reflejan este cierre; §§12–13 se conservan como cortes históricos, no como estado vigente.
+
+**R4 iniciada y detenida, sin cierre funcional.** Quedan `apps/api/src/auth.ts` (factoría y borrador de acceso/sesión/logout Better Auth) y `packages/contracts/src/index.ts` (DTO Zod iniciales), manifiestos y dependencias instaladas/lockfile. El typecheck del borrador API pasó antes de la detención; no demuestra comportamiento HTTP ni autorización. No existen aún `main.ts`, servidor Fastify montado, rutas completas, OpenAPI generado, cliente generado ni worker. Los scripts declarados para esos archivos ausentes son preparación incompleta y no comandos operativos. `packages/api-client` solo es un directorio vacío, sin paquete o implementación.
+
+Estos borradores no se activaron ni conectaron a Compose. Siguen activos únicamente la autenticación y el cron anteriores; la sustitución y retirada coordinada siguen pendientes en R4. No se ha ejecutado suite web/build/smoke en este cierre ni se presentan como correctos. No empezar R5. No se hizo commit ni push. stop ponytail / normal mode.
+
+
+## 16. Preparación de guardado solicitada
+
+El usuario autoriza commit y push del estado acumulado, con R3 cerrada y R4 detenida. Los ejemplos de entorno quedan sin valores conforme a `docs/git-flow.md`; Compose toma `infra/local.env`, ignorado por Git, preparado localmente desde el ejemplo. Antes del primer arranque en otro clon hay que copiar y completar ese archivo. Las evidencias publicables se conservan en `docs/refactor-r0-r1/resultados.md` y `docs/refactor-r3/verificacion.md`; los logs originales siguen locales e ignorados. Este ajuste no activa R4 ni inicia R5.

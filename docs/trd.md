@@ -11,30 +11,47 @@ Qué debe hacer el sistema está en [`prd.md`](./prd.md).
 
 ---
 
-## 1. Stack
+## 1. Arquitectura actual y destino acordado (R1)
 
-| Capa | Elección |
-|---|---|
-| Lenguaje | TypeScript de punta a punta |
-| Web (y API) | Next.js, App Router, desplegado en Vercel |
-| API | Route handlers del propio Next.js (una sola URL para web y app, sin CORS) |
-| App móvil | Expo (React Native) + Expo Router, prevista; Android primero, iOS después; builds con EAS |
-| Base de datos | PostgreSQL (Neon) + Prisma |
-| Auth | DNI/usuario + contraseña (argon2) + JWT |
-| Monorepo | pnpm workspaces |
+Estado comprobado el 12/11/2026: sigue implementado Next.js App Router + React, RSC para lecturas, route handlers `/api/v1`, Prisma 6/Postgres y auth propia argon2id/JWT de 90 días con `tokenVersion`. La configuración depende de Neon/Vercel; esto no acredita un despliegue verificado. No existen Fastify, SPA Vite, Compose ni Expo. El inventario y los fallos de referencia están en [R0](refactor-r0-r1/referencia.md).
 
-Sin Docker, sin microservicios, sin GraphQL, sin Kubernetes. Un despliegue, una base.
+Destino pendiente R2–R6: web React + Vite + React Router → REST/JSON Fastify → servicios de aplicación → Drizzle/pg/PostgreSQL. Un worker comparte casos de uso y materializa diariamente en Madrid con recuperación al arrancar e idempotencia. Docker local; alojamiento pendiente. No GraphQL, Redis ni microservicios. Imágenes siguen en tablas Postgres con autorización.
 
-## 2. Estructura del repo
+## 2. Paquetes y contratos del destino
 
-```
-apps/web        Next.js — interfaz del staff, del socio en web, y la API
-apps/mobile     Expo — prevista para socios; todavía no existe en el repo (hoja de ruta, llesca 21)
-packages/domain tipos, esquemas zod, reglas puras de cupo y cliente de API
-```
+Se crean solo al extraer implementación real: `apps/web` (SPA), `apps/api` (HTTP/auth/permisos), `apps/worker` (planificación), `apps/mobile` (R7); `packages/domain` (reglas puras), `contracts` (Zod/DTO públicos), `api-client` (tipos OpenAPI y fetch común), `db` (Drizzle/migraciones/pool) y `application` (casos de uso/transacciones). Dependencias: clientes → contracts/api-client; API/worker → application → domain/db. Nunca DB, secretos ni tipos de tablas en clientes. El cliente actual de domain se extrae, no se duplica.
 
-`packages/domain` no importa nada de Next.js ni de React Native: es TypeScript puro y testeable.
-La web usa las validaciones compartidas; la app Expo consumirá la misma API cuando se implemente.
+Cadena única: Zod 4 → fastify-type-provider-zod (validación y serialización) → @fastify/swagger OpenAPI 3.0.3 → openapi-typescript → transporte fetch tipado. DTO de salida explícito y validado, nunca serializar una fila auth. R4 genera contrato y tipos y CI rechaza diferencias. Errores conservan códigos de dominio y HTTP; listados `{ items, pageInfo: { page, pageSize, total, totalPages } }`, 25 filas, orden/filtro antes de página, UUID de desempate. Opciones completas tienen endpoints separados. Inventario de operaciones y huecos: [R0](refactor-r0-r1/referencia.md).
+
+Web: Query posee datos remotos; claves incluyen cuenta, sede, semana, filtro/orden/página. Limpiar al cerrar/cambiar cuenta. React Hook Form + Zod, rutas divididas con imports dinámicos, filtros en URL y búsquedas locales conservadas. Reserva invalida calendario/detalle/reservas/consumo; tarifa también ficha e historial afectados; pago invalida pagos/impagos/resumen; plantilla invalida plantilla/calendarios/clases/reservas afectadas. No reintentar mutaciones automáticamente ni optimismo en reservas durante recuperación.
+
+### 2.1 Identidad Better Auth: decisión validada R1, implementación R3/R4
+
+Cada cuenta de producto mantiene un único rol, ID, contraseña, estado y preferencias. Una persona puede tener una cuenta socio y otra staff con el mismo DNI y el mismo correo real. No fusionar permisos, contraseñas ni sesiones. No fabricar emails ni exigir dos direcciones.
+
+Se emplean **dos ámbitos Better Auth con la misma factoría/configuración**, member y staff, dentro de la única API. La dependencia externa comprobada que justifica los ámbitos es la unicidad de email en `user` de Better Auth y su único username por usuario. Cada ámbito usa sus propias tablas auth (`member_auth_*`, `staff_auth_*`), basePath y cookiePrefix; secretos separados. Las tablas de negocio conservan su cuenta/UUID con vínculo único `(authRealm, authUserId)`. No confundir la tabla `account` de Better Auth (credenciales/proveedores) con la cuenta del producto. No mantener auth JWT antigua tras R6.
+
+Alta administrativa atómica: crear usuario auth y credencial en su ámbito y cuenta de negocio; rollback conjunto. Email obligatorio no nulo, validado y normalizado en servidor; único dentro del ámbito, repetible entre ámbitos. Se guarda en cada cuenta auth y el DTO de cuenta lo proyecta sin copia divergente. La vinculación humana se confirma por DNI desde administración; nunca asociar ni conceder permisos por coincidencia de email. Cambiar contacto en una cuenta no altera la otra. “Real” significa dirección de contacto facilitada por staff, sin direcciones sintéticas; sin verificación no se puede demostrar la propiedad del buzón.
+
+Username representa DNI normalizado (trim, mayúsculas como forma canónica; adaptación uniforme del plugin al comparar) en socio y usuario normalizado en staff. Staff no admite formato email ni `@`; no hay resolución por email. Mantener ambos accesos de una persona aunque sus contraseñas sean diferentes. La pantalla conserva DNI/usuario; el servidor determina el ámbito a partir del tipo de acceso, nunca del rol solicitado en el body. La autorización obtiene cuenta y rol vigentes desde DB y comprueba que la sesión pertenece al ámbito de esa cuenta.
+
+`emailAndPassword.enabled=true` es necesario para Username; eso **no** autoriza publicar el acceso por email. Bloquear con `disabledPaths` y allowlist del montaje HTTP: `/sign-in/email`, `/sign-up/email`, `/request-password-reset`, `/reset-password`, `/send-verification-email`, `/verify-email`, `/change-email`; cualquier ruta no autorizada no se monta. Solo login username, consulta de sesión y logout quedan expuestos; altas/resets/contacto exclusivamente mediante casos de uso staff autorizados, usando API interna de Better Auth. Sin autorregistro, OAuth, magic links ni plugins de correo. `requireEmailVerification=false`; sin callbacks de envío/verificación ni proveedor SMTP/recepción. `emailVerified=false`, nunca simular verificación.
+
+Sesiones persistidas Better Auth: duración absoluta de 90 días, `disableSessionRefresh=true`, cookieCache desactivada; cookie HttpOnly/SameSite=Lax/Secure bajo HTTPS. En cada operación se consulta sesión y cuenta activa/rol actual. Reset o baja elimina todas las sesiones de **esa cuenta**, incluso en móvil; conserva la otra cuenta de la persona. Logout elimina sesión servidor y cookie. Login y baja/reset se coordinan bloqueando cuenta y releyendo estado antes de crear sesión; portar bloqueo de 10 intentos/15 min sin carreras y añadir límite por IP. No confiar solo en rate limit en memoria.
+
+Mismo origen web/API por proxy; comprobación de Origin y CSRF en mutaciones con cookie. Expo usará `@better-auth/expo` y `expo-secure-store`, cookie propia del ámbito, esquema nativo y trustedOrigins explícitos; nunca localStorage ni devolver el token web al JS. Al salir borra SecureStore/caché. No existe todavía cliente Expo; R7 prueba Android real. Si se guardan ambos ámbitos en un dispositivo, el cliente envía solo el elegido y la API rechaza ambigüedad.
+
+Evidencia: [probe reproducible](refactor-r0-r1/auth-probe.mjs) con Better Auth 1.7.22 y memory adapter: altas internas mismo email, acceso username, credenciales separadas, email no verificado y siete rutas HTTP bloqueadas. [Resultado](refactor-r0-r1/resultados.md#probe-de-identidad). No prueba Drizzle/Postgres, concurrencia, permisos de negocio, revocación ni dispositivo: aceptación obligatoria R3/R4/R7. Reproducir instalando `better-auth@1.7.22` en carpeta temporal y copiando allí el script; ejecutar `node auth-probe.mjs`. No instala dependencias en este repo.
+
+Fuentes oficiales consultadas 12/11/2026: [Username](https://better-auth.com/docs/plugins/username), [Email/password](https://better-auth.com/docs/authentication/email-password), [sesiones](https://better-auth.com/docs/concepts/session-management), [opciones](https://better-auth.com/docs/reference/options), [esquema](https://better-auth.com/docs/concepts/database), [Drizzle](https://better-auth.com/docs/adapters/drizzle) y [Expo](https://better-auth.com/docs/integrations/expo). La separación en ámbitos es una decisión de este proyecto, comprobada por el probe, no una función que acumule roles.
+
+### 2.2 Versiones objetivo
+
+Selección exacta para iniciar R2–R4, verificada contra metadatos oficiales del registro npm (12/11/2026), sin instalarla aquí: Node 22.23.1, pnpm 11.16.0, React/DOM 19.3.0, Vite 8.3.8, React Router 8.5.1, Query 5.107.1; Fastify 5.12.8, Zod 4.6.7, fastify-type-provider-zod 7.0.0, openapi-typescript 7.13.0; Better Auth y plugin Expo 1.7.22, Drizzle ORM 0.45.4/Kit 0.31.11, pg 8.23.1. React Router exige Node >=22.22 y React >=19.2.7; Vite admite este Node; Better Auth acepta Drizzle ^0.45.2, pg ^8, React ^19; provider Zod exige Fastify ^5.5 y Zod >=4.1.5. @fastify/swagger 9.9.3 satisface >=9.5.1; adaptador @better-auth/drizzle-adapter 1.7.22. Formularios: react-hook-form 7.92.0 y @hookform/resolvers 7.0.6 (React ^19/Zod ^4 admitidos). Compatibilidad de rangos verificada; build conjunto aún pendiente. Versiones Expo/RN se fijarán juntas en R7 según SDK soportado entonces, sin crear móvil ahora.
+
+## Lectura de las secciones siguientes
+
+§§3–9 describen la implementación Next/Prisma actual y las reglas que hay que preservar, salvo destino explícito. Las tablas auth del destino se añaden a las 16 entidades actuales; R3 genera esquema Drizzle y revisa SQL/índices parciales, no convierte solo modelos. §8 es la operación actual configurada; no decide el alojamiento futuro. El cron HTTP actual se retira al activar el worker en R6. Los detalles de JWT no son el diseño de sesión Better Auth.
 
 ## 3. Modelo de datos
 
@@ -419,8 +436,7 @@ reservar(u, instance):
   y cuenta las reservas activas de esa instancia dentro de la transacción. Sin eso, dos socios
   pueden quedarse con la última plaza.
 - El índice único parcial `(instance_id, user_id) WHERE status = 'active'` evita el doble clic.
-- El cupo periódico no necesita bloqueo de fila: dos reservas simultáneas del mismo socio en el mismo
-  periodo pueden pasarse del límite por uno. Se acepta (riesgo real nulo) y se documenta.
+- Después de bloquear la clase se bloquea el socio y se releen reservas/consumo. No se permite sobreconsumo de cupo/bono ni solape entre sedes. Cambios de tarifa coordinan el mismo bloqueo de cuenta. Los tests de concurrencia actuales fallan en la referencia R0: esta garantía requiere aceptación de nuevo contra Postgres aislado.
 
 ### 4.5 Cancelación
 
@@ -552,7 +568,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 ## 6. Auth y sesión
 
-**Destino acordado del refactor:** Better Auth con correo real obligatorio guardado en la cuenta y plugin Username para DNI de socio/usuario de staff. Sin acceso por correo ni flujos de envío, recepción, verificación o recuperación por email. Las sesiones, revocación y el modelo de correo para personas con dos cuentas se validarán en R1 del [plan de refactor](../PLAN-REFACTOR.md). Los puntos siguientes describen la implementación actual, todavía sin migrar a Better Auth.
+**Destino acordado del refactor:** Better Auth con correo real obligatorio guardado en la cuenta y plugin Username para DNI de socio/usuario de staff. Sin acceso por correo ni flujos de envío, recepción, verificación o recuperación por email. Las decisiones de sesiones, revocación y correo de personas con dos cuentas están cerradas en §2.1 y R1 del [plan de refactor](../PLAN-REFACTOR.md). Los puntos siguientes describen la implementación actual, todavía sin migrar a Better Auth.
 
 - `argon2id` para las contraseñas. Nunca se devuelven ni se registran.
 - Login por `login_id` (DNI del socio, usuario del staff) + contraseña.
@@ -572,7 +588,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
   socio para quien entre desde el navegador. Server Components para lectura, route handlers para mutaciones.
   Reservas staff: detalle de instancia (`/staff/clases/:id`), enlazado desde Semana, Hoy o Excepciones; usa
   `POST/DELETE /api/v1/admin/bookings`. `/staff/reservas` redirige a Semana.
-- **App móvil** (`apps/mobile`, pendiente, llesca 21): solo socios. Expo Router con seis pestañas:
+- **App móvil** (`apps/mobile`, pendiente, llesca 21): todos los roles tras R6. Para socio, referencia de seis secciones:
   Calendario, Mis reservas, Historial, Biblioteca, Mi tarifa y Cuenta; consumirá la misma API y las reglas de
   `@78feet/domain` ya validadas en web (incluido multi-box).
 - Sin estado offline, sin push, sin cámara. La imagen del tipo, si hay, es un archivo que sube el admin, ya encuadrado; nadie la saca desde la app.
@@ -636,7 +652,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 ## 13. Fuera de alcance técnico (v1)
 
 Pasarela de pago, emails transaccionales, push, websockets, cache distribuida, Redis, búsqueda,
-multi-tenant, i18n, exportaciones, panel de métricas, app de staff, offline, Docker.
+multi-tenant, i18n, exportaciones, panel de métricas, offline. Docker local y app de staff pertenecen al destino R2/R7.
 
 ## Paginación de listados
 
@@ -709,3 +725,25 @@ La aplicación no conserva contratos ni rutas retiradas. Las imágenes de tipos 
 ### Vacíos de listados
 
 `ListEmptyBlock` centraliza la presentación de resultados vacíos con los primitives `Empty`, `EmptyHeader` y `EmptyContent`. Las tablas cliente reciben del servidor un `emptyState` contextual y lo renderizan antes de construir una tabla; `SearchEmptyState` reutiliza el mismo bloque para el filtrado de texto local. Las rutas generan enlaces de restablecimiento con `listOptionsHref` sin filtros ni página, conservando `orden`. No hay variantes visuales por módulo.
+
+### Persistencia de destino R3 completada; R4 detenida
+
+`packages/db` contiene esquema Drizzle, migración inicial y pool pg.
+`packages/application` contiene consultas, transacciones, seed de catálogo/admin
+e integración PostgreSQL. El vínculo de negocio `(auth_realm, auth_user_id)`
+conserva roles excluyentes mediante FK condicionales y check de rol; correo,
+username y credencial viven en las tablas Better Auth de cada ámbito.
+
+Se ha probado el adapter real Better Auth/Drizzle: alta atómica, correo compartido
+entre ámbitos, credenciales independientes y revocación al reset. También pasan
+la comparación de catálogos contra las 19 migraciones originales, reglas y
+carreras de reservas/tarifa/baja/edición, propagación de plantilla, biblioteca,
+pagos, imágenes privadas y materialización repetida/concurrente. Cierre y límites:
+[PLAN-REFACTOR §14](../PLAN-REFACTOR.md#14-r3--cierre-de-persistencia-del-destino),
+[evidencia](refactor-r3/verificacion.md) y [bloqueos](refactor-r3/bloqueos.md).
+
+El runtime web y Compose siguen usando Prisma. El usuario ha detenido R4 tras
+el cierre R3: existen borradores de auth y contratos, sin servidor HTTP montado,
+OpenAPI/cliente generados ni worker operativo. No se ha sustituido JWT ni el cron,
+ni se han comprobado sus reemplazos por HTTP. R4 debe completarlos y efectuar su
+corte antes de iniciar R5; no hay dos autenticaciones o planificadores activados.
