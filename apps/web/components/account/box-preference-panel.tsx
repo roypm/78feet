@@ -1,8 +1,6 @@
-"use client";
-
 import { Check } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "@/lib/spa/router";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { api } from "@/lib/box/api";
@@ -15,13 +13,18 @@ export function BoxPreferencePanel({
   boxes: BoxSummary[];
   preferenceBoxId: string | null;
 }) {
-  const [selected, setSelected] = useState(preferenceBoxId ?? boxes[0]?.id ?? "");
+  const [localSelection, setLocalSelection] = useState({
+    source: preferenceBoxId,
+    value: preferenceBoxId ?? boxes[0]?.id ?? "",
+  });
+  const selected =
+    localSelection.source === preferenceBoxId
+      ? localSelection.value
+      : (preferenceBoxId ?? boxes[0]?.id ?? "");
+  const setSelected = (value: string) =>
+    setLocalSelection({ source: preferenceBoxId, value });
   const [pending, setPending] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    setSelected(preferenceBoxId ?? boxes[0]?.id ?? "");
-  }, [preferenceBoxId, boxes]);
 
   if (boxes.length <= 1) return null;
 
@@ -29,15 +32,20 @@ export function BoxPreferencePanel({
     if (nextId === selected || pending) return;
     setPending(true);
     try {
-      const result = await api<{ preferenceBoxId: string | null }>("/api/v1/me/preferences", {
-        method: "PATCH",
-        body: JSON.stringify({ preferenceBoxId: nextId }),
-      });
+      const result = await api<{ preferenceBoxId: string | null }>(
+        "/api/v1/me/preferences",
+        {
+          method: "PATCH",
+          body: JSON.stringify({ preferenceBoxId: nextId }),
+        },
+      );
       setSelected(result.preferenceBoxId ?? nextId);
       toast.success("Sede por defecto actualizada");
-      router.refresh();
+      void router.refresh("session");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar la sede");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo guardar la sede",
+      );
     } finally {
       setPending(false);
     }
@@ -47,9 +55,14 @@ export function BoxPreferencePanel({
     <section className="rounded-lg bg-card p-4 ring-1 ring-foreground/10 md:p-6">
       <h2 className="mb-1 font-medium">Sede por defecto</h2>
       <p className="mb-3 text-sm text-muted-foreground">
-        Con qué sede se abre el calendario y las pantallas del box. Elegir otra en el selector no cambia este ajuste.
+        Con qué sede se abre el calendario y las pantallas del box. Elegir otra
+        en el selector no cambia este ajuste.
       </p>
-      <fieldset disabled={pending} aria-busy={pending} className="flex flex-col gap-2">
+      <fieldset
+        disabled={pending}
+        aria-busy={pending}
+        className="flex flex-col gap-2"
+      >
         <legend className="sr-only">Sede por defecto</legend>
         {boxes.map((box) => {
           const active = selected === box.id;
@@ -64,12 +77,16 @@ export function BoxPreferencePanel({
                 className="peer sr-only"
               />
               <span className="flex min-h-11 items-center gap-3 rounded-lg border border-border px-3 py-2 transition-colors peer-checked:border-primary peer-checked:bg-primary/5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring">
-                <span className="min-w-0 flex-1 truncate font-medium">{box.name}</span>
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {box.name}
+                </span>
                 <span
                   aria-hidden="true"
                   className={cn(
                     "flex size-5 shrink-0 items-center justify-center rounded-full",
-                    active ? "bg-primary text-primary-foreground" : "border border-border bg-background text-transparent",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border bg-background text-transparent",
                   )}
                 >
                   {active ? <Check className="size-3.5" /> : null}

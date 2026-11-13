@@ -1,6 +1,6 @@
 # R3 → R4: entregas y aceptación
 
-Estado actualizado: R3 cerrada para la persistencia del destino (PLAN-REFACTOR §14); R4 iniciada y detenida por petición del usuario. Se autoriza completar primero R3. R5, commit y push fuera de alcance. Workflow 01: SDD auto; Ponytail full únicamente durante implementación; sin cambios de UI, break-ui no aplica.
+Estado actualizado 13/11/2026: E0/R3 y E1–E7/R4 completadas. Se aplicó workflow 01: SDD auto, Ponytail full durante implementación, break-ui + fix para los controles de acceso/contacto afectados y convergencia con Ponytail off. [Evidencias y límites](verificacion.md). No se inicia R5 ni se hace commit/push.
 
 ## Especificación y cruce de requisitos
 
@@ -21,7 +21,7 @@ No cambiar pantallas a Vite en esta fase. La sustitución de autenticación requ
 | E6. Materialización y operación local | E0, E4 | Caso de uso compartido, worker independiente con ejecución inicial/diaria, reintentos acotados y cierre; Compose API/worker con readiness; retirada Cron Vercel | Repetición/concurrencia/reinicio, unicidad y rollback; zona Madrid/cambio horario; sin Cron ni HTTP para generar; un solo planificador activo; DB caída/readiness y cierre de pool |
 | E7. Convergencia R4 | E1–E6 | Cobertura y documentación contrastadas, R4 cerrada con evidencias | Suite PostgreSQL sin omisiones, permisos por método, errores/contratos/concurrencia, OpenAPI/cliente reproducibles, arranque limpio local; pendientes explícitos, sin declarar R5 hecha |
 
-Las entregas son unidades de aceptación, no paquetes vacíos ni implementaciones paralelas. E5 se construye junto a cada ruta; su posición indica cuándo puede cerrarse la cobertura completa. E0 aceptada según PLAN-REFACTOR §14; E1–E7 requieren aún sus comprobaciones HTTP y de operación. No activar auth o worker nuevos junto a los anteriores para aparentar progreso.
+Las entregas son unidades de aceptación, no paquetes vacíos ni implementaciones paralelas. E5 se construye junto a cada ruta; su posición indica cuándo puede cerrarse la cobertura completa. E0 aceptada según PLAN-REFACTOR §14; E1–E7 aceptadas mediante sus comprobaciones HTTP y de operación, detalladas en la evidencia. No activar auth o worker nuevos junto a los anteriores para aparentar progreso.
 
 ## Lecturas que requieren contrato explícito
 
@@ -29,9 +29,13 @@ Además de todos los métodos/rutas de R0: perfil propio y preferencias del shel
 
 ## Estado de ejecución
 
-- E0/R3 completada para la persistencia del destino; cierre y evidencias en PLAN-REFACTOR §14.
-- Casos de uso reales en `packages/application`; esquema, pool y migración en `packages/db`.
-- R4 detenida por petición del usuario. Borradores: `apps/api/src/auth.ts`, DTO iniciales de `packages/contracts`, manifiestos y dependencias. No están conectados al runtime.
-- E1–E7 sin aceptación: faltan servidor/rutas HTTP, matriz de permisos y CSRF, contratos completos/OpenAPI, cliente generado, worker y sustitución coordinada de auth/cron anteriores.
-- Los scripts API que apuntan a archivos todavía ausentes no son operativos. El directorio vacío `packages/api-client` no constituye una implementación.
-- README, TRD y PLAN-REFACTOR §15 registran el punto para retomar. No se inició R5 ni se hizo commit/push.
+- E0: cierre R3 en PLAN-REFACTOR §14, vuelto a comprobar en la batería conjunta R4.
+- E1: Better Auth real, matriz por método/rol, origen, bloqueo concurrente, reset/baja/login y expiración comprobados. JWT retirado.
+- E2: perfiles, preferencias, imágenes privadas, calendario, reserva/cancelación e historial con DTO y transporte común.
+- E3: socios, tarifas, créditos/cupos, pagos/impagos y equipo; altas atómicas y revocación por cuenta.
+- E4: sedes, horario, tipos, clases, plantillas y biblioteca; confirmaciones y transacciones R3 reutilizadas.
+- E5: todas las operaciones R0 excepto cron retirado, más lecturas RSC y selectores; OpenAPI y cliente generados reproduciblemente. Next consulta por ese cliente, sin persistencia propia.
+- E6: worker ejecutable independiente, liderazgo, replay idempotente y horario Madrid/DST; Compose con API readiness; sin Cron Vercel.
+- E7: batería PostgreSQL, tipos, contratos, build, smoke HTTP/SSR por rol y documentación contrastados. Lint heredado y ausencia de verificación visual/dispositivo se registran expresamente en la evidencia.
+
+R5 pendiente: no se ha añadido Vite, React Router ni Query ni sustituido la presentación Next. R6 retirará los restos históricos de configuración y realizará su aceptación visual/mediciones. No existe auth ni planificador paralelo.

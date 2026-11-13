@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, type InvalidEvent, type RefObject } from "react";
 import { REQUIRED_FIELD_MESSAGE, suppressNativeInvalid } from "@/lib/ui/field-validity";
 

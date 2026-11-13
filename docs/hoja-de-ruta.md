@@ -71,17 +71,15 @@ Expo (llesca 21 / R7) espera a R6. Las llescas 0–20 son historial; no certific
 
 | Tarea | Cuándo abordarla | Hecho cuando |
 |---|---|---|
-| Medir latencia de extremo a extremo de la propagación | Cuando haya una rama Neon de pruebas segura | Comparar guardado de plantilla con un conjunto representativo de clases y reservas, registrar tiempos y confirmar que se mantienen las reglas de cupo |
+| Medir latencia de extremo a extremo de la propagación | Cuando haya un entorno de pruebas representativo, distinto del local | Comparar guardado de plantilla con un conjunto representativo de clases y reservas, registrar tiempos y confirmar que se mantienen las reglas de cupo |
 
-## Cuando toque desplegar (no saltar)
+## Cuando toque desplegar (R8, no saltar)
 
-Hasta entonces: `main` local, commits cuando se pida, ramas cortas por llesca si hace falta. **No** abrir un GitFlow `develop` + `main` ahora.
+Hasta entonces: trabajo local con Docker, commits cuando se pida, ramas cortas si hace falta. El alojamiento no está elegido. No se borran recursos remotos que ya existan y ningún comando de este repositorio los modifica.
 
-Cuando Vercel (o un staging) entre en juego:
-
-- **Git `main`** = lo que se despliega a producción. Trabajo en ramas cortas + PR, no commits a medio hacer en `main`.
-- Rama git `develop` **solo** si hay un entorno de staging estable (preview Vercel + Neon no-prod) para que staff pruebe antes de producción.
-- **Neon `production`** ≠ rama git. Esquema o seed que pueda romper datos: `neon checkout dev --create`, no un `develop` de git. Son dos ejes distintos.
+- **Git `main`** será lo que se despliegue a producción. Trabajo en ramas cortas + PR, no commits a medio hacer en `main`.
+- Una rama git de staging solo tiene sentido cuando exista un entorno de pruebas estable. Elegir ese entorno es parte de R8, no una instrucción actual.
+- El esquema o el seed que pueda romper datos se ensaya en una copia desechable de ese entorno, no en la base que vaya a usarse en producción.
 
 ## Refactor previo a Expo — secuencia vigente
 
@@ -91,12 +89,12 @@ R0 y R1 cerradas como inventario/decisiones, con fallos previos registrados; no 
 |---|---|---|
 | R0 | cerrada | Inventario API/RSC/pantallas, fixtures, escenarios y checks con fallos/omitidos explícitos |
 | R1 | cerrada | Identidad de dos ámbitos comprobada, sesiones/transporte/paquetes/contrato definidos y docs coordinados |
-| R2 | pendiente; no iniciada | Compose + Postgres fijado + health/readiness + variables y DB aislada; clon limpio arranca sin Neon ni secretos remotos; README reproducible |
+| R2 | completada (PLAN-REFACTOR §11) | Compose + Postgres fijado + health/readiness + variables y DB aislada; clon limpio arranca sin Neon ni secretos remotos; README reproducible |
 | R3 | completada (persistencia destino; evidencias en PLAN-REFACTOR §14) | Drizzle, tablas auth por ámbito, 16 entidades, índices SQL, seed determinista; migrar DB vacía, rollback y concurrencia pasan en Postgres aislado |
-| R4 | iniciada y detenida por petición del usuario; sin cierre (PLAN-REFACTOR §15) | Fastify/auth/lecturas RSC/worker; matriz por método y rol, rutas email bloqueadas, reset/baja revocan, cero Next, OpenAPI/cliente reproducibles |
-| R5 | pendiente | Shell/acceso/perfil → socio → operación diaria → socios/pagos → configuración/plantilla/biblioteca; cada módulo con estados, invalidación y flujos por rol |
-| R6 | pendiente | Web recuperada, smoke visual/funcional, mediciones comparables, checks verdes y retirada Next/Prisma/Neon/Vercel; una sola implementación |
+| R4 | completada (PLAN-REFACTOR §17 y evidencia R4) | Fastify/auth/lecturas RSC/worker; matriz por método y rol, rutas email bloqueadas, reset/baja revocan, cero Next, OpenAPI/cliente reproducibles |
+| R5 | completada (PLAN-REFACTOR §18) | SPA Vite: acceso/shell/perfil, socio, operación diaria, socios/pagos y configuración/plantilla/biblioteca, con lecturas, mutaciones, invalidación y permisos |
+| R6 | completada (PLAN-REFACTOR §19) | Web recuperada, smoke por rol, mediciones del stack vigente, checks verdes y una sola implementación sin Next/Prisma/Neon/Vercel |
 | R7 | pendiente | Expo por rol tras R6, Android real; no heredar aceptación de web responsive |
 | R8 | pendiente | Elegir alojamiento, TLS, secretos, backups/restauración y ensayo antes de publicar; después iOS según prioridad |
 
-Las instrucciones Neon/Vercel de las llescas históricas anteriores son contexto de construcción, no instrucciones del destino. No se borran recursos remotos. La siguiente entrega autorizable es R2; no se ha iniciado en el cierre R0/R1.
+Las menciones a Neon o Vercel en las llescas 0–20 describen cómo se construyó aquella web. No son instrucciones del sistema vigente. No se borran recursos remotos. R2–R6 están completas. La siguiente fase es Expo (R7). No se inicia en este corte.

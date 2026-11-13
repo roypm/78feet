@@ -1,9 +1,8 @@
-"use client";
-
 import { PendingButton } from "@/components/common/feedback/pending-button";
 
 import { useState } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
+import { api } from "@/lib/box/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,21 +29,13 @@ export function CancelBookingButton({
   async function cancel() {
     if (!begin()) return;
     try {
-      const response = await fetch(`/api/v1/bookings/${bookingId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      const payload = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        toast.error(payload.error?.message ?? "No se pudo cancelar");
-        return;
-      }
+      await api(`/api/v1/bookings/${bookingId}`, { method: "DELETE" });
       toast.success("Reserva cancelada");
       setOpen(false);
-      router.refresh();
-      router.push(nextHref);
-    } catch {
-      toast.error("No se pudo cancelar");
+      void router.refresh("booking");
+      void router.push(nextHref);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cancelar");
     } finally {
       setPending(false);
     }

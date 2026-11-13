@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useId, useMemo, useRef, useState, type InvalidEvent } from "react";
 import { cn } from "cn";
 import { SearchInput } from "@/components/ui/search-input";

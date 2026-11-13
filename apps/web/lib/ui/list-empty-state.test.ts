@@ -8,11 +8,14 @@ import { TeamTable } from "@/components/team/team-table";
 import { MembersTable } from "@/components/members/members-table";
 import { UnpaidMembersTable } from "@/components/payments/unpaid-members-table";
 import { TrainingLibraryTable } from "@/components/trainings/training-library-table";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { listOptionsHref } from "@/lib/box/list-sorting";
 
 vi.stubGlobal("React", React);
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
-const render = (element: React.ReactElement) => renderToStaticMarkup(element);
+const render = (element: React.ReactElement) => {
+  const router = createMemoryRouter([{ path: "*", Component: () => element }], { initialEntries: ["/staff/equipo"] });
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+};
 const filters = createElement("button", null, "Filtrar y ordenar");
 const emptyState = createElement(ListEmptyBlock, {
   title: "No hay resultados con estos filtros",

@@ -1,5 +1,3 @@
-"use client";
-
 import { PendingButton } from "@/components/common/feedback/pending-button";
 
 import { Button } from "@/components/ui/button";

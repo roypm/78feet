@@ -1,6 +1,6 @@
-"use client";
-
 import { PendingButton } from "@/components/common/feedback/pending-button";
+import { createApiClient } from "@78feet/api-client";
+import { clearAccountCache } from "@/lib/spa/router";
 import { LogOut } from "lucide-react";
 
 import { useActionFeedback } from "@/hooks/use-action-feedback";
@@ -14,11 +14,10 @@ export function LogoutButton() {
   async function logout() {
     if (!begin()) return;
     try {
-      const response = await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
-      if (!response.ok) throw new Error("No se pudo cerrar la sesión");
+      await createApiClient().POST("/api/v1/auth/logout");
+      clearAccountCache();
       applyTheme("system");
-      router.push("/login");
-      router.refresh();
+      void router.push("/login");
     } catch {
       toast.error("No se pudo cerrar la sesión. Probá de nuevo.");
     } finally {
@@ -36,11 +35,15 @@ export function LogoutButton() {
       disabled={pending}
       onClick={() => void logout()}
       pending={pending}
-      pendingLabel={<span className="group-data-[collapsible=icon]:hidden">Saliendo…</span>}
+      pendingLabel={
+        <span className="group-data-[collapsible=icon]:hidden">Saliendo…</span>
+      }
     >
       <span className="inline-flex items-center gap-2">
         <LogOut data-icon="inline-start" />
-        <span className="group-data-[collapsible=icon]:hidden">Cerrar sesión</span>
+        <span className="group-data-[collapsible=icon]:hidden">
+          Cerrar sesión
+        </span>
       </span>
     </PendingButton>
   );

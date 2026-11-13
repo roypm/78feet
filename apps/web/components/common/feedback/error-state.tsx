@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 import { EmptyState } from "./empty-state";

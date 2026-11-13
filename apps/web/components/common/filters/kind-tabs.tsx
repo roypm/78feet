@@ -1,5 +1,3 @@
-"use client";
-
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import type { ReactNode } from "react";
 import { cn } from "cn";
@@ -50,7 +48,6 @@ function Tab({ href, active, children }: { href: string; active: boolean; childr
   return (
     <Link
       href={href}
-      prefetch={true}
       role="tab"
       aria-selected={active}
       {...slideProps}
@@ -75,7 +72,6 @@ export function FilterTabLink({
   return (
     <Link
       href={href}
-      prefetch={true}
       role="tab"
       aria-selected={active}
       {...slideProps}

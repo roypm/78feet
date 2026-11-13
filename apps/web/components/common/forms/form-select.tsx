@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useId, useRef, useState, type InvalidEvent, type ReactNode } from "react";
 import { Field } from "@/components/common/forms/field";
 import { REQUIRED_FIELD_MESSAGE, suppressNativeInvalid } from "@/lib/ui/field-validity";
@@ -26,6 +24,7 @@ export function FormSelect({
   placeholder = "Seleccionar…",
   children,
   labelClassName,
+  error: externalError,
 }: {
   label: string;
   options: SelectOption[];
@@ -38,11 +37,13 @@ export function FormSelect({
   placeholder?: string;
   children?: ReactNode;
   labelClassName?: string;
+  error?: string;
 }) {
   const id = useId();
   const errorId = `${id}-error`;
   const hiddenRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
+  const shownError = externalError || error;
   // Native single selects fall back to their first option when no default matches.
   const initialValue = options.some((option) => option.value === defaultValue)
     ? defaultValue
@@ -78,7 +79,7 @@ export function FormSelect({
   }
 
   return (
-    <Field label={label} htmlFor={id} invalid={Boolean(error)} disabled={disabled} error={error} errorId={errorId} labelClassName={labelClassName}>
+    <Field label={label} htmlFor={id} invalid={Boolean(shownError)} disabled={disabled} error={shownError} errorId={errorId} labelClassName={labelClassName}>
       <div className="relative">
         <input
           ref={hiddenRef}
@@ -102,8 +103,8 @@ export function FormSelect({
           <SelectTrigger
             id={id}
             className="min-h-11 w-full min-w-0 sm:min-h-8"
-            aria-invalid={Boolean(error) || undefined}
-            aria-describedby={error ? errorId : undefined}
+            aria-invalid={Boolean(shownError) || undefined}
+            aria-describedby={shownError ? errorId : undefined}
           >
             <SelectValue>
               {(selected) => (

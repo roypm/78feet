@@ -1,0 +1,362 @@
+[
+  {
+    "method": "DELETE",
+    "path": "/api/v1/admin/bookings/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/bookings",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/boxes/[id]",
+    "roles": "admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/boxes",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/boxes",
+    "roles": "admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/class-types/[id]",
+    "roles": "admin"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/admin/class-types/[id]",
+    "roles": "admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/class-types",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/class-types",
+    "roles": "admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/coaches",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/day",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/hours",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/hours",
+    "roles": "admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/instances/[id]/restore-template",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/instances/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/instances/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/admin/instances/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/instances",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/members/[id]/credits",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/members/[id]/deactivate",
+    "roles": "admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/members/[id]/payment-box",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/members/[id]/quota-adjustments",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/members/[id]/reactivate",
+    "roles": "admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/members/[id]/reset-password",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/members/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/members/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/members/[id]/tariff",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/members",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/members",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/payments/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/admin/payments/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/payments",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/staff/[id]",
+    "roles": "admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/staff/[id]",
+    "roles": "admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/staff",
+    "roles": "admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/staff",
+    "roles": "admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/tariffs/[id]",
+    "roles": "admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/tariffs",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/tariffs",
+    "roles": "admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/templates/[id]",
+    "roles": "admin"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/admin/templates/[id]",
+    "roles": "admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/templates/apply-draft",
+    "roles": "admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/templates",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/templates",
+    "roles": "admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/trainings/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/trainings/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/admin/trainings/[id]",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/trainings",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/trainings",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/unpaid",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/week",
+    "roles": "coach, admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "roles": "p\u00fablico"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "roles": "p\u00fablico"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "roles": "sesi\u00f3n activa; reglas de imagen/me en handler"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/bookings/[id]",
+    "roles": "member"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/bookings",
+    "roles": "member"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar",
+    "roles": "member"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/class-type-images/[key]",
+    "roles": "sesi\u00f3n activa; reglas de imagen/me en handler"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/cron/materialize",
+    "roles": "CRON_SECRET"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/cron/materialize",
+    "roles": "CRON_SECRET"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/health",
+    "roles": "p\u00fablico"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/instances/[id]",
+    "roles": "member"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/bookings/history",
+    "roles": "member"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/bookings",
+    "roles": "member"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/preferences",
+    "roles": "M,C,A"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/me/preferences",
+    "roles": "M,C,A"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/me/profile-image",
+    "roles": "M,C,A"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/me/profile-image",
+    "roles": "M,C,A"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/summary",
+    "roles": "member"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/profile-images/[userId]",
+    "roles": "sesi\u00f3n activa; reglas de imagen/me en handler"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/trainings/[id]",
+    "roles": "member, coach, admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/trainings",
+    "roles": "member, coach, admin"
+  }
+]

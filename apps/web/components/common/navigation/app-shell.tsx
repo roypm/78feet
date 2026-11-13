@@ -1,7 +1,5 @@
-"use client";
-
 import { useEffect, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/spa/router";
 import { Moon, Sun, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";

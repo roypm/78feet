@@ -1,5 +1,3 @@
-"use client";
-
 import { openingIntervalsForDate, type BoxHoursConfig } from "@78feet/domain";
 import { cn } from "cn";
 import type { CalendarClass } from "@/lib/box/calendar";

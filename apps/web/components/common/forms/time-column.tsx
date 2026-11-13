@@ -1,5 +1,3 @@
-"use client";
-
 import { useId, useLayoutEffect, useRef, type KeyboardEvent } from "react";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";

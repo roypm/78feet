@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { Spinner } from "@/components/ui/spinner";
@@ -58,7 +56,7 @@ export function TeamTable({ staff, currentUserId, action, filters, emptyState }:
       });
       toast.success(active ? "Cuenta activada" : "Cuenta desactivada");
       setConfirmingPerson(null);
-      router.refresh();
+      router.refresh("staff");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar el estado");
     } finally {

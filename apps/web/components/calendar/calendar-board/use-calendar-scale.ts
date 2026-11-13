@@ -1,5 +1,3 @@
-"use client";
-
 import { useSyncExternalStore } from "react";
 import { PX_PER_HOUR, PX_PER_HOUR_LARGE, PX_PER_HOUR_MEDIUM } from "@/lib/box/column";
 

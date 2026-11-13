@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { verifyQueryPlans } from './performance.integration.ts';
-import { compareLegacyCatalog } from './catalog.integration.ts';
 import { recordPayment, patchPayment, deletePayment } from './payments.ts';
 import { createBox, renameBox } from './catalog.ts';
 import { saveProfileImage, readProfileImage, updatePreferences, changePaymentBox } from './profiles.ts';
@@ -24,7 +23,6 @@ try {
   await c.pool.query('DROP SCHEMA public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public');
   const migrate = () => execFileSync('pnpm',['--filter','@78feet/db','migrate'],{env:{...process.env,DATABASE_URL:url.toString()},stdio:'pipe'});
   migrate(); migrate();
-  await compareLegacyCatalog(c.pool);
   await seed(c.db); await seed(c.db);
   assert.equal((await c.pool.query('SELECT count(*)::int n FROM box')).rows[0].n,1);
   const indexes = (await c.pool.query("SELECT indexname FROM pg_indexes WHERE schemaname='public' AND indexdef LIKE '%WHERE%'")).rows.map(r=>r.indexname).sort();

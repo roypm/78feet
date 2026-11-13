@@ -1,16 +1,11 @@
 name: feet-local
 x-app: &app
+  image: feet-local-runtime:dev
   build:
     context: .
     dockerfile: infra/Dockerfile.dev
-  environment: &app-env
-    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
-    DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
-    JWT_SECRET: ${JWT_SECRET}
-    ADMIN_LOGIN_ID: ${ADMIN_LOGIN_ID}
-    ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-    CRON_SECRET: ${CRON_SECRET}
-    NEXT_TELEMETRY_DISABLED: '1'
+x-database: &database-env
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 services:
   db:
     image: postgres:17.6-bookworm
@@ -18,10 +13,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - '127.0.0.1:${DB_PORT}:5432'
-    volumes:
-      - dev-data:/var/lib/postgresql/data
+    ports: ['127.0.0.1:${DB_PORT}:5432']
+    volumes: [dev-data:/var/lib/postgresql/data]
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 2s
@@ -34,10 +27,8 @@ services:
       POSTGRES_USER: local_test
       POSTGRES_PASSWORD: local_test_password
       POSTGRES_DB: feet_test
-    ports:
-      - '127.0.0.1:${TEST_DB_PORT}:5432'
-    tmpfs:
-      - /var/lib/postgresql/data
+    ports: ['127.0.0.1:${TEST_DB_PORT}:5432']
+    tmpfs: [/var/lib/postgresql/data]
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U local_test -d feet_test']
       interval: 2s
@@ -45,17 +36,51 @@ services:
       retries: 30
   migrate:
     <<: *app
-    command: ['pnpm', '--filter', 'web', 'db:migrate']
+    environment: *database-env
+    command: ['pnpm', '--filter', '@78feet/db', 'migrate']
     depends_on:
-      db:
-        condition: service_healthy
+      db: {condition: service_healthy}
+  api:
+    <<: *app
+    environment:
+      <<: *database-env
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN}
+      MEMBER_AUTH_SECRET: ${MEMBER_AUTH_SECRET}
+      STAFF_AUTH_SECRET: ${STAFF_AUTH_SECRET}
+      NATIVE_ORIGINS: ${NATIVE_ORIGINS}
+      API_HOST: 0.0.0.0
+      API_PORT: '3001'
+    ports: ['127.0.0.1:${API_PORT}:3001']
+    command: ['pnpm', '--filter', '@78feet/api', 'start']
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ['CMD', 'node', '-e', 'fetch("http://127.0.0.1:3001/api/v1/ready").then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  worker:
+    <<: *app
+    environment: *database-env
+    command: ['pnpm', '--filter', '@78feet/worker', 'start']
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ['CMD', 'node', '-e', 'const fs=require("fs");if(Date.now()-Number(fs.readFileSync("/tmp/78feet-worker-ready","utf8"))>26*3600000)process.exit(1)']
+      interval: 30s
+      timeout: 5s
+      retries: 10
   web:
     <<: *app
-    ports:
-      - '127.0.0.1:${WEB_PORT}:3000'
+    environment:
+      API_INTERNAL_URL: http://api:3001
+    ports: ['127.0.0.1:${WEB_PORT}:3000']
+    command: ['pnpm', '--filter', 'web', 'dev']
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      api: {condition: service_healthy}
+      worker: {condition: service_started}
     healthcheck:
       test: ['CMD', 'node', '-e', 'fetch("http://127.0.0.1:3000/login").then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))']
       interval: 10s
@@ -67,27 +92,27 @@ services:
         - action: sync
           path: apps/web
           target: /workspace/apps/web
-          ignore: [node_modules/, .next/, '.env*', '*.tsbuildinfo', package.json]
+          ignore: [node_modules/, dist/, '.env*', '*.tsbuildinfo', package.json]
         - action: rebuild
           path: pnpm-lock.yaml
   seed:
     <<: *app
     profiles: [tools]
-    command: ['pnpm', '--filter', 'web', 'db:seed']
+    environment:
+      <<: *database-env
+      ADMIN_LOGIN_ID: ${ADMIN_LOGIN_ID}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    command: ['pnpm', '--filter', '@78feet/application', 'seed']
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      migrate: {condition: service_completed_successfully}
   test:
     <<: *app
     profiles: [test]
     environment:
-      <<: *app-env
-      DATABASE_URL: postgresql://local_test:local_test_password@db-test:5432/feet_test?schema=public
-      DIRECT_URL: postgresql://local_test:local_test_password@db-test:5432/feet_test?schema=public
-      TEST_DATABASE_URL: postgresql://local_test:local_test_password@db-test:5432/feet_test?schema=public
-    command: ['sh', '-c', 'pnpm --filter web db:migrate && pnpm test']
+      TEST_DATABASE_URL: postgresql://local_test:local_test_password@db-test:5432/feet_test
+    command: ['pnpm', 'verify:backend']
     depends_on:
-      db-test:
-        condition: service_healthy
+      db-test: {condition: service_healthy}
 volumes:
   dev-data:

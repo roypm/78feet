@@ -1,74 +1,49 @@
+import { useParams } from "react-router";
+import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/common/feedback/loading-state";
-import { Suspense } from "react";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
-import { notFound } from "next/navigation";
-import { requireStaff } from "@/lib/auth/current";
-import { getTraining } from "@/lib/box/trainings";
-import { BoxError } from "@/lib/box/errors";
-import { TrainingRead } from "@/components/trainings/training-read";
 import { TrainingDeleteButton } from "@/components/trainings/training-delete-button";
-import { Button } from "@/components/ui/button";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
+import { TrainingRead } from "@/components/trainings/training-read";
+import { getTraining } from "@/lib/server/queries";
+import { QueryBody, useAccountQuery } from "@/lib/spa/screen";
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
+const pending = (
+  <ModulePage>
+    <ModuleHeader title="Biblioteca" />
+    <ModuleBody>
+      <LoadingState variant="training" label="Cargando el entrenamiento…" />
+    </ModuleBody>
+  </ModulePage>
+);
+
+export default function Page() {
+  const { id = "" } = useParams();
+  const { account, query } = useAccountQuery(["training", id], () => getTraining(id));
   return (
-    <Suspense
-      fallback={
+    <QueryBody query={query} accountReady={account !== null} pending={pending} home="/staff/hoy" missing="staff">
+      {(training) => (
         <ModulePage>
-          <ModuleHeader title="Biblioteca" />
+          <ModuleHeader
+            title={training.name}
+            description={training.classType.name}
+            eyebrow={<StaffCrumbs items={[{ href: "/staff/biblioteca", label: "Biblioteca" }, { label: training.name }]} />}
+          />
           <ModuleBody>
-            <LoadingState variant="training" label="Cargando el entrenamiento…" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button nativeButton={false} variant="outline" className="min-h-11" render={<Link href={`/staff/biblioteca/${training.id}/editar`} />}>
+                Editar
+              </Button>
+              <TrainingDeleteButton trainingId={training.id} />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Se asigna desde la ficha de cada clase. Los cambios de nombre y contenido se reflejan en las clases vinculadas, también en las pasadas; al cambiar el tipo, las clases incompatibles pierden el plan.
+            </p>
+            <TrainingRead name={training.name} classTypeName={training.classType.name} phases={training.phases} showHeading={false} />
           </ModuleBody>
         </ModulePage>
-      }
-    >
-      <TrainingDetail params={params} />
-    </Suspense>
-  );
-}
-
-async function TrainingDetail({ params }: { params: Promise<{ id: string }> }) {
-  await requireStaff();
-  const { id } = await params;
-  let training;
-  try {
-    training = await getTraining(id, { includeAssignmentInfo: true });
-  } catch (error) {
-    if (error instanceof BoxError && error.status === 404) notFound();
-    throw error;
-  }
-  return (
-    <ModulePage>
-      <ModuleHeader
-        title={training.name}
-        description={training.classType.name}
-        eyebrow={
-          <StaffCrumbs
-            items={[
-              { href: "/staff/biblioteca", label: "Biblioteca" },
-              { label: training.name },
-            ]}
-          />
-        }
-      />
-      <ModuleBody>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button nativeButton={false} variant="outline" className="min-h-11" render={<Link href={`/staff/biblioteca/${training.id}/editar`} />}>
-            Editar
-          </Button>
-          <TrainingDeleteButton trainingId={training.id} />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Se asigna desde la ficha de cada clase. Los cambios de nombre y contenido se reflejan en las clases vinculadas, también en las pasadas; al cambiar el tipo, las clases incompatibles pierden el plan.
-        </p>
-        <TrainingRead
-          name={training.name}
-          classTypeName={training.classType.name}
-          phases={training.phases}
-          showHeading={false}
-        />
-      </ModuleBody>
-    </ModulePage>
+      )}
+    </QueryBody>
   );
 }

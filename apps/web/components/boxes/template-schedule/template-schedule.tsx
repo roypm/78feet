@@ -1,5 +1,3 @@
-"use client";
-
 import { EmptyState } from "@/components/common/feedback/empty-state";
 
 import { useState, type MouseEvent } from "react";

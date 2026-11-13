@@ -1,6 +1,6 @@
 # Plan de refactor de 78feet
 
-Fecha de corte: 12 de noviembre de 2026. Estado: R0, R1, R2 y R3 implementadas; evidencias R2 en §11 y cierre R3 en §14. R4 detenida por petición del usuario; migración de runtime pendiente.
+Estado actualizado: 13 de noviembre de 2026. R0–R6 completadas; cierre R3 en §14, R4 en §17, R5 en §18 y R6 en §19. Los cortes anteriores se conservan como historial; §19 describe el runtime vigente.
 
 ## 1. Encargo y decisiones recuperadas
 
@@ -195,16 +195,16 @@ No comenzar R7 antes de R6. Dentro de R5, cada módulo se entrega con consultas,
 
 ### Hito obligatorio: web recuperada
 
-- [ ] Socio, coach y admin realizan todos sus flujos actuales y rechazan acciones ajenas a su rol.
-- [ ] Calendarios, sedes, preferencia, horario, excepciones y borradores mantienen su semántica.
-- [ ] Reservas, cambios de tarifa, cupos, bonos y concurrencia pasan con Postgres real.
-- [ ] Socios, Equipo, Impagos, Cobros y Bibliotecas conservan filtros, orden, búsqueda local y páginas.
-- [ ] Imágenes privadas y opcionales, tema, vacíos, errores, foco, diálogos y navegación funcionan.
-- [ ] URLs actuales de producto siguen teniendo una ruta SPA directa válida; no se crean alias de legado.
-- [ ] Materialización funciona al reiniciar y ejecutar dos veces; no depende de Vercel Cron.
-- [ ] Instalación, migración, seed, tests, typecheck y build funcionan con instrucciones locales.
-- [ ] No quedan imports ni comandos activos de Next, Prisma o Neon; tampoco mocks usados como backend real.
-- [ ] Documentos vigentes describen el sistema implementado y distinguen Expo pendiente.
+- [x] Socio, coach y admin realizan todos sus flujos actuales y rechazan acciones ajenas a su rol.
+- [x] Calendarios, sedes, preferencia, horario, excepciones y borradores mantienen su semántica.
+- [x] Reservas, cambios de tarifa, cupos, bonos y concurrencia pasan con Postgres real.
+- [x] Socios, Equipo, Impagos, Cobros y Bibliotecas conservan filtros, orden, búsqueda local y páginas.
+- [x] Imágenes privadas y opcionales, tema, vacíos, errores, foco, diálogos y navegación funcionan.
+- [x] URLs actuales de producto siguen teniendo una ruta SPA directa válida; no se crean alias de legado.
+- [x] Materialización funciona al reiniciar y ejecutar dos veces; no depende de Vercel Cron.
+- [x] Instalación, migración, seed, tests, typecheck y build funcionan con instrucciones locales.
+- [x] No quedan imports ni comandos activos de Next, Prisma o Neon; tampoco mocks usados como backend real.
+- [x] Documentos vigentes describen el sistema implementado y distinguen Expo pendiente.
 
 ## 5. Cómo actualizar la documentación sin perder el contexto
 
@@ -395,3 +395,40 @@ Estos borradores no se activaron ni conectaron a Compose. Siguen activos únicam
 ## 16. Preparación de guardado solicitada
 
 El usuario autoriza commit y push del estado acumulado, con R3 cerrada y R4 detenida. Los ejemplos de entorno quedan sin valores conforme a `docs/git-flow.md`; Compose toma `infra/local.env`, ignorado por Git, preparado localmente desde el ejemplo. Antes del primer arranque en otro clon hay que copiar y completar ese archivo. Las evidencias publicables se conservan en `docs/refactor-r0-r1/resultados.md` y `docs/refactor-r3/verificacion.md`; los logs originales siguen locales e ignorados. Este ajuste no activa R4 ni inicia R5.
+
+
+## 17. R4 — API, identidad, contratos y worker completados
+
+Se completa el encargo mediante workflow 01 (SDD auto → implementación Ponytail full → break-ui + fix del acceso/contacto → convergencia con Ponytail off). [Entregas E0–E7, dependencias y aceptación](docs/refactor-r4/entregas.md); [evidencias reproducibles y límites](docs/refactor-r4/verificacion.md).
+
+Fastify sirve todas las operaciones anteriores salvo cron, retirado, y las lecturas que antes solo hacían RSC: 81 operaciones OpenAPI con ID único. Zod valida entradas y DTO públicos de salida; cliente generado reproducible con credenciales, abort, errores tipados y sin reintentar mutaciones. Perfiles/imágenes privadas, calendario/reservas, socios/tarifas/pagos, equipo, sedes/horario/tipos, plantillas/clases y biblioteca consumen los casos de uso/transacciones R3.
+
+Better Auth/Drizzle es la única autenticación vigente: ámbitos member/staff, selector Socio/Equipo, correo real obligatorio, contraseñas independientes, sesión absoluta 90 días, bloqueo persistido, rol/estado por petición y revocación servidor. Se retiraron JWT/argon2 propios y handlers/servicios Prisma. Next conserva únicamente la presentación y consulta Fastify por HTTP; el cambio a SPA corresponde a R5.
+
+Worker independiente con ejecución al arrancar y 03:15 Europe/Madrid, liderazgo PostgreSQL, reintentos, cierre y replay idempotente comprobados sin API HTTP. Se eliminaron ruta y configuración Vercel Cron. Compose migra Drizzle, siembra admin Better Auth y arranca DB/API/worker/web; web no recibe secretos DB/auth.
+
+Pasan batería PostgreSQL completa sin omisiones (dominio 81 tests, aplicación/catálogo, API con 89 denegaciones de rol, worker y web 103 tests), typecheck, generación reproducible de contratos, build/CSS y smoke HTTP/SSR de 34 lecturas con cuentas por rol, fichas, biblioteca/clase y reserva real. Carreras de login/reset/baja, última plaza/cupo/bono, errores, imágenes privadas y materialización independiente verificadas. Caída real de PostgreSQL: API viva con health 200/readiness 503 y recuperación a 200 sin reinicio; worker recupera y libera liderazgo al parar. Los comandos y el detalle de cada garantía están en la evidencia R4.
+
+**R4 cerrada.** Pendientes explícitos en ese corte: lint global heredado (19 errores/1 warning; sin supresiones), validación visual completa/mediciones y limpieza histórica R6, SPA R5, dispositivo Expo R7 y hosting/backups R8. No se declara cumplido todavía el hito «web recuperada» de R6 ni se marcan sus checks globales. El smoke HTTP no acredita interacción visual ni Android. Sin recursos remotos modificados y sin commit ni push de ese encargo. El estado de la web posterior está en §18. stop ponytail / normal mode.
+
+## 18. R5 — SPA sobre la API
+
+Workflow 01 (SDD auto, Ponytail full en la implementación, convergencia con Ponytail off). No se inicia R6 ni Expo. No hay commit ni push.
+
+`apps/web` deja de ser Next y pasa a ser la SPA Vite 8.3.8 + React Router 8.5.1. TanStack Query 5.107.1 posee las lecturas; las claves incluyen cuenta y los filtros de la URL. Salir o entrar vacía la caché. Las mutaciones no se reintentan e invalidan el alcance que cambian: reserva (calendario, detalle, reservas, consumo), tarifa, pago, plantilla, horario/catálogo, roster y biblioteca. React Hook Form + Zod cubren el acceso y las altas de socio, equipo y sede, con el mensaje bajo el campo, los valores conservados si falla y el envío bloqueado. El resto de editores conserva esa misma conducta de campo con la validación que ya tenían. Las rutas de producto se mantienen y se dividen en imports dinámicos. La web no importa base de datos ni secretos; el navegador llama a `/api` y Vite lo reenvía a Fastify.
+
+Entregas: acceso, shell y perfil; calendario, reservas, historial, biblioteca y tarifa del socio; Hoy, Semana, excepciones y ficha de clase; socios, pagos, impagos y cobros; equipo; sedes, horario, tipos, tarifas, plantilla y biblioteca de staff. Cada una carga, muestra error o vacío, y respeta el rol en la ruta.
+
+Comprobado en este cierre: `pnpm --filter web typecheck`; `pnpm --filter web test` (104 tests); `pnpm --filter web build` con CSS de producción compilado y rutas en chunks separados. El contenedor `web` rehecho responde 200 en `/login` y en las URLs de producto; el proxy admite el login de admin, Hoy, el rechazo de resumen de socio (403) y el logout. No hubo navegador disponible para recorrer escritorio, móvil, teclado ni temas. No se declara el hito «web recuperada» de R6: siguen pendientes la retirada de restos Neon/Prisma históricos, el lint global que R4 dejó heredado, las mediciones y esa pasada visual. stop ponytail / normal mode.
+
+## 19. R6 — corte y web recuperada
+
+Workflow 01 (SDD auto, Ponytail full solo en la implementación, convergencia con Ponytail off). No se inicia Expo. No hay commit, push ni despliegue. No se borran recursos remotos.
+
+Se retiran del árbol activo Prisma (esquema, migraciones, seed y la comparación que las reejecutaba), `neon.ts`, `.neon`, las dependencias `@neon/*` y los restos de Next en lint, directivas `use client`, prefetch ignorado e ignores. La web queda en ESLint sin `eslint-config-next`. El lockfile regenerado no instala Next, Prisma client ni Neon. Better Auth sigue trayendo `@better-auth/prisma-adapter` y Kysely porque su paquete los declara; 78feet no los importa y usa el adapter Drizzle.
+
+La matriz R0 sigue cubierta por la API salvo el cron, que responde 404. El smoke local comprueba el shell de la SPA, las denegaciones por rol y una reserva real. La batería de `feet_test` recrea la base, migra dos veces, siembra y corre las carreras. El worker del Compose materializa con `created: 0` sobre datos ya presentes.
+
+Cifras, comandos y límites: [verificación R6](docs/refactor-r6/verificacion.md). R0 no aportó una línea base de bytes ni de latencia; no se inventa el antes. La precarga inicial pesa 270363 B gzip y no incluye los editores. En el navegador se recorrieron login de admin, Equipo, redirección de rol, Hoy vacío en pantalla estrecha, foco, tema, un diálogo y el logout.
+
+**R6 cerrada.** El hito «web recuperada» queda cumplido con los límites escritos en la evidencia. Expo es R7. El alojamiento es R8. stop ponytail / normal mode.

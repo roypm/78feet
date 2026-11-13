@@ -12,16 +12,16 @@
     "local:down": "docker compose --project-name feet-local --env-file infra/local.env --profile test --profile tools down",
     "local:logs": "docker compose --project-name feet-local --env-file infra/local.env logs -f",
     "local:migrate": "docker compose --project-name feet-local --env-file infra/local.env run --rm migrate",
-    "local:seed": "docker compose --project-name feet-local --env-file infra/local.env run --rm seed",
+    "local:seed": "docker compose --project-name feet-local --env-file infra/local.env run --build --rm seed",
     "local:test": "docker compose --project-name feet-local --env-file infra/local.env run --build --rm test",
     "local:reset": "node infra/reset-local.mjs",
-    "test:db": "pnpm --filter @78feet/db test && pnpm --filter @78feet/application test"
+    "test:db": "pnpm --filter @78feet/db test && pnpm --filter @78feet/application test",
+    "verify:backend": "pnpm --filter @78feet/domain test && pnpm test:db && pnpm --filter @78feet/api test && pnpm --filter @78feet/worker test && pnpm --filter web test",
+    "contracts:generate": "pnpm --filter @78feet/api openapi && pnpm --filter @78feet/api-client generate",
+    "contracts:check": "node infra/check-contracts.mjs",
+    "local:smoke": "node infra/smoke-local.mjs"
   },
   "engines": {
     "node": ">=22"
-  },
-  "dependencies": {
-    "@neon/config": "^1.9.5",
-    "@neon/env": "^1.6.6"
   }
 }

@@ -1,5 +1,3 @@
-"use client";
-
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { useSidebarLiquid } from "@/components/common/navigation/sidebar-liquid-menu";
 import type { LucideIcon } from "lucide-react";

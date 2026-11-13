@@ -1,5 +1,3 @@
-"use client";
-
 import { PendingButton } from "@/components/common/feedback/pending-button";
 import { EmptyState } from "@/components/common/feedback/empty-state";
 
@@ -236,7 +234,7 @@ function TrainingEditor({ types, training }: TrainingFormProps) {
       );
       setConfirmation(null);
       router.push(`/staff/biblioteca/${id}`);
-      router.refresh();
+      router.refresh("training");
     } catch (error) {
       if (error instanceof ApiError && error.code === "CONFIRM_REQUIRED") {
         setConfirmation({ mode: "detach", description: error.message });

@@ -114,12 +114,12 @@ Las listas paginadas comparten `ListPagination`: rango y total a la izquierda; A
 ### Estados de interfaz
 
 - Los listados usan siempre `ListEmptyBlock` cuando no tienen filas: ancho completo, altura mínima de 144 px que crece con el contenido, fondo de tabla, borde sólido, mensaje centrado y sin icono decorativo. Búsquedas sin coincidencias usan el mismo bloque mediante `SearchEmptyState`. La barra de búsqueda, filtros y alta permanece fuera y en su posición; no se muestran cabeceras de columnas ni celdas contenedoras cuando faltan filas. Evitar tarjetas anidadas, explicaciones redundantes y botones de alta duplicados. Un filtro sin resultados ofrece «Restablecer filtros» directamente y conserva la ordenación; una búsqueda sin coincidencias ofrece «Limpiar búsqueda» y devuelve el foco al campo. Si no hay tareas pendientes, no se añade una acción artificial. `EmptyState` queda para avisos de configuración, errores y secciones internas; su variante compacta se usa dentro de formularios y calendarios. Los enlaces de administración dependen del rol.
-- `LoadingState` usa `Skeleton` con estructura de lista, tabla, calendario, ficha, formulario, entrenamiento o clase. Tiene un único estado accesible de carga; los placeholders son decorativos. Se conservan las fronteras de `Suspense` de cada módulo.
+- `LoadingState` usa `Skeleton` con estructura de lista, tabla, calendario, ficha, formulario, entrenamiento o clase. Tiene un único estado accesible de carga; los placeholders son decorativos. Cada ruta espera su consulta y muestra ese esqueleto; un fallo de lectura ofrece volver a cargar sin tratar el error como lista vacía.
 - `PendingButton` reserva espacio para las dos etiquetas, muestra spinner y expone `aria-busy`. `useActionFeedback` evita peticiones duplicadas y mantiene el estado pendiente durante la navegación o el refresco posterior. Los formularios bloquean sus campos durante el envío y conservan los valores ante errores.
-- `NavigationLink` conserva el comportamiento de Next Link y muestra una indicación local si la navegación tarda. La selección de filtros sigue correspondiendo al contenido mostrado hasta completar el cambio.
+- `NavigationLink` usa React Router y muestra una indicación local si la navegación tarda. La selección de filtros sigue correspondiendo al contenido mostrado hasta completar el cambio.
 - El hover usa `pointer-hover:` (`hover: hover` y `pointer: fine`); siempre hay foco visible y respuesta táctil. Las filas informativas no aparentan navegación. `prefers-reduced-motion` desactiva el pulso de skeletons, el giro de spinners y las animaciones de overlays sin ocultar las etiquetas de estado.
 - `ResourceImage` reserva la geometría mediante las clases del módulo y muestra una superficie neutra si falta o falla la imagen. Los errores de carga tienen una pantalla de recuperación; no se presentan como listas vacías.
-- Tailwind se procesa con `@tailwindcss/postcss` tanto en desarrollo como en el build con webpack.
+- Tailwind se procesa con `@tailwindcss/postcss` en el desarrollo y el build de Vite. El script de CSS comprueba que el artefacto de producción no deja directivas sin compilar.
 
 ### Menú lateral
 
@@ -129,8 +129,8 @@ Las listas paginadas comparten `ListPagination`: rango y total a la izquierda; A
 - Pie fijo con cambio de tema y Cerrar sesión en una línea. El contenido central del menú tiene scroll si falta altura; cabecera y pie permanecen accesibles. En móvil se abre como panel y se cierra al navegar o usar Escape.
 - El menú recuerda su estado expandido por navegador. El enlace activo expone `aria-current`; los controles tienen etiquetas en español, foco visible y ayudas al plegarse. Los detalles de clase del staff conservan la sección de origen (Hoy, Semana o Excepciones); una entrada directa usa Semana.
 
-## Transición de runtime acordada R1
+## Runtime web
 
-El inventario de componentes anterior describe la web Next actual. Marca 77 FEET, assets, tokens, fuente de sistema, geometría, accesibilidad y comportamientos se conservan en R5; no hay rediseño. `NavigationLink` pasará a React Router; las fronteras de carga/errores de servidor pasarán a Query y rutas SPA. Deben conservar foco, historial, indicación pendiente, skeletons y separación entre error y vacío. Tailwind/PostCSS con webpack es actual; Vite lo sustituirá al portar, con comprobación de CSS de producción. No se afirma que ya esté implementado.
+La web vigente es la SPA Vite. Marca 77 FEET, assets, tokens, fuente de sistema, geometría y accesibilidad se conservan. `NavigationLink` es React Router; la carga y los errores de cada pantalla los resuelven TanStack Query y las rutas. Se conservan foco, historial, indicación pendiente, skeletons y la separación entre error y vacío. Tailwind se compila con PostCSS en Vite y el build comprueba el CSS de producción.
 
 Expo R7 para todos los roles comparte identidad visual y reglas de interacción; usa componentes nativos propios y tokens equivalentes, sin asumir que shadcn/HTML se reutiliza. Se comprobarán tamaños táctiles, áreas seguras, tema y lector de pantalla en dispositivo. Esta fase documental no modifica UI ni requiere un toggle de stress-test.

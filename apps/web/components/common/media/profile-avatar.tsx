@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { cn } from "cn";
 
@@ -42,7 +40,6 @@ export function ProfileAvatar({
     >
       {showImage ? (
         // The avatar is private and served by the app's authenticated image route.
-        // eslint-disable-next-line @next/next/no-img-element
         <img src={imageUrl!} alt="" className="size-full object-cover" onError={() => setFailedUrl(imageUrl!)} />
       ) : (
         initials(name) || "?"

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { TeamTable } from "@/components/team/team-table";
 import { UnpaidMembersTable } from "@/components/payments/unpaid-members-table";

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Gestión del box" />
+    <meta name="theme-color" content="#d8d8d8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#303030" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <title>78feet</title>
+    <script>
+      (function () {
+        var match = document.cookie.match(/(?:^|; )theme=(system|light|dark)(?:;|$)/);
+        var theme = match ? match[1] : "system";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

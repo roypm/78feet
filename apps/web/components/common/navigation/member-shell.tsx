@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { BookOpen, Calendar, CreditCard, History, Ticket } from "lucide-react";
 import { AppShell, type NavigationGroup } from "@/components/common/navigation/app-shell";

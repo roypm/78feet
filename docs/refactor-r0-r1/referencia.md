@@ -1,5 +1,7 @@
 # R0 — referencia verificable (12/11/2026)
 
+Inventario del árbol anterior al corte. Las rutas de archivo de esta página describen ese corte y se retiraron en R6. La matriz de comportamiento sigue siendo el criterio de la web recuperada; la API vigente la cubre salvo `/api/v1/cron/materialize`, sustituido por el worker.
+
 Referencia: `fb8c5e4ccf83c0e6aeb2cc15d7e0cf72f1933ab7`. Árbol inicial limpio: `git status --porcelain=v1` y `git diff --stat` sin salida. No existen las mejoras locales sin commit que presumía el plan; están en la referencia actual. Node 22.23.1; pnpm 11.16.0. No se hicieron resets ni migraciones.
 
 ## API actual

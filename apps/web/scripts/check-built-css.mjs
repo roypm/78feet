@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-// A successful Next build alone does not guarantee that Tailwind was processed.
-const directory = join(process.cwd(), ".next/static/css");
+// A successful Vite build alone does not guarantee that Tailwind was processed.
+const directory = join(process.cwd(), "dist/assets");
 const files = (await readdir(directory)).filter((file) => file.endsWith(".css"));
 assert.ok(files.length, "El build no generó hojas de estilo");
 const css = (await Promise.all(files.map((file) => readFile(join(directory, file), "utf8")))).join("\n");

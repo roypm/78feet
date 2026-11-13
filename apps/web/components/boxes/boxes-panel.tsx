@@ -1,6 +1,7 @@
-"use client";
-
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createBoxSchema } from "@78feet/domain";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
@@ -13,6 +14,30 @@ import { FormDialog } from "@/components/common/dialogs/form-dialog";
 import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { ModulePrimaryAction } from "@/components/common/layout/module-page";
 
+function BoxNameForm({
+  initialName,
+  pending,
+  submitLabel,
+  onCancel,
+  onSave,
+}: {
+  initialName: string;
+  pending: boolean;
+  submitLabel: string;
+  onCancel: () => void;
+  onSave: (values: { name: string }) => void;
+}) {
+  const form = useForm({ resolver: zodResolver(createBoxSchema), defaultValues: { name: initialName } });
+  return (
+    <form onSubmit={form.handleSubmit(onSave)} className="flex flex-col gap-4" noValidate>
+      <fieldset disabled={pending} aria-busy={pending} className="contents">
+        <FormInput label="Nombre" maxLength={40} error={form.formState.errors.name?.message} {...form.register("name")} />
+        <FormActions pending={pending} onCancel={onCancel} submitLabel={submitLabel} />
+      </fieldset>
+    </form>
+  );
+}
+
 export function BoxesPanel({ boxes }: { boxes: BoxSummary[] }) {
   const { router, pending, begin, setPending } = useActionFeedback();
   const [open, setOpen] = useState(false);
@@ -23,19 +48,16 @@ export function BoxesPanel({ boxes }: { boxes: BoxSummary[] }) {
     setOpen(true);
   }
 
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
+  async function save(values: { name: string }) {
     if (!begin()) return;
     try {
       await api(editing ? `/api/v1/admin/boxes/${editing.id}` : "/api/v1/admin/boxes", {
         method: editing ? "PATCH" : "POST",
-        body: JSON.stringify({ name: String(data.get("name")) }),
+        body: JSON.stringify(values),
       });
       toast.success(editing ? "Sede renombrada" : "Sede creada");
       setOpen(false);
-      router.refresh();
+      router.refresh("catalog");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar la sede");
     } finally {
@@ -82,13 +104,14 @@ export function BoxesPanel({ boxes }: { boxes: BoxSummary[] }) {
       <FormDialog open={open} onOpenChange={setOpen} busy={pending}
         title={editing ? "Renombrar sede" : "Añadir sede"}
         description={editing ? "El cambio de nombre no modifica su horario, plantilla ni reservas." : "La sede nace con plantilla vacía y horario de 07:00 a 21:00."}>
-        <form key={editing ? `${editing.id}:${editing.name}` : "new"} onSubmit={(event) => void save(event)} className="flex flex-col gap-4">
-          <fieldset disabled={pending} aria-busy={pending} className="contents">
-            <FormInput label="Nombre" name="name" required maxLength={40} defaultValue={editing?.name ?? ""} />
-            <FormActions pending={pending} onCancel={() => setOpen(false)}
-              submitLabel={editing ? "Guardar cambios" : "Añadir sede"} />
-          </fieldset>
-        </form>
+        <BoxNameForm
+          key={editing ? `${editing.id}:${editing.name}` : "new"}
+          initialName={editing?.name ?? ""}
+          pending={pending}
+          submitLabel={editing ? "Guardar cambios" : "Añadir sede"}
+          onCancel={() => setOpen(false)}
+          onSave={(values) => void save(values)}
+        />
       </FormDialog>
     </section>
   );

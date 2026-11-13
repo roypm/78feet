@@ -1,5 +1,3 @@
-"use client";
-
 import { FormActions } from "@/components/common/forms/form-actions";
 import { PaymentFields } from "./payment-fields";
 
@@ -44,7 +42,7 @@ function PaymentEditDialog({
       });
       toast.success("Pago actualizado");
       onOpenChange(false);
-      router.refresh();
+      router.refresh("payment");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar");
     } finally {
@@ -89,7 +87,7 @@ function PaymentRowActions({ payment }: { payment: MemberPaymentRow }) {
       await api(`/api/v1/admin/payments/${payment.id}`, { method: "DELETE" });
       toast.success("Pago eliminado");
       setDeleteOpen(false);
-      router.refresh();
+      router.refresh("payment");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo eliminar");
     } finally {

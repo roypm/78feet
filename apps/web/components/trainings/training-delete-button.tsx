@@ -1,5 +1,3 @@
-"use client";
-
 
 import { useState } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
@@ -24,7 +22,7 @@ export function TrainingDeleteButton({ trainingId }: { trainingId: string }) {
       setConfirmation(null);
       toast.success("Entrenamiento borrado");
       router.push("/staff/biblioteca");
-      router.refresh();
+      router.refresh("training");
     } catch (error) {
       if (error instanceof ApiError && error.code === "CONFIRM_REQUIRED") {
         setConfirmation({

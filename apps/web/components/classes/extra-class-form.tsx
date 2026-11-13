@@ -1,5 +1,3 @@
-"use client";
-
 import { FormActions } from "@/components/common/forms/form-actions";
 import { TimePicker } from "@/components/common/forms/time-picker";
 import { DatePicker } from "@/components/common/forms/date-picker";
@@ -47,7 +45,7 @@ export function ExtraClassForm({
       toast.success("Clase extra creada");
       setOpen(false);
       router.push(`/staff/clases/${created.id}?desde=excepciones`);
-      router.refresh();
+      router.refresh("schedule");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo crear");
     } finally {

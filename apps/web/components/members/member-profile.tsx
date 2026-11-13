@@ -1,5 +1,3 @@
-"use client";
-
 import { FormActions } from "@/components/common/forms/form-actions";
 
 import { PendingButton } from "@/components/common/feedback/pending-button";
@@ -18,7 +16,13 @@ import {
   quotaPeriodForConsumption,
   usesPeriodicQuota,
 } from "@78feet/domain";
-import { formatAvailableQuota, displayPhone, emptyField, formatPrice, memberFullName } from "@/lib/box/format";
+import {
+  formatAvailableQuota,
+  displayPhone,
+  emptyField,
+  formatPrice,
+  memberFullName,
+} from "@/lib/box/format";
 import { MarkPaidButton } from "@/components/payments/mark-paid-button";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -27,7 +31,10 @@ import { FormInput } from "@/components/common/forms/form-control";
 import { FormSelect } from "@/components/common/forms/form-select";
 import { FormDialog } from "@/components/common/dialogs/form-dialog";
 import { ConfirmDialog } from "@/components/common/dialogs/confirm-dialog";
-import { ConsumoGestionDialog, BonoGestionDialog } from "@/components/members/member-quota-gestion";
+import {
+  ConsumoGestionDialog,
+  BonoGestionDialog,
+} from "@/components/members/member-quota-gestion";
 import { cn } from "cn";
 import { ProfileAvatar } from "@/components/common/media/profile-avatar";
 
@@ -74,10 +81,19 @@ function ProfileSection({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-lg bg-card p-4 ring-1 ring-foreground/10", className)}>
+    <section
+      className={cn(
+        "rounded-lg bg-card p-4 ring-1 ring-foreground/10",
+        className,
+      )}
+    >
       <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <h2 className="text-sm font-medium leading-snug">{title}</h2>
-        {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
+        {action ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {action}
+          </div>
+        ) : null}
       </div>
       {children}
     </section>
@@ -104,7 +120,11 @@ function ConsumoRow({
   limit: number | null;
   adjustment: number;
 }) {
-  const value = <span className="tabular-nums">{formatAvailableQuota(used, limit, adjustment)}</span>;
+  const value = (
+    <span className="tabular-nums">
+      {formatAvailableQuota(used, limit, adjustment)}
+    </span>
+  );
 
   return <FieldRow label={label} value={value} />;
 }
@@ -139,9 +159,11 @@ function MemberDetailsDialog({ member, feedback }: MemberActionProps) {
       });
       toast.success("Datos del socio actualizados");
       setOpen(false);
-      router.refresh();
+      router.refresh("member");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo guardar",
+      );
     } finally {
       setPending(false);
     }
@@ -153,14 +175,22 @@ function MemberDetailsDialog({ member, feedback }: MemberActionProps) {
       onOpenChange={(open) => setOpen(open)}
       busy={pending}
       trigger={
-        <Button type="button" variant="outline" className="min-h-11" disabled={pending}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          disabled={pending}
+        >
           Editar datos
         </Button>
       }
       title="Editar datos del socio"
       description="Nombre, DNI, teléfono y email. Si cambiás el DNI, también cambia el usuario de acceso."
     >
-      <form onSubmit={(event) => void saveProfile(event)} className="flex flex-col gap-4">
+      <form
+        onSubmit={(event) => void saveProfile(event)}
+        className="flex flex-col gap-4"
+      >
         <fieldset disabled={pending} aria-busy={pending} className="contents">
           <FormInput
             label="Nombre"
@@ -176,9 +206,27 @@ function MemberDetailsDialog({ member, feedback }: MemberActionProps) {
             defaultValue={member.lastName}
             autoComplete="family-name"
           />
-          <FormInput label="DNI" name="dni" required defaultValue={member.dni ?? member.loginId} />
-          <FormInput label="Teléfono" name="phone" type="tel" defaultValue={member.phone ?? ""} autoComplete="tel" />
-          <FormInput label="Email" name="email" type="email" defaultValue={member.email ?? ""} autoComplete="email" />
+          <FormInput
+            label="DNI"
+            name="dni"
+            required
+            defaultValue={member.dni ?? member.loginId}
+          />
+          <FormInput
+            label="Teléfono"
+            name="phone"
+            type="tel"
+            defaultValue={member.phone ?? ""}
+            autoComplete="tel"
+          />
+          <FormInput
+            label="Email"
+            name="email"
+            type="email"
+            required
+            defaultValue={member.email ?? ""}
+            autoComplete="email"
+          />
           <FormActions
             pending={pending}
             onCancel={() => setOpen(false)}
@@ -210,7 +258,9 @@ function MemberPasswordDialog({ member, feedback }: MemberActionProps) {
       formElement.reset();
       setOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo resetear");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo resetear",
+      );
     } finally {
       setPending(false);
     }
@@ -222,14 +272,22 @@ function MemberPasswordDialog({ member, feedback }: MemberActionProps) {
       onOpenChange={(open) => setOpen(open)}
       busy={pending}
       trigger={
-        <Button type="button" variant="outline" className="min-h-11" disabled={pending || !active}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          disabled={pending || !active}
+        >
           Resetear contraseña
         </Button>
       }
       title="Resetear contraseña"
       description="Definí la nueva contraseña que usará el socio para entrar."
     >
-      <form onSubmit={(event) => void resetPassword(event)} className="flex flex-col gap-4">
+      <form
+        onSubmit={(event) => void resetPassword(event)}
+        className="flex flex-col gap-4"
+      >
         <fieldset disabled={pending} aria-busy={pending} className="contents">
           <FormInput
             label="Nueva contraseña"
@@ -251,7 +309,11 @@ function MemberPasswordDialog({ member, feedback }: MemberActionProps) {
   );
 }
 
-function MemberTariffDialog({ member, feedback, tariffs }: MemberActionProps & { tariffs: Tariff[] }) {
+function MemberTariffDialog({
+  member,
+  feedback,
+  tariffs,
+}: MemberActionProps & { tariffs: Tariff[] }) {
   const { router, pending, begin, setPending } = feedback;
   const [open, setOpen] = useState(false);
   const [tariffConfirmation, setTariffConfirmation] = useState<{
@@ -273,18 +335,25 @@ function MemberTariffDialog({ member, feedback, tariffs }: MemberActionProps & {
     const { tariffId, hasMembership } = tariffConfirmation;
     if (!begin()) return;
     try {
-      const result = await api<{ cancelledBookingCount: number }>(`/api/v1/admin/members/${member.id}/tariff`, {
-        method: "POST",
-        body: JSON.stringify({ tariffId }),
-      });
+      const result = await api<{ cancelledBookingCount: number }>(
+        `/api/v1/admin/members/${member.id}/tariff`,
+        {
+          method: "POST",
+          body: JSON.stringify({ tariffId }),
+        },
+      );
       toast.success(
-        hasMembership ? `Tarifa actualizada. ${result.cancelledBookingCount} reservas canceladas.` : "Tarifa asignada.",
+        hasMembership
+          ? `Tarifa actualizada. ${result.cancelledBookingCount} reservas canceladas.`
+          : "Tarifa asignada.",
       );
       setTariffConfirmation(null);
       setOpen(false);
-      router.refresh();
+      router.refresh("tariff");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo cambiar");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo cambiar",
+      );
     } finally {
       setPending(false);
     }
@@ -309,7 +378,11 @@ function MemberTariffDialog({ member, feedback, tariffs }: MemberActionProps & {
         </Button>
       }
       title={
-        tariffConfirmation ? "Confirmar cambio de tarifa" : member.membership ? "Cambiar tarifa" : "Asignar tarifa"
+        tariffConfirmation
+          ? "Confirmar cambio de tarifa"
+          : member.membership
+            ? "Cambiar tarifa"
+            : "Asignar tarifa"
       }
       description={
         tariffConfirmation
@@ -322,7 +395,8 @@ function MemberTariffDialog({ member, feedback, tariffs }: MemberActionProps & {
       {tariffConfirmation ? (
         <>
           <p className="font-medium">
-            {assignable.find((item) => item.id === tariffConfirmation.tariffId)?.name ?? "Tarifa seleccionada"}
+            {assignable.find((item) => item.id === tariffConfirmation.tariffId)
+              ?.name ?? "Tarifa seleccionada"}
           </p>
           <DialogFooter>
             <Button
@@ -336,19 +410,26 @@ function MemberTariffDialog({ member, feedback, tariffs }: MemberActionProps & {
             </Button>
             <PendingButton
               type="button"
-              variant={tariffConfirmation.hasMembership ? "destructive" : "default"}
+              variant={
+                tariffConfirmation.hasMembership ? "destructive" : "default"
+              }
               className="min-h-11"
               disabled={pending}
               onClick={() => void confirmTariffChange()}
               pending={pending}
               pendingLabel={"Guardando…"}
             >
-              {tariffConfirmation.hasMembership ? "Cambiar y cancelar reservas" : "Asignar tarifa"}
+              {tariffConfirmation.hasMembership
+                ? "Cambiar y cancelar reservas"
+                : "Asignar tarifa"}
             </PendingButton>
           </DialogFooter>
         </>
       ) : (
-        <form onSubmit={(event) => void changeTariff(event)} className="flex flex-col gap-4">
+        <form
+          onSubmit={(event) => void changeTariff(event)}
+          className="flex flex-col gap-4"
+        >
           <fieldset disabled={pending} aria-busy={pending} className="contents">
             <FormSelect
               label="Tarifa"
@@ -399,7 +480,9 @@ function MemberPaymentBoxForm({
       className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
       onSubmit={(event) => {
         event.preventDefault();
-        const paymentBoxId = String(new FormData(event.currentTarget).get("paymentBoxId"));
+        const paymentBoxId = String(
+          new FormData(event.currentTarget).get("paymentBoxId"),
+        );
         if (!begin()) return;
         void api(`/api/v1/admin/members/${member.id}/payment-box`, {
           method: "POST",
@@ -407,10 +490,14 @@ function MemberPaymentBoxForm({
         })
           .then(() => {
             toast.success("Box de pago actualizado");
-            router.refresh();
+            router.refresh("member");
           })
           .catch((error: unknown) => {
-            toast.error(error instanceof Error ? error.message : "No se pudo cambiar el box");
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : "No se pudo cambiar el box",
+            );
           })
           .finally(() => setPending(false));
       }}
@@ -424,14 +511,24 @@ function MemberPaymentBoxForm({
         defaultValue={member.paymentBoxId ?? boxes[0]?.id ?? ""}
         options={boxes.map((box) => ({ value: box.id, label: box.name }))}
       />
-      <PendingButton type="submit" variant="outline" className="min-h-11" pending={pending} pendingLabel="Guardando…">
+      <PendingButton
+        type="submit"
+        variant="outline"
+        className="min-h-11"
+        pending={pending}
+        pendingLabel="Guardando…"
+      >
         Guardar
       </PendingButton>
     </form>
   );
 }
 
-function MemberStatusActions({ member, feedback, isAdmin }: MemberActionProps & { isAdmin: boolean }) {
+function MemberStatusActions({
+  member,
+  feedback,
+  isAdmin,
+}: MemberActionProps & { isAdmin: boolean }) {
   const { router, pending, begin, setPending } = feedback;
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const active = member.status === "active";
@@ -445,9 +542,11 @@ function MemberStatusActions({ member, feedback, isAdmin }: MemberActionProps & 
       setConfirmDeactivate(false);
       toast.success("Socio dado de baja");
       router.push("/staff/socios?estado=baja");
-      router.refresh();
+      router.refresh("tariff");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo dar de baja");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo dar de baja",
+      );
     } finally {
       setPending(false);
     }
@@ -460,9 +559,11 @@ function MemberStatusActions({ member, feedback, isAdmin }: MemberActionProps & 
         method: "POST",
       });
       toast.success("Socio reactivado. Asigná una tarifa si hace falta.");
-      router.refresh();
+      router.refresh("member");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo reactivar");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo reactivar",
+      );
     } finally {
       setPending(false);
     }
@@ -497,7 +598,8 @@ function MemberStatusActions({ member, feedback, isAdmin }: MemberActionProps & 
             Dar de baja
           </Button>
           <p className="mt-2 text-sm text-muted-foreground">
-            Desactiva la cuenta y cancela reservas futuras. La ficha se conserva en «Dados de baja».
+            Desactiva la cuenta y cancela reservas futuras. La ficha se conserva
+            en «Dados de baja».
           </p>
         </div>
       ) : null}
@@ -536,21 +638,28 @@ export function MemberProfile({
   const bonoPacks = tariffs
     .filter(
       (tariff) =>
-        tariff.active && tariff.consumptionModel === "pack" && tariff.packClasses != null && tariff.packClasses > 0,
+        tariff.active &&
+        tariff.consumptionModel === "pack" &&
+        tariff.packClasses != null &&
+        tariff.packClasses > 0,
     )
     .sort((left, right) => (left.packClasses ?? 0) - (right.packClasses ?? 0));
   const active = member.status === "active";
   const { tariff, quota } = summary;
   const directedAdjustment = quota.directedAdjustment ?? 0;
   const openAdjustment = quota.openAdjustment ?? 0;
-  const canAdjustQuota = !isUnlimitedQuota(quota.directedLimit) || !isUnlimitedQuota(quota.openLimit);
+  const canAdjustQuota =
+    !isUnlimitedQuota(quota.directedLimit) ||
+    !isUnlimitedQuota(quota.openLimit);
   const periodText = quota.period === "month" ? "Este mes" : "Esta semana";
   const periodLabel = quota.periodLabel ?? "";
   const showBonoSection =
     (tariff && usesPeriodicQuota(tariff.consumptionModel)) ||
     tariff?.consumptionModel === "pack" ||
     quota.packBalance > 0;
-  const showConsumosSection = tariff ? usesPeriodicQuota(tariff.consumptionModel) : false;
+  const showConsumosSection = tariff
+    ? usesPeriodicQuota(tariff.consumptionModel)
+    : false;
 
   const paymentsHistoryLink = (
     <Link
@@ -573,7 +682,9 @@ export function MemberProfile({
             action={
               <>
                 <MemberDetailsDialog member={member} feedback={feedback} />
-                {active ? <MemberPasswordDialog member={member} feedback={feedback} /> : null}
+                {active ? (
+                  <MemberPasswordDialog member={member} feedback={feedback} />
+                ) : null}
               </>
             }
           >
@@ -582,10 +693,15 @@ export function MemberProfile({
                 name={memberFullName(member.firstName, member.lastName)}
                 imageUrl={member.profileImageUrl}
               />
-              <span className="font-medium">{memberFullName(member.firstName, member.lastName)}</span>
+              <span className="font-medium">
+                {memberFullName(member.firstName, member.lastName)}
+              </span>
             </div>
             <dl className="flex flex-col gap-3">
-              <FieldRow label="Nombre" value={memberFullName(member.firstName, member.lastName)} />
+              <FieldRow
+                label="Nombre"
+                value={memberFullName(member.firstName, member.lastName)}
+              />
               <FieldRow label="DNI" value={emptyField(member.dni)} />
               <FieldRow label="Teléfono" value={displayPhone(member.phone)} />
               <FieldRow label="Email" value={emptyField(member.email)} />
@@ -620,7 +736,12 @@ export function MemberProfile({
                   limit={quota.directedLimit}
                   adjustment={directedAdjustment}
                 />
-                <ConsumoRow label="Opens" used={quota.openUsed} limit={quota.openLimit} adjustment={openAdjustment} />
+                <ConsumoRow
+                  label="Opens"
+                  used={quota.openUsed}
+                  limit={quota.openLimit}
+                  adjustment={openAdjustment}
+                />
               </dl>
               <p className="text-xs tabular-nums text-muted-foreground">
                 {periodText} · {periodLabel}
@@ -631,14 +752,22 @@ export function MemberProfile({
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <ProfileSection title="Box de pago">
-            <p className="text-sm text-muted-foreground">Cambiarlo no cancela reservas ni reescribe pagos ya hechos.</p>
-            <MemberPaymentBoxForm member={member} feedback={feedback} boxes={boxes} />
+            <p className="text-sm text-muted-foreground">
+              Cambiarlo no cancela reservas ni reescribe pagos ya hechos.
+            </p>
+            <MemberPaymentBoxForm
+              member={member}
+              feedback={feedback}
+              boxes={boxes}
+            />
           </ProfileSection>
 
           <ProfileSection title="Pagos" action={paymentsHistoryLink}>
             {summary.payment ? (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-muted-foreground">{summary.payment.periodLabel}</span>
+                <span className="text-sm text-muted-foreground">
+                  {summary.payment.periodLabel}
+                </span>
                 {summary.payment.status === "paid" ? (
                   <Badge className="bg-success text-white">Pagado</Badge>
                 ) : active ? (
@@ -655,15 +784,24 @@ export function MemberProfile({
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Cobros del socio: periodo en curso (si aplica), pagos únicos y bonos. Desde el historial podés corregir
-                un importe o eliminar un registro erróneo.
+                Cobros del socio: periodo en curso (si aplica), pagos únicos y
+                bonos. Desde el historial podés corregir un importe o eliminar
+                un registro erróneo.
               </p>
             )}
           </ProfileSection>
 
           <ProfileSection
             title="Tarifa"
-            action={active ? <MemberTariffDialog member={member} feedback={feedback} tariffs={tariffs} /> : null}
+            action={
+              active ? (
+                <MemberTariffDialog
+                  member={member}
+                  feedback={feedback}
+                  tariffs={tariffs}
+                />
+              ) : null
+            }
           >
             {!tariff ? (
               <EmptyState
@@ -681,14 +819,20 @@ export function MemberProfile({
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{tariff.name}</span>
-                  <span className="text-sm tabular-nums text-muted-foreground">{formatPrice(tariff.priceCents)}</span>
+                  <span className="text-sm tabular-nums text-muted-foreground">
+                    {formatPrice(tariff.priceCents)}
+                  </span>
                 </div>
                 {tariff.consumptionModel === "pack" ? (
                   <div className="flex flex-col gap-2">
                     <p className="text-sm text-muted-foreground">
-                      Las reservas consumen el saldo de bono; no hay cupo periódico.
+                      Las reservas consumen el saldo de bono; no hay cupo
+                      periódico.
                     </p>
-                    <FieldRow label="Facturación" value={billingPeriodKindLabel(tariff.billingPeriod)} />
+                    <FieldRow
+                      label="Facturación"
+                      value={billingPeriodKindLabel(tariff.billingPeriod)}
+                    />
                   </div>
                 ) : (
                   <>
@@ -697,11 +841,17 @@ export function MemberProfile({
                         label={`Incluye cada ${quotaPeriodForConsumption(tariff.consumptionModel) === "month" ? "mes" : "semana"}`}
                         value={
                           <span className="tabular-nums">
-                            {formatPeriodicQuotaIncludes(tariff.quotaDirected, tariff.quotaOpen)}
+                            {formatPeriodicQuotaIncludes(
+                              tariff.quotaDirected,
+                              tariff.quotaOpen,
+                            )}
                           </span>
                         }
                       />
-                      <FieldRow label="Facturación" value={billingPeriodKindLabel(tariff.billingPeriod)} />
+                      <FieldRow
+                        label="Facturación"
+                        value={billingPeriodKindLabel(tariff.billingPeriod)}
+                      />
                     </dl>
                   </>
                 )}
@@ -725,19 +875,28 @@ export function MemberProfile({
             >
               <dl>
                 <div>
-                  <dt className="text-sm text-muted-foreground">Saldo de bono</dt>
-                  <dd className="text-lg font-medium tabular-nums">{quota.packBalance}</dd>
+                  <dt className="text-sm text-muted-foreground">
+                    Saldo de bono
+                  </dt>
+                  <dd className="text-lg font-medium tabular-nums">
+                    {quota.packBalance}
+                  </dd>
                 </div>
               </dl>
               <p className="text-sm text-muted-foreground">
-                Se usa cuando se agota el cupo del periodo o con tarifa bono. No caduca.
+                Se usa cuando se agota el cupo del periodo o con tarifa bono. No
+                caduca.
               </p>
             </ProfileSection>
           ) : null}
         </div>
       </div>
 
-      <MemberStatusActions member={member} feedback={feedback} isAdmin={isAdmin} />
+      <MemberStatusActions
+        member={member}
+        feedback={feedback}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }

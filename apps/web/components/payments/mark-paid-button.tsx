@@ -1,5 +1,3 @@
-"use client";
-
 import { FormActions } from "@/components/common/forms/form-actions";
 import { PaymentFields } from "./payment-fields";
 
@@ -53,7 +51,7 @@ export function MarkPaidButton({
       });
       toast.success("Pago registrado");
       setOpen(false);
-      router.refresh();
+      router.refresh("payment");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo registrar");
     } finally {

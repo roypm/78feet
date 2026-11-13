@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, type ComponentProps } from "react";
 import { ResourceImage } from "@/components/common/media/resource-image";
 import { FormActions } from "@/components/common/forms/form-actions";

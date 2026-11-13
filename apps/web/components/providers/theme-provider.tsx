@@ -1,7 +1,6 @@
-"use client";
-
 import {
   createContext,
+  useCallback,
   useContext,
   useLayoutEffect,
   useRef,
@@ -10,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { api } from "@/lib/box/api";
+import { invalidateScope } from "@/lib/spa/query";
 
 export type Theme = "system" | "light" | "dark";
 export type ResolvedTheme = Exclude<Theme, "system">;
@@ -59,9 +59,10 @@ export function ThemeProvider({ initialTheme, children }: { initialTheme: Theme;
   const [pending, setPending] = useState(false);
   const saving = useRef(false);
 
-  function applyTheme(next: Theme) {
+  const applyTheme = useCallback((next: Theme) => {
+    document.cookie = `theme=${next}; path=/; max-age=31536000; SameSite=Lax`;
     setState((current) => ({ ...current, theme: next }));
-  }
+  }, []);
 
   useLayoutEffect(() => {
     // During hydration useSyncExternalStore starts from its server snapshot.
@@ -86,6 +87,7 @@ export function ThemeProvider({ initialTheme, children }: { initialTheme: Theme;
         body: JSON.stringify({ theme: next }),
       });
       applyTheme(result.theme);
+      void invalidateScope("session");
     } catch (error) {
       applyTheme(previous);
       throw error;

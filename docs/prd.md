@@ -64,7 +64,7 @@ Cada cuenta nueva sigue el tema del sistema por defecto. Puede elegir Sistema, C
 
 ## 3. Acceso
 
-**Decisión para el refactor:** cada cuenta tendrá correo real obligatorio, conservado como dato de cuenta. El acceso seguirá siendo DNI + contraseña para socios y usuario + contraseña para staff. No se enviarán ni recibirán correos: sin verificación, enlaces de acceso ni recuperación por email. El staff mantiene el control de altas y resets. Una persona socio y staff conserva dos cuentas con roles y contraseñas independientes; puede usar el mismo correo real en ambas. No se fusionan por correo ni se acumulan permisos. La dirección se guarda sin marcarla verificada; al no verificar no se demuestra propiedad del buzón. Su implementación se ejecutará según [el plan de refactor](../PLAN-REFACTOR.md); el código actual todavía permite correo opcional.
+**Decisión para el refactor:** cada cuenta tendrá correo real obligatorio, conservado como dato de cuenta. El acceso seguirá siendo DNI + contraseña para socios y usuario + contraseña para staff. No se enviarán ni recibirán correos: sin verificación, enlaces de acceso ni recuperación por email. El staff mantiene el control de altas y resets. Una persona socio y staff conserva dos cuentas con roles y contraseñas independientes; puede usar el mismo correo real en ambas. No se fusionan por correo ni se acumulan permisos. La dirección se guarda sin marcarla verificada; al no verificar no se demuestra propiedad del buzón. Implementado en R4 según [el plan de refactor](../PLAN-REFACTOR.md): correo obligatorio en altas/ediciones y selector de acceso Socio/Equipo, sin alterar el rol de la cuenta.
 
 - Los **socios** entran con **DNI + contraseña**. Los **staff** entran con **usuario + contraseña** (el coach que entrena tiene dos cuentas con el mismo DNI, así que el identificador del staff es un usuario elegido por el admin).
 - El staff **fija la contraseña** en el alta y la **resetea** cuando haga falta. El socio no la cambia desde la app.
@@ -259,7 +259,7 @@ Las pantallas del socio y del staff están en [`app-flow.md`](./app-flow.md).
 | 12 | Sin pagos online, sin notificaciones, sin asistencia, sin lista de espera. |
 | 13 | El roster se muestra como "Nombre I.". |
 | 14 | El staff controla las credenciales; las contraseñas se guardan hasheadas. |
-| 15 | Web y app nativa para socio, coach y admin; mismos permisos por cuenta. La web actual está implementada; Expo empieza tras recuperar la web en R6. |
+| 15 | Web y app nativa para socio, coach y admin; mismos permisos por cuenta. La web está recuperada sobre la API. Expo, para los tres roles, sigue pendiente. |
 | 16 | Cualquier cambio de tarifa cancela las reservas futuras del socio. |
 | 17 | Un cambio de plantilla rige desde el lunes siguiente; la semana en curso no se toca. |
 | 18 | El aforo nunca queda por debajo de las reservas: si se baja, se cancelan todas las reservas de esa clase. |

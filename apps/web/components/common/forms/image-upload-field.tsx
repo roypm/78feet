@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useId, useRef, useState, type ChangeEvent, type InvalidEvent } from "react";
 import { ImageIcon, UploadIcon, XIcon } from "lucide-react";
 import { ResourceImage } from "@/components/common/media/resource-image";
@@ -93,7 +91,6 @@ export function ImageUploadField({ label = "Imagen", name = "image", currentImag
         <div aria-busy={checking} className="flex aspect-square min-w-0 items-center justify-center overflow-hidden rounded-md bg-muted">
           {previewUrl ? (
             // A local object URL is previewed without uploading or cropping the image.
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={previewUrl} alt="Vista previa de la imagen seleccionada" className="size-full object-contain"
               onLoad={() => finishPreview(previewUrl)} onError={() => finishPreview(previewUrl, true)} />
           ) : currentImageUrl ? (

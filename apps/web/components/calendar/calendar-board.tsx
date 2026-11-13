@@ -1,5 +1,3 @@
-"use client";
-
 import type { BoxHoursConfig } from "@78feet/domain";
 import type { CalendarClass } from "@/lib/box/calendar";
 import type { CalendarHours } from "@/lib/box/calendar-layout";

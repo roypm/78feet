@@ -1,0 +1,1 @@
+{"name":"@78feet/worker","private":true,"type":"module","scripts":{"start":"tsx src/main.ts","once":"tsx src/main.ts --once","typecheck":"tsc --noEmit","test":"tsx src/worker.test.ts"},"dependencies":{"@78feet/application":"workspace:*","@78feet/db":"workspace:*","@78feet/domain":"workspace:*"},"devDependencies":{"@types/node":"^22","tsx":"^4.23.15","typescript":"^5"}}

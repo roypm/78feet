@@ -1,5 +1,3 @@
-"use client";
-
 import { useId, useRef, useState } from "react";
 import { CalendarIcon } from "lucide-react";
 import { es } from "react-day-picker/locale";

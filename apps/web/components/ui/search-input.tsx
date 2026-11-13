@@ -1,5 +1,3 @@
-"use client";
-
 import { useImperativeHandle, useRef, type ComponentProps } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
 import { cn } from "cn";

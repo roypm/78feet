@@ -1,5 +1,3 @@
-"use client";
-
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
 import { SegmentSlideList, segmentSlideHandlers, useSegmentSlide } from "@/components/common/filters/segment-slide";
 import { cn } from "cn";
@@ -37,7 +35,7 @@ export function WeekNav({
         className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1"
       >
         {week.canPrev ? (
-          <Link href={calendarHref(basePath, week.prev, view, boxSlug)} prefetch={true} className={navLink}>
+          <Link href={calendarHref(basePath, week.prev, view, boxSlug)} className={navLink}>
             Anterior
           </Link>
         ) : (
@@ -47,7 +45,6 @@ export function WeekNav({
         {week.canNext ? (
           <Link
             href={calendarHref(basePath, week.next, view, boxSlug)}
-            prefetch={true}
             className={cn(navLink, "justify-self-end")}
           >
             Siguiente
@@ -68,7 +65,7 @@ export function WeekNav({
       )}
     >
       {week.canPrev ? (
-        <Link href={calendarHref(basePath, week.prev, view, boxSlug)} prefetch={true} className={navLink}>
+        <Link href={calendarHref(basePath, week.prev, view, boxSlug)} className={navLink}>
           Anterior
         </Link>
       ) : (
@@ -76,7 +73,7 @@ export function WeekNav({
       )}
       <div className="flex min-w-0 max-w-[min(100%,20rem)] overflow-x-auto sm:max-w-none">{chips}</div>
       {week.canNext ? (
-        <Link href={calendarHref(basePath, week.next, view, boxSlug)} prefetch={true} className={navLink}>
+        <Link href={calendarHref(basePath, week.next, view, boxSlug)} className={navLink}>
           Siguiente
         </Link>
       ) : (
@@ -132,7 +129,6 @@ function WeekChip({
   return (
     <Link
       href={calendarHref(basePath, item.start, view, boxSlug)}
-      prefetch={true}
       aria-current={active ? "page" : undefined}
       aria-label={`Semana del ${formatWeekRange(item.start, item.end)}`}
       {...segmentSlideHandlers(slide)}

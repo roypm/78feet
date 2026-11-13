@@ -1,5 +1,3 @@
-"use client";
-
 import { FormActions } from "@/components/common/forms/form-actions";
 
 
@@ -10,7 +8,7 @@ import { NavigationLink as Link } from "@/components/common/navigation/navigatio
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
 import { api } from "@/lib/box/api";
-import { emptyField, displayPhone } from "@/lib/box/format";
+import { displayPhone } from "@/lib/box/format";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FormDialog } from "@/components/common/dialogs/form-dialog";
@@ -73,7 +71,7 @@ export function ClassRosterPanel({
       });
       toast.success("Socio apuntado");
       setOpen(false);
-      router.refresh();
+      router.refresh("roster");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo apuntar");
     } finally {
@@ -91,7 +89,7 @@ export function ClassRosterPanel({
       });
       toast.success(returnQuota ? "Socio quitado. El cupo vuelve." : "Socio quitado. El cupo no vuelve.");
       setRemoval(null);
-      router.refresh();
+      router.refresh("roster");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo quitar");
     } finally {

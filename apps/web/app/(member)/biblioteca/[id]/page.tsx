@@ -1,60 +1,37 @@
+import { useParams } from "react-router";
 import { LoadingState } from "@/components/common/feedback/loading-state";
-import { Suspense } from "react";
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
-import { notFound } from "next/navigation";
-import { requireMember } from "@/lib/auth/current";
-import { getTraining } from "@/lib/box/trainings";
-import { BoxError } from "@/lib/box/errors";
-import { TrainingRead } from "@/components/trainings/training-read";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
+import { TrainingRead } from "@/components/trainings/training-read";
+import { getTraining } from "@/lib/server/queries";
+import { QueryBody, useAccountQuery } from "@/lib/spa/screen";
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
+const pending = (
+  <ModulePage>
+    <ModuleHeader title="Biblioteca" />
+    <ModuleBody>
+      <LoadingState variant="training" label="Cargando el entrenamiento…" />
+    </ModuleBody>
+  </ModulePage>
+);
+
+export default function Page() {
+  const { id = "" } = useParams();
+  const { account, query } = useAccountQuery(["training", id], () => getTraining(id));
   return (
-    <Suspense
-      fallback={
+    <QueryBody query={query} accountReady={account !== null} pending={pending} home="/calendario" missing="member">
+      {(training) => (
         <ModulePage>
-          <ModuleHeader title="Biblioteca" />
+          <ModuleHeader
+            title={training.name}
+            description={training.classType.name}
+            eyebrow={<Link href="/biblioteca" className="text-sm text-primary">Biblioteca</Link>}
+          />
           <ModuleBody>
-            <LoadingState variant="training" label="Cargando el entrenamiento…" />
+            <TrainingRead name={training.name} classTypeName={training.classType.name} phases={training.phases} showHeading={false} />
           </ModuleBody>
         </ModulePage>
-      }
-    >
-      <TrainingDetail params={params} />
-    </Suspense>
-  );
-}
-
-async function TrainingDetail({ params }: { params: Promise<{ id: string }> }) {
-  await requireMember();
-  const { id } = await params;
-  let training;
-  try {
-    training = await getTraining(id);
-  } catch (error) {
-    if (error instanceof BoxError && error.status === 404) notFound();
-    throw error;
-  }
-
-  return (
-    <ModulePage>
-      <ModuleHeader
-        title={training.name}
-        description={training.classType.name}
-        eyebrow={
-          <Link href="/biblioteca" className="text-sm text-primary">
-            Biblioteca
-          </Link>
-        }
-      />
-      <ModuleBody>
-        <TrainingRead
-          name={training.name}
-          classTypeName={training.classType.name}
-          phases={training.phases}
-          showHeading={false}
-        />
-      </ModuleBody>
-    </ModulePage>
+      )}
+    </QueryBody>
   );
 }

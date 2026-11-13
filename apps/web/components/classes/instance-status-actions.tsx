@@ -1,5 +1,3 @@
-"use client";
-
 import { ConfirmDialog } from "@/components/common/dialogs/confirm-dialog";
 
 import { useState } from "react";
@@ -29,7 +27,7 @@ export function InstanceCancelButton({ instanceId, bookedCount }: { instanceId: 
         toast.success("Clase cancelada");
       }
       setOpen(false);
-      router.refresh();
+      router.refresh("schedule");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo cancelar la clase");
     } finally {
@@ -68,7 +66,7 @@ export function InstanceRecoverButton({ instanceId }: { instanceId: string }) {
       await patchInstance(instanceId, { status: "scheduled" });
       toast.success("Clase recuperada");
       setOpen(false);
-      router.refresh();
+      router.refresh("schedule");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo recuperar la clase");
     } finally {
@@ -182,7 +180,7 @@ export function InstanceRestoreTemplateButton({
         toast.success("Clase restaurada desde la plantilla");
       }
       setOpen(false);
-      router.refresh();
+      router.refresh("schedule");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo restaurar la clase");
     } finally {

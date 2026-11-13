@@ -1,5 +1,3 @@
-"use client";
-
 import { MoneyField } from "@/components/common/forms/numeric-field";
 import { FormSelect } from "@/components/common/forms/form-select";
 import { PAYMENT_METHODS } from "@/lib/box/payments-view";

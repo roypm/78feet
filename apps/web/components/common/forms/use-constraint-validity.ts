@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, useState, type InvalidEvent, type RefObject } from "react";
 import {
   constraintMessage,

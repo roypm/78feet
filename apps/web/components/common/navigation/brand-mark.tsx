@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { cn } from "cn";
 
 /** Visible brand copy lives in the PNG; link label for screen readers. */
@@ -12,19 +11,18 @@ type BrandMarkProps = {
 export function BrandMark({ variant = "sidebar", className }: BrandMarkProps) {
   if (variant === "sidebar-icon") {
     return (
-      <Image
+      <img
         src="/brand/mark-icon-square.png"
         alt=""
         width={32}
         height={32}
         className={cn("size-8 shrink-0 object-contain", className)}
-        priority
       />
     );
   }
 
   return (
-    <Image
+    <img
       src="/brand/mark-full-color.png"
       alt=""
       width={variant === "login" ? 160 : 132}
@@ -34,7 +32,6 @@ export function BrandMark({ variant = "sidebar", className }: BrandMarkProps) {
         variant === "login" && "h-14 max-w-[10rem]",
         className,
       )}
-      priority
     />
   );
 }

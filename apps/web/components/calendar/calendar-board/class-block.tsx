@@ -1,5 +1,3 @@
-"use client";
-
 import { ResourceImage } from "@/components/common/media/resource-image";
 
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
@@ -36,7 +34,6 @@ export function ClassBlock({
   return (
     <Link
       href={href}
-      prefetch={true}
       title={item.name}
       aria-label={ariaLabel}
       className={

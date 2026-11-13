@@ -1,4 +1,3 @@
-"use client";
 import { TimePicker } from "@/components/common/forms/time-picker";
 import { DatePicker } from "@/components/common/forms/date-picker";
 
@@ -76,7 +75,7 @@ export function HoursForm({ initialConfig, today, boxId }: { initialConfig: BoxH
         body: JSON.stringify(config),
       });
       toast.success("Horario actualizado. El cambio ya está en vigor.");
-      router.refresh();
+      router.refresh("catalog");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar el horario");
     } finally {

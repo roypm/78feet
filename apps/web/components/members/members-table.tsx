@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { Spinner } from "@/components/ui/spinner";

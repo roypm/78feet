@@ -1,4 +1,3 @@
-"use client";
 import { TimePicker } from "@/components/common/forms/time-picker";
 
 import type { FormEvent } from "react";

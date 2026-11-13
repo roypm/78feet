@@ -1,5 +1,3 @@
-"use client";
-
 import { FormActions } from "@/components/common/forms/form-actions";
 import { TimePicker } from "@/components/common/forms/time-picker";
 import { useEffect } from "react";

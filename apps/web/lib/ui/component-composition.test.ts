@@ -2,6 +2,7 @@ import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { FormActions } from "@/components/common/forms/form-actions";
 import { PaymentFields } from "@/components/payments/payment-fields";
 import DevCompositionPage from "@/app/dev/component-composition/page";
@@ -11,15 +12,11 @@ import { ResourceImage } from "@/components/common/media/resource-image";
 import { BoxTabs } from "@/components/boxes/box-tabs";
 
 vi.stubGlobal("React", React);
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => "/staff/cobros",
-  notFound: () => {
-    throw new Error("NOT_FOUND");
-  },
-}));
 
-const render = (element: React.ReactElement) => renderToStaticMarkup(element);
+const render = (element: React.ReactElement) => {
+  const router = createMemoryRouter([{ path: "*", Component: () => element }], { initialEntries: ["/staff/cobros"] });
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+};
 
 describe("composición de formularios", () => {
   it("bloquea cancelar y enviar durante una petición", () => {
@@ -105,7 +102,7 @@ describe("muestras solo de desarrollo", () => {
   it("no expone las muestras en producción", () => {
     vi.stubEnv("NODE_ENV", "production");
     try {
-      expect(() => DevCompositionPage({ searchParams: Promise.resolve({}) })).toThrow("NOT_FOUND");
+      expect(() => DevCompositionPage()).toThrow("NOT_FOUND");
     } finally {
       vi.unstubAllEnvs();
     }

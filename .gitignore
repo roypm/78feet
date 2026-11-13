@@ -6,11 +6,6 @@ node_modules/
 .env.*
 !.env.example
 
-# Next.js
-.next/
-out/
-next-env.d.ts
-
 # Build y caché
 dist/
 build/
@@ -25,12 +20,6 @@ coverage/
 *.p8
 *.p12
 *.mobileprovision
-
-# Vercel
-.vercel
-
-# Neon CLI
-.neon.bak
 
 # Logs y sistema
 *.log

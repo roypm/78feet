@@ -1,5 +1,3 @@
-"use client";
-
 import { ResourceImage } from "@/components/common/media/resource-image";
 
 import { EmptyState } from "@/components/common/feedback/empty-state";

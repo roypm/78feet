@@ -1,9 +1,7 @@
-"use client";
-
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/spa/router";
 
-/** Keep the action busy until both its request and the RSC navigation finish. */
+/** Keeps the action busy until its request finishes and the following navigation starts. */
 export function useActionFeedback() {
   const nextRouter = useRouter();
   const [requestPending, setRequestPending] = useState(false);
@@ -24,11 +22,15 @@ export function useActionFeedback() {
       ...nextRouter,
       push: (...args: Parameters<typeof nextRouter.push>) => {
         navigationStarted.current = true;
-        startTransition(() => nextRouter.push(...args));
+        startTransition(() => {
+          void nextRouter.push(...args);
+        });
       },
-      refresh: () => {
+      refresh: (scope?: Parameters<typeof nextRouter.refresh>[0]) => {
         navigationStarted.current = true;
-        startTransition(() => nextRouter.refresh());
+        startTransition(() => {
+          void nextRouter.refresh(scope);
+        });
       },
     }),
     [nextRouter],

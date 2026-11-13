@@ -1,38 +1,16 @@
-
-import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
+import { useSearchParams } from "react-router";
+import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/common/feedback/loading-state";
+import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { ListPagination } from "@/components/common/lists/list-pagination";
-import { Suspense } from "react";
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";
-import { requireMember } from "@/lib/auth/current";
-import { listBookingHistoryPage, type HistoryBookingView } from "@/lib/box/bookings";
+import { ProfileAvatar } from "@/components/common/media/profile-avatar";
+import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
 import { formatDay, formatMonth, formatTime, kindLabel } from "@/lib/box/format";
 import { groupHistoryByMonth } from "@/lib/box/history";
 import { pageNumber } from "@/lib/box/pagination";
-import { Badge } from "@/components/ui/badge";
-import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
-import { ProfileAvatar } from "@/components/common/media/profile-avatar";
-
-export default function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ pagina?: string }>;
-}) {
-  return (
-    <Suspense
-      fallback={
-        <ModulePage>
-          <ModuleHeader title="Historial" description="Clases que ya empezaron, agrupadas por mes." />
-          <ModuleBody width="full">
-            <LoadingState variant="list" label="Cargando tu historial…" />
-          </ModuleBody>
-        </ModulePage>
-      }
-    >
-      <History searchParams={searchParams} />
-    </Suspense>
-  );
-}
+import { listBookingHistoryPage, type HistoryBookingView } from "@/lib/server/queries";
+import { QueryBody, useAccountQuery } from "@/lib/spa/screen";
 
 function historyNote(booking: HistoryBookingView): string | null {
   if (booking.boxCancelled) return "Cancelada por el box";
@@ -40,66 +18,69 @@ function historyNote(booking: HistoryBookingView): string | null {
   return null;
 }
 
-async function History({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
-  const user = await requireMember();
-  const query = await searchParams;
-  const { items: bookings, pageInfo } = await listBookingHistoryPage(user.id, pageNumber(query.pagina));
-  const months = groupHistoryByMonth(bookings);
+const pending = (
+  <ModulePage>
+    <ModuleHeader title="Historial" description="Clases que ya empezaron, agrupadas por mes." />
+    <ModuleBody width="full">
+      <LoadingState variant="list" label="Cargando tu historial…" />
+    </ModuleBody>
+  </ModulePage>
+);
 
+export default function Page() {
+  const [params] = useSearchParams();
+  const page = pageNumber(params.get("pagina") ?? undefined);
+  const { account, query } = useAccountQuery(["history", page], () => listBookingHistoryPage(page));
   return (
-    <ModulePage>
-      <ModuleHeader
-        title="Historial"
-        description="Clases que ya empezaron, agrupadas por mes. No registra asistencia."
-      />
-      <ModuleBody width="full">
-        {months.length === 0 ? (
-          <ListEmptyBlock title="Todavía no hay reservas anteriores" href="/calendario" action="Ver calendario" />
-        ) : (
-          <div className="flex flex-col gap-8">
-            {months.map((group) => (
-              <section key={group.month} className="flex flex-col gap-3">
-                <h2 className="text-sm font-medium text-muted-foreground">{formatMonth(group.month)}</h2>
-                <ul className="flex flex-col gap-3">
-                  {group.items.map((booking) => {
-                    const note = historyNote(booking);
-                    return (
-                      <li
-                        key={booking.id}
-                        className="flex flex-col gap-3 rounded-lg bg-card p-3 ring-1 ring-foreground/10"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{booking.instance.name}</p>
-                            <p className="text-sm text-muted-foreground tabular-nums">
-                              {booking.instance.boxName} · {formatDay(booking.instance.date)} · {formatTime(new Date(booking.instance.startAt))}–
-                              {formatTime(new Date(booking.instance.endAt))}
-                            </p>
-                            {booking.coachName ? (
-                              <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-                                <ProfileAvatar name={booking.coachName} imageUrl={booking.coachProfileImageUrl} size="sm" />
-                                <span className="min-w-0 wrap-break-word">{booking.coachName}</span>
+    <QueryBody query={query} accountReady={account !== null} pending={pending} home="/calendario">
+      {({ items: bookings, pageInfo }) => {
+        const months = groupHistoryByMonth(bookings);
+        return (
+          <ModulePage>
+            <ModuleHeader title="Historial" description="Clases que ya empezaron, agrupadas por mes. No registra asistencia." />
+            <ModuleBody width="full">
+              {months.length === 0 ? (
+                <ListEmptyBlock title="Todavía no hay reservas anteriores" href="/calendario" action="Ver calendario" />
+              ) : (
+                <div className="flex flex-col gap-8">
+                  {months.map((group) => (
+                    <section key={group.month} className="flex flex-col gap-3">
+                      <h2 className="text-sm font-medium text-muted-foreground">{formatMonth(group.month)}</h2>
+                      <ul className="flex flex-col gap-3">
+                        {group.items.map((booking) => {
+                          const note = historyNote(booking);
+                          return (
+                            <li key={booking.id} className="flex flex-col gap-3 rounded-lg bg-card p-3 ring-1 ring-foreground/10">
+                              <div className="flex items-start gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate font-medium">{booking.instance.name}</p>
+                                  <p className="text-sm text-muted-foreground tabular-nums">
+                                    {booking.instance.boxName} · {formatDay(booking.instance.date)} · {formatTime(new Date(booking.instance.startAt))}–{formatTime(new Date(booking.instance.endAt))}
+                                  </p>
+                                  {booking.coachName ? (
+                                    <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                                      <ProfileAvatar name={booking.coachName} imageUrl={booking.coachProfileImageUrl} size="sm" />
+                                      <span className="min-w-0 wrap-break-word">{booking.coachName}</span>
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <Badge variant={booking.instance.kind === "directed" ? "default" : "secondary"}>{kindLabel(booking.instance.kind)}</Badge>
                               </div>
-                            ) : null}
-                          </div>
-                          <Badge variant={booking.instance.kind === "directed" ? "default" : "secondary"}>
-                            {kindLabel(booking.instance.kind)}
-                          </Badge>
-                        </div>
-                        {note ? <p className="text-sm text-muted-foreground">{note}</p> : null}
-                        <Link href={`/clases/${booking.instanceId}`} prefetch={true} className="text-sm text-primary">
-                          Ver clase
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))}
-            <ListPagination pageInfo={pageInfo} path="/historial" />
-          </div>
-        )}
-      </ModuleBody>
-    </ModulePage>
+                              {note ? <p className="text-sm text-muted-foreground">{note}</p> : null}
+                              <Link href={`/clases/${booking.instanceId}`} className="text-sm text-primary">Ver clase</Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  ))}
+                  <ListPagination pageInfo={pageInfo} path="/historial" />
+                </div>
+              )}
+            </ModuleBody>
+          </ModulePage>
+        );
+      }}
+    </QueryBody>
   );
 }

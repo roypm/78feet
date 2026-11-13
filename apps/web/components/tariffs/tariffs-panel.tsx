@@ -1,5 +1,3 @@
-"use client";
-
 import { FormActions } from "@/components/common/forms/form-actions";
 
 
@@ -144,7 +142,7 @@ function TariffDialogForm({
         setBillingPeriod("");
       }
       onOpenChange(false);
-      router.refresh();
+      router.refresh("catalog");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : editing ? "No se pudo guardar" : "No se pudo crear");
     } finally {
@@ -278,7 +276,7 @@ export function TariffsPanel({ tariffs }: { tariffs: TariffView[] }) {
       });
       toast.success(active ? "Tarifa activada" : "Tarifa desactivada");
       setConfirmingTariff(null);
-      router.refresh();
+      router.refresh("catalog");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar");
     } finally {

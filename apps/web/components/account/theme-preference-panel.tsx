@@ -1,5 +1,3 @@
-"use client";
-
 import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";

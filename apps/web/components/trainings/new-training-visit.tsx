@@ -1,7 +1,5 @@
-"use client";
-
 import { createContext, useContext, useRef, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/spa/router";
 import { nextNewTrainingVisit } from "@/lib/ui/new-training-visit";
 
 const NewTrainingVisitContext = createContext(0);

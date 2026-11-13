@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { clockToMinutes, isWithinOpeningIntervals, type BoxHoursConfig } from "@78feet/domain";
@@ -176,7 +174,7 @@ export function useTemplateDraft({ templates, types, openingHours, boxId }: {
       setApplyOpen(false);
       setDraft(null);
       clearPersistedTemplateWorking(boxId);
-      router.refresh();
+      router.refresh("template");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo aplicar la plantilla");
     } finally {

@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useId, useRef, useState, type InvalidEvent } from "react";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { Field } from "@/components/common/forms/field";

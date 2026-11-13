@@ -1,5 +1,3 @@
-"use client";
-
 import { PendingButton } from "@/components/common/feedback/pending-button";
 
 import { useState, type FormEvent, type ReactNode } from "react";
@@ -129,7 +127,7 @@ export function ConsumoGestionDialog({
   }
 
   function refresh() {
-    router.refresh();
+    router.refresh("member");
   }
 
   return (
@@ -216,7 +214,7 @@ export function BonoGestionDialog({
       });
       toast.success(quantity > 0 ? "Saldo aumentado" : "Saldo reducido");
       if (closeOnSuccess) setOpen(false);
-      router.refresh();
+      router.refresh("member");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo ajustar");
     } finally {

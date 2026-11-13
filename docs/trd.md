@@ -11,31 +11,29 @@ Qué debe hacer el sistema está en [`prd.md`](./prd.md).
 
 ---
 
-## 1. Arquitectura actual y destino acordado (R1)
+## 1. Arquitectura
 
-Estado comprobado el 12/11/2026: sigue implementado Next.js App Router + React, RSC para lecturas, route handlers `/api/v1`, Prisma 6/Postgres y auth propia argon2id/JWT de 90 días con `tokenVersion`. La configuración depende de Neon/Vercel; esto no acredita un despliegue verificado. No existen Fastify, SPA Vite, Compose ni Expo. El inventario y los fallos de referencia están en [R0](refactor-r0-r1/referencia.md).
-
-Destino pendiente R2–R6: web React + Vite + React Router → REST/JSON Fastify → servicios de aplicación → Drizzle/pg/PostgreSQL. Un worker comparte casos de uso y materializa diariamente en Madrid con recuperación al arrancar e idempotencia. Docker local; alojamiento pendiente. No GraphQL, Redis ni microservicios. Imágenes siguen en tablas Postgres con autorización.
+Estado comprobado el 13/11/2026, corte R6: la web es una SPA Vite + React Router. Todas las lecturas y mutaciones consultan Fastify. TanStack Query posee la caché remota y React Hook Form + Zod cubren el acceso y las altas de socio, equipo y sede; el resto de editores conserva validación de campo y bloqueo de doble envío. API y worker consumen `packages/application` y Drizzle/pg/PostgreSQL. Better Auth es la única autenticación; el worker independiente es el único planificador. Compose migra y arranca estos servicios. No hay Next, Prisma, Neon ni Vercel en el árbol activo. Expo corresponde a R7; alojamiento pendiente. No GraphQL, Redis ni microservicios. Imágenes en tablas Postgres con autorización.
 
 ## 2. Paquetes y contratos del destino
 
 Se crean solo al extraer implementación real: `apps/web` (SPA), `apps/api` (HTTP/auth/permisos), `apps/worker` (planificación), `apps/mobile` (R7); `packages/domain` (reglas puras), `contracts` (Zod/DTO públicos), `api-client` (tipos OpenAPI y fetch común), `db` (Drizzle/migraciones/pool) y `application` (casos de uso/transacciones). Dependencias: clientes → contracts/api-client; API/worker → application → domain/db. Nunca DB, secretos ni tipos de tablas en clientes. El cliente actual de domain se extrae, no se duplica.
 
-Cadena única: Zod 4 → fastify-type-provider-zod (validación y serialización) → @fastify/swagger OpenAPI 3.0.3 → openapi-typescript → transporte fetch tipado. DTO de salida explícito y validado, nunca serializar una fila auth. R4 genera contrato y tipos y CI rechaza diferencias. Errores conservan códigos de dominio y HTTP; listados `{ items, pageInfo: { page, pageSize, total, totalPages } }`, 25 filas, orden/filtro antes de página, UUID de desempate. Opciones completas tienen endpoints separados. Inventario de operaciones y huecos: [R0](refactor-r0-r1/referencia.md).
+Cadena única: Zod 4 → fastify-type-provider-zod (validación y serialización) → @fastify/swagger OpenAPI 3.0.3 → openapi-typescript → transporte fetch tipado. DTO de salida explícito y validado, nunca serializar una fila auth. `pnpm contracts:check` rechaza diferencias. No hay automatización CI en el repositorio; la comprobación es local. Errores conservan códigos de dominio y HTTP; listados `{ items, pageInfo: { page, pageSize, total, totalPages } }`, 25 filas, orden/filtro antes de página, UUID de desempate. Opciones completas tienen endpoints separados. El inventario R0 de operaciones sigue en [referencia](refactor-r0-r1/referencia.md); la API publicada lo cubre salvo el cron HTTP, sustituido por el worker.
 
-Web: Query posee datos remotos; claves incluyen cuenta, sede, semana, filtro/orden/página. Limpiar al cerrar/cambiar cuenta. React Hook Form + Zod, rutas divididas con imports dinámicos, filtros en URL y búsquedas locales conservadas. Reserva invalida calendario/detalle/reservas/consumo; tarifa también ficha e historial afectados; pago invalida pagos/impagos/resumen; plantilla invalida plantilla/calendarios/clases/reservas afectadas. No reintentar mutaciones automáticamente ni optimismo en reservas durante recuperación.
+La web usa Query para los datos remotos. Las claves incluyen cuenta, sede, semana, filtro, orden y página. Salir o cambiar de cuenta limpia la caché. React Hook Form + Zod cubren el acceso y las altas de socio, equipo y sede. Las rutas de producto se cargan con imports dinámicos. Los filtros viven en la URL y las búsquedas locales conservan su alcance. Una reserva invalida calendario, detalle, reservas y consumo. Un cambio de tarifa también invalida la ficha y el historial afectados. Un pago invalida pagos, impagos y resumen. Una plantilla invalida plantilla, calendarios, clases y reservas afectadas. Las mutaciones no se reintentan solas y las reservas no se confirman en optimista.
 
 ### 2.1 Identidad Better Auth: decisión validada R1, implementación R3/R4
 
 Cada cuenta de producto mantiene un único rol, ID, contraseña, estado y preferencias. Una persona puede tener una cuenta socio y otra staff con el mismo DNI y el mismo correo real. No fusionar permisos, contraseñas ni sesiones. No fabricar emails ni exigir dos direcciones.
 
-Se emplean **dos ámbitos Better Auth con la misma factoría/configuración**, member y staff, dentro de la única API. La dependencia externa comprobada que justifica los ámbitos es la unicidad de email en `user` de Better Auth y su único username por usuario. Cada ámbito usa sus propias tablas auth (`member_auth_*`, `staff_auth_*`), basePath y cookiePrefix; secretos separados. Las tablas de negocio conservan su cuenta/UUID con vínculo único `(authRealm, authUserId)`. No confundir la tabla `account` de Better Auth (credenciales/proveedores) con la cuenta del producto. No mantener auth JWT antigua tras R6.
+Se emplean **dos ámbitos Better Auth con la misma factoría/configuración**, member y staff, dentro de la única API. La dependencia externa comprobada que justifica los ámbitos es la unicidad de email en `user` de Better Auth y su único username por usuario. Cada ámbito usa sus propias tablas auth (`member_auth_*`, `staff_auth_*`), basePath y cookiePrefix; secretos separados. Las tablas de negocio conservan su cuenta/UUID con vínculo único `(authRealm, authUserId)`. No confundir la tabla `account` de Better Auth (credenciales/proveedores) con la cuenta del producto. La auth JWT anterior fue retirada en R4.
 
 Alta administrativa atómica: crear usuario auth y credencial en su ámbito y cuenta de negocio; rollback conjunto. Email obligatorio no nulo, validado y normalizado en servidor; único dentro del ámbito, repetible entre ámbitos. Se guarda en cada cuenta auth y el DTO de cuenta lo proyecta sin copia divergente. La vinculación humana se confirma por DNI desde administración; nunca asociar ni conceder permisos por coincidencia de email. Cambiar contacto en una cuenta no altera la otra. “Real” significa dirección de contacto facilitada por staff, sin direcciones sintéticas; sin verificación no se puede demostrar la propiedad del buzón.
 
 Username representa DNI normalizado (trim, mayúsculas como forma canónica; adaptación uniforme del plugin al comparar) en socio y usuario normalizado en staff. Staff no admite formato email ni `@`; no hay resolución por email. Mantener ambos accesos de una persona aunque sus contraseñas sean diferentes. La pantalla conserva DNI/usuario; el servidor determina el ámbito a partir del tipo de acceso, nunca del rol solicitado en el body. La autorización obtiene cuenta y rol vigentes desde DB y comprueba que la sesión pertenece al ámbito de esa cuenta.
 
-`emailAndPassword.enabled=true` es necesario para Username; eso **no** autoriza publicar el acceso por email. Bloquear con `disabledPaths` y allowlist del montaje HTTP: `/sign-in/email`, `/sign-up/email`, `/request-password-reset`, `/reset-password`, `/send-verification-email`, `/verify-email`, `/change-email`; cualquier ruta no autorizada no se monta. Solo login username, consulta de sesión y logout quedan expuestos; altas/resets/contacto exclusivamente mediante casos de uso staff autorizados, usando API interna de Better Auth. Sin autorregistro, OAuth, magic links ni plugins de correo. `requireEmailVerification=false`; sin callbacks de envío/verificación ni proveedor SMTP/recepción. `emailVerified=false`, nunca simular verificación.
+`emailAndPassword.enabled=true` es necesario para Username; eso **no** autoriza publicar el acceso por email. Bloquear con `disabledPaths` y allowlist del montaje HTTP: `/sign-in/email`, `/sign-up/email`, `/request-password-reset`, `/reset-password`, `/send-verification-email`, `/verify-email`, `/change-email`; cualquier ruta no autorizada no se monta. Solo las rutas de producto login (campo `access` member/staff), me y logout quedan expuestas; no se monta el handler genérico Better Auth; altas/resets/contacto exclusivamente mediante casos de uso staff autorizados, usando API interna de Better Auth. Sin autorregistro, OAuth, magic links ni plugins de correo. `requireEmailVerification=false`; sin callbacks de envío/verificación ni proveedor SMTP/recepción. `emailVerified=false`, nunca simular verificación.
 
 Sesiones persistidas Better Auth: duración absoluta de 90 días, `disableSessionRefresh=true`, cookieCache desactivada; cookie HttpOnly/SameSite=Lax/Secure bajo HTTPS. En cada operación se consulta sesión y cuenta activa/rol actual. Reset o baja elimina todas las sesiones de **esa cuenta**, incluso en móvil; conserva la otra cuenta de la persona. Logout elimina sesión servidor y cookie. Login y baja/reset se coordinan bloqueando cuenta y releyendo estado antes de crear sesión; portar bloqueo de 10 intentos/15 min sin carreras y añadir límite por IP. No confiar solo en rate limit en memoria.
 
@@ -47,11 +45,11 @@ Fuentes oficiales consultadas 12/11/2026: [Username](https://better-auth.com/doc
 
 ### 2.2 Versiones objetivo
 
-Selección exacta para iniciar R2–R4, verificada contra metadatos oficiales del registro npm (12/11/2026), sin instalarla aquí: Node 22.23.1, pnpm 11.16.0, React/DOM 19.3.0, Vite 8.3.8, React Router 8.5.1, Query 5.107.1; Fastify 5.12.8, Zod 4.6.7, fastify-type-provider-zod 7.0.0, openapi-typescript 7.13.0; Better Auth y plugin Expo 1.7.22, Drizzle ORM 0.45.4/Kit 0.31.11, pg 8.23.1. React Router exige Node >=22.22 y React >=19.2.7; Vite admite este Node; Better Auth acepta Drizzle ^0.45.2, pg ^8, React ^19; provider Zod exige Fastify ^5.5 y Zod >=4.1.5. @fastify/swagger 9.9.3 satisface >=9.5.1; adaptador @better-auth/drizzle-adapter 1.7.22. Formularios: react-hook-form 7.92.0 y @hookform/resolvers 7.0.6 (React ^19/Zod ^4 admitidos). Compatibilidad de rangos verificada; build conjunto aún pendiente. Versiones Expo/RN se fijarán juntas en R7 según SDK soportado entonces, sin crear móvil ahora.
+Selección exacta para iniciar R2–R4, verificada contra metadatos oficiales del registro npm (12/11/2026), sin instalarla aquí: Node 22.23.1, pnpm 11.16.0, React/DOM 19.3.0, Vite 8.3.8, React Router 8.5.1, Query 5.107.1; Fastify 5.12.8, Zod 4.6.7, fastify-type-provider-zod 7.0.0, openapi-typescript 7.13.0; Better Auth y plugin Expo 1.7.22, Drizzle ORM 0.45.4/Kit 0.31.11, pg 8.23.1. React Router exige Node >=22.22 y React >=19.2.7; Vite admite este Node; Better Auth acepta Drizzle ^0.45.2, pg ^8, React ^19; provider Zod exige Fastify ^5.5 y Zod >=4.1.5. @fastify/swagger 9.9.3 satisface >=9.5.1; adaptador @better-auth/drizzle-adapter 1.7.22. Formularios: react-hook-form 7.92.0 y @hookform/resolvers 7.0.6 (React ^19/Zod ^4 admitidos). Compatibilidad de rangos verificada; build del runtime R4 y typecheck conjunto pasan. Vite 8.3.8, React Router 8.5.1 y Query 5.107.1 están activos en la web. Versiones Expo/RN se fijarán juntas en R7 según SDK soportado entonces, sin crear móvil ahora.
 
 ## Lectura de las secciones siguientes
 
-§§3–9 describen la implementación Next/Prisma actual y las reglas que hay que preservar, salvo destino explícito. Las tablas auth del destino se añaden a las 16 entidades actuales; R3 genera esquema Drizzle y revisa SQL/índices parciales, no convierte solo modelos. §8 es la operación actual configurada; no decide el alojamiento futuro. El cron HTTP actual se retira al activar el worker en R6. Los detalles de JWT no son el diseño de sesión Better Auth.
+§§3–9 conservan las reglas de negocio vigentes. El esquema exacto está en `packages/db/src/schema.ts` y `auth-schema.ts`: 16 entidades de negocio y las tablas de Better Auth. La presentación vigente es la SPA.
 
 ## 3. Modelo de datos
 
@@ -60,25 +58,24 @@ Selección exacta para iniciar R2–R4, verificada contra metadatos oficiales de
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | uuid | |
-| `login_id` | text, único | DNI para socios; usuario elegido por el admin para staff |
-| `password_hash` | text | argon2id |
+| `auth_realm`, `auth_user_id` | enum, text | vínculo único a identidad member/staff; DNI/usuario y correo en tabla auth del ámbito |
 | `role` | enum | `member` \| `coach` \| `admin` |
 | `status` | enum | `active` \| `inactive` |
 | `first_name`, `last_name` | text | |
 | `dni` | text, nullable | obligatorio en altas nuevas de socios y staff; puede repetirse entre sus cuentas |
-| `phone`, `email` | text, nullable | opcionales |
+| `phone` | text, nullable | opcional; email real obligatorio en identidad auth |
 | `theme` | enum `UserTheme`, default `system` | Preferencia de apariencia: `system`, `light` o `dark`. |
 | `payment_box_id` | uuid, nullable | FK `box`. Solo socios. El alta lo deja en el box elegido; si no viene, el primero. Cambiarlo no toca reservas ni pagos. |
-| `preference_box_id` | uuid, nullable | FK `box`. Solo socios. El calendario abre ahí. Elegir otro box en el selector lo guarda. El staff no lo edita. |
+| `preference_box_id` | uuid, nullable | FK `box`. Solo socios. El calendario abre ahí. Cambiarlo mediante preferencias lo guarda; navegar el selector no lo modifica. El staff no lo edita. |
 | `failed_logins`, `locked_until` | int, timestamptz | límite de intentos |
-| `token_version` | int, default 0 | se incrementa al resetear contraseña o desactivar; invalida JWTs previos |
+| Revocación | tablas auth de sesiones | reset/baja eliminan sesiones de la cuenta, sin tokenVersion |
 | `created_at`, `updated_at` | timestamptz | |
 
 Preferencia de apariencia: `user.theme` usa el enum `UserTheme` (`system` / `light` / `dark`), no nulo con valor inicial `system`. Se devuelve en el acceso y se lee desde la sesión al renderizar el documento. El HTML inicial declara la preferencia; CSS aplica el tema del sistema sin esperar a hidratar y un provider compartido resuelve cambios del dispositivo y actualiza los tokens, el color del navegador y Sonner. Claro y Oscuro son anulaciones explícitas. La preferencia pertenece a la cuenta y se consulta de nuevo al abrir desde otro dispositivo; Sistema sigue el sistema operativo local.
 
 ### `user_profile_image`
 
-Una foto opcional por cuenta. El binario se guarda en Postgres para no depender del disco efímero de Vercel.
+Una foto opcional por cuenta. El binario se guarda en Postgres para compartir el almacenamiento entre API y clientes sin disco local.
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -186,11 +183,11 @@ Catálogo del admin. El panel de staff lo mantiene. Plantilla e instancia apunta
 | `kind` | enum | `directed` \| `open`. Se fija al crear el tipo y no se cambia. |
 | `image_key` | text, nullable | clave del archivo, ya encuadrado. `null` = sin imagen. Las imágenes subidas se guardan como binario compartido en Postgres para que funcionen en todos los despliegues y dispositivos. Sustituirlo no cancela reservas. |
 
-Invariantes: un tipo puede no tener `image_key`. El coach no inserta filas. No se borra un tipo con alguna instancia `scheduled` de hoy en adelante ni con algún entrenamiento (`CLASS_TYPE_IN_USE`); las pasadas siguen apuntándolo. `class_type_image` guarda el binario (JPEG, PNG o WebP, máximo 5 MB) en Neon; una ruta autenticada sirve las imágenes en web y móvil, sin un servicio externo de almacenamiento ni recorte.
+Invariantes: un tipo puede no tener `image_key`. El coach no inserta filas. No se borra un tipo con alguna instancia `scheduled` de hoy en adelante ni con algún entrenamiento (`CLASS_TYPE_IN_USE`); las pasadas siguen apuntándolo. `class_type_image` guarda el binario (JPEG, PNG o WebP, máximo 5 MB) en PostgreSQL; una ruta autenticada sirve las imágenes, sin un servicio externo de almacenamiento ni recorte.
 
 ### `class_type_image`
 
-Almacén compartido de imágenes subidas. El identificador lleva el prefijo `db_`; los binarios limitados a 5 MB quedan en Postgres para no depender del disco efímero de Vercel ni de una máquina concreta.
+Almacén compartido de imágenes subidas. El identificador lleva el prefijo `db_`; los binarios limitados a 5 MB quedan en PostgreSQL y una ruta autenticada los sirve.
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -323,10 +320,7 @@ Una clase cancelada solo vuelve a `scheduled` antes de empezar; su historial de 
 ### 4.1 Materialización y cambios de plantilla
 
 - Horizonte: desde hoy hasta el domingo de la cuarta semana (la semana en curso y las tres siguientes, lunes a domingo), en `Europe/Madrid`.
-- Un **cron diario** de Vercel (`/api/v1/cron/materialize`) genera las instancias que falten
-  desde las plantillas activas. Idempotente gracias a `(template_id, date)`.
-- Además, la lectura del calendario llama a la misma función `ensureInstances(from, to)` antes de
-  responder: si el cron falla, la app no se rompe.
+- El worker genera las instancias que falten desde las plantillas activas al arrancar y cada día a las 03:15 de Europe/Madrid. Es idempotente gracias a `(template_id, date)`. No hay ruta HTTP de materialización. Abrir el calendario no genera clases: si el worker no ha corrido, el horizonte no se rellena solo.
 - **Crear** una plantilla genera sus instancias desde hoy (permite arrancar el box a mitad de semana).
 - **Editar o borrar** una plantilla rige **desde el lunes siguiente**. Las instancias de la semana en
   curso no se tocan ni se regeneran con los valores nuevos.
@@ -568,26 +562,23 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 ## 6. Auth y sesión
 
-**Destino acordado del refactor:** Better Auth con correo real obligatorio guardado en la cuenta y plugin Username para DNI de socio/usuario de staff. Sin acceso por correo ni flujos de envío, recepción, verificación o recuperación por email. Las decisiones de sesiones, revocación y correo de personas con dos cuentas están cerradas en §2.1 y R1 del [plan de refactor](../PLAN-REFACTOR.md). Los puntos siguientes describen la implementación actual, todavía sin migrar a Better Auth.
+Better Auth con adapter Drizzle y dos ámbitos member/staff de la misma factoría; correo real obligatorio y Username. El hashing es el scrypt de Better Auth, también en altas/resets/seed. No hay JWT propio, argon2 paralelo ni ruta de login por email.
 
-- `argon2id` para las contraseñas. Nunca se devuelven ni se registran.
-- Login por `login_id` (DNI del socio, usuario del staff) + contraseña.
-- JWT firmado, `exp` 90 días, claims mínimos: `sub`, `role`, `tv`.
-- `tv` (token version) se compara con `user.token_version` en cada request autenticado; si no coincide, 401.
-  Se incrementa al resetear la contraseña de un socio y al desactivar un usuario. El `logout` solo borra el token en el cliente.
-- **Web**: cookie `httpOnly`, `Secure`, `SameSite=Lax`. El JSON de login no incluye el JWT.
-- **App** (futuro): el cliente móvil obtendrá el token por un canal acordado (p. ej. header dedicado o endpoint aparte); hoy la API web prioriza cookie.
-- Límite de intentos: 10 fallos por `login_id` en 15 minutos → `locked_until`; la API responde `ACCOUNT_LOCKED` (403). Se libera con reset del staff.
-- Usuario o contraseña incorrectos (incluido login inexistente o socio de baja) → mismo mensaje genérico (`FORBIDDEN`, 403) para no filtrar cuentas.
-- El staff puede resetear la contraseña de un socio; el socio no puede cambiarla.
-- Sin emails: no hay "olvidé mi contraseña" automático.
+- `POST /api/v1/auth/login`: `{ access: "member" | "staff", loginId, password }`. DNI canónico en mayúsculas y username normalizado para comparar. El rol se obtiene de DB.
+- Sesión absoluta de 90 días sin refresh ni cookieCache, HttpOnly/SameSite=Lax y Secure en HTTPS. Cada operación relee sesión y estado/rol. Logout borra sesión servidor y cookie.
+- Reset/baja bloquean la cuenta y eliminan sus sesiones; login usa el mismo bloqueo. No revocan la otra cuenta de la persona.
+- Diez fallos por cuenta en quince minutos producen `ACCOUNT_LOCKED` (403), persistido y seguro ante concurrencia; límite adicional por IP. Credenciales incorrectas, cuenta inexistente o inactiva comparten `FORBIDDEN` genérico.
+- Las mutaciones exigen origen público o nativo autorizado; los errores de autorización preceden a la validación del body. El canal nativo usa cookie y origen permitido; la integración del almacén seguro y dispositivo se verifica en R7.
+- No se monta el handler genérico de Better Auth. Autoregistro/email/recuperación/verificación y cambios de identidad directos devuelven 404. Altas, contacto y reset solo mediante casos de uso autorizados.
+- Hashes, tokens, cookies y contraseñas no se serializan ni registran. DTO de salida validado y cabecera `Cache-Control: no-store`.
+
+Pruebas reales y carreras de auth en [R4](refactor-r4/verificacion.md); decisiones completas en §2.1.
 
 ## 7. Web y app
 
-- **Web** (`apps/web`, implementada): panel del staff (escritorio primero, responsive) y las pantallas del
-  socio para quien entre desde el navegador. Server Components para lectura, route handlers para mutaciones.
+- **Web** (`apps/web`, implementada): SPA Vite. Panel del staff (escritorio primero, responsive) y las pantallas del socio. Las lecturas y mutaciones van a Fastify por el proxy `/api` en desarrollo. La web no tiene acceso a la base ni secretos de autenticación.
   Reservas staff: detalle de instancia (`/staff/clases/:id`), enlazado desde Semana, Hoy o Excepciones; usa
-  `POST/DELETE /api/v1/admin/bookings`. `/staff/reservas` redirige a Semana.
+  `POST/DELETE /api/v1/admin/bookings`. No existe `/staff/reservas`.
 - **App móvil** (`apps/mobile`, pendiente, llesca 21): todos los roles tras R6. Para socio, referencia de seis secciones:
   Calendario, Mis reservas, Historial, Biblioteca, Mi tarifa y Cuenta; consumirá la misma API y las reglas de
   `@78feet/domain` ya validadas en web (incluido multi-box).
@@ -612,7 +603,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
   - que un cambio de plantilla no mueva reservas a un hueco idéntico de otro box,
   - generación idempotente de instancias,
   - cambiar el tipo de un hueco cancela las reservas; cambiar la imagen del tipo no.
-- **API**: integración contra Postgres real (Neon branch o local), sin mocks de base.
+- **API**: integración contra PostgreSQL local aislado (`feet_test`), sin mocks de base.
 - **UI**: sin suite E2E en v1; smoke manual por flujo antes de cada release.
 - Un test que no puede fallar cuando la regla se rompe no cuenta como test.
 
@@ -620,16 +611,17 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 
 | Pieza | Dónde |
 |---|---|
-| Web + API | Vercel (plan gratuito alcanza) |
-| Base de datos | Neon, Postgres; respaldos diarios incluidos |
-| App | EAS Build; Android en Play Store primero, iOS después |
-| Cron | Vercel Cron diario → `/api/v1/cron/materialize` |
+| Web | SPA Vite en Compose; estáticos con `pnpm build`; alojamiento pendiente R8 |
+| API | Fastify independiente, readiness DB y cierre de pool |
+| Base de datos | PostgreSQL 17.6 local; Drizzle migrate |
+| Worker | Proceso Node independiente; arranque y 03:15 Europe/Madrid |
+| App | Expo pendiente R7; publicación tras elegir alojamiento |
 
-- Entornos: `local` y `production`. Sin staging en v1.
-- Secretos solo en variables de entorno de Vercel; nunca en el repo.
-- Migraciones con Prisma (`prisma migrate deploy`) en el deploy.
-- `apps/web/vercel.json` ejecuta `pnpm run build:deploy`: aplica las migraciones con `DIRECT_URL`, regenera Prisma y después compila y comprueba el CSS. `pnpm build` sigue siendo una compilación local sin migraciones.
-- Dominio propio (~10–15 €/año); Apple Developer 99 €/año solo cuando se publique iOS.
+Secretos en entorno por servicio; web solo recibe URL interna de API. Los ejemplos están vacíos y las imágenes excluyen `.env`, `*.env` y variantes. Seed administrativo explícito con email y credencial Better Auth. `pnpm build` no aplica migraciones. No hay `vercel.json`, ruta de materialización HTTP ni Vercel Cron activos.
+
+El worker obtiene liderazgo con advisory lock PostgreSQL mantenido en conexión dedicada, reintenta tres veces cada pasada y recupera al arrancar/reiniciar. Las réplicas esperan sin generar. Unicidad y transacciones aseguran idempotencia. Compose reinicia ante pérdida de conexión; heartbeat con frescura máxima de 26 horas. SIGTERM/SIGINT liberan liderazgo y pool. [Comandos y configuración](../README.md).
+
+No se modifican recursos remotos; backups/restauración y hosting son aceptación de R8.
 
 ## 11. Privacidad y RGPD
 
@@ -652,7 +644,7 @@ Errores con `{ error: { code, message } }` y códigos estables (`FULL`, `QUOTA_E
 ## 13. Fuera de alcance técnico (v1)
 
 Pasarela de pago, emails transaccionales, push, websockets, cache distribuida, Redis, búsqueda,
-multi-tenant, i18n, exportaciones, panel de métricas, offline. Docker local y app de staff pertenecen al destino R2/R7.
+multi-tenant, i18n, exportaciones, panel de métricas, offline. Docker local ya es la operación de desarrollo. La app nativa es R7.
 
 ## Paginación de listados
 
@@ -666,7 +658,7 @@ El acceso bloquea la fila de la cuenta antes de leer y actualizar los intentos d
 
 Los esquemas de enteros persistidos respetan el rango `Int` de PostgreSQL. Importes y cantidades de los formularios comparten el máximo `2_147_483_647`; los importes se expresan en céntimos. Una cookie de sesión con codificación inválida se trata como ausencia de sesión.
 
-La comprobación de migraciones recorre todos los archivos SQL en orden cronológico y cubre la asignación de sede a pagos existentes, además de los casos históricos específicos. Las regresiones de concurrencia se ejecutan contra PostgreSQL aislado y verifican acceso paralelo, solapes, conservación de cambios puntuales, cancelaciones y cambio de tarifa durante una reserva.
+La migración vigente es la inicial de Drizzle. Los tests recrean `feet_test` desde cero, la aplican dos veces y comprueban los cuatro índices únicos parciales y los checks de negocio. Las regresiones de concurrencia se ejecutan contra ese PostgreSQL y verifican acceso paralelo, solapes, conservación de cambios puntuales, cancelaciones y cambio de tarifa durante una reserva. Git conserva el historial SQL anterior; el árbol activo no lo ejecuta.
 
 El filtrado de texto de Socios, Impagos y Biblioteca staff se aplica en el cliente a la página cargada; Equipo filtra la lista de cuentas cargada. Comparten la normalización de mayúsculas y acentos en `lib/ui/search.ts`, sin parámetros ni peticiones adicionales de búsqueda. Biblioteca staff solo indexa nombre y tipo, no el contenido del entrenamiento.
 
@@ -706,7 +698,7 @@ El detalle de clase compone `InstanceDetailActions`, que presenta edición y can
 
 `CalendarBoard` conserva la entrada común y delega en las vistas explícitas de socio y staff. Ambas componen `WeekNav` y `CalendarGrid`, con `ClassBlock` compartido para las clases y las bandas de cierre dentro de la cuadrícula. `useCalendarScale` concentra las suscripciones a media queries y localStorage para el tamaño de la vista de socio; el staff conserva su escala fija. `calendarHref` centraliza los enlaces que mantienen la semana y la grilla elegidas.
 
-La navegación web comparte `AppShell` para staff y socios. Las secciones se filtran por rol. El estado de plegado se guarda en la cookie `sidebar_state` y se lee en los layouts del servidor; los datos de sesión se deduplican dentro de cada render mediante React `cache`.
+La navegación web comparte `AppShell` para staff y socios. Las secciones se filtran por rol. El estado de plegado se guarda en la cookie `sidebar_state` y lo lee el cliente al montar el shell. La sesión sale de TanStack Query.
 
 ### Filtros legibles en la web
 
@@ -716,17 +708,17 @@ La navegación web comparte `AppShell` para staff y socios. Las secciones se fil
 
 ### Implementación vigente en desarrollo
 
-La aplicación no conserva contratos ni rutas retiradas. Las imágenes de tipos de clase se almacenan únicamente en `class_type_image`; las referencias locales de prueba se eliminan con la migración correspondiente. `evaluateBooking` recibe siempre el consumo agregado por SQL y usa las reservas consultadas para aforo y solapes. La ficha de socio carga datos personales y membresía vigente; el resumen de consumo y los pagos se consultan por sus funciones específicas. El cliente Prisma se comparte durante desarrollo; después de regenerarlo se reinicia el servidor.
+La aplicación no conserva contratos ni rutas retiradas. Las imágenes de tipos de clase se almacenan únicamente en `class_type_image`; las referencias locales de prueba se eliminan con la migración correspondiente. `evaluateBooking` recibe siempre el consumo agregado por SQL y usa las reservas consultadas para aforo y solapes. La ficha de socio carga datos personales y membresía vigente; el resumen de consumo y los pagos se consultan por sus funciones específicas. API y worker poseen su pool pg; la web consulta exclusivamente por HTTP.
 
 ### Panel de filtros y ordenación
 
-`ListOptions` compone Popover, controles Select etiquetados y botones de aplicar/restablecer. El borrador vive solo mientras el panel está abierto; la selección aplicada procede de los parámetros del servidor. `orden` identifica opciones de una lista permitida por módulo; un valor desconocido usa el orden inicial. Los valores iniciales se omiten de la URL. Aplicar/restablecer construye una URL sin `pagina`; la paginación conserva filtros y orden. `list-sorting.ts` comparte etiquetas, normalización y criterios `orderBy` tipados. Las consultas ordenan en SQL antes de `skip`/`take`, siempre con ID como desempate. Equipo aplica rol y estado en la consulta de usuarios, restringida a coach/admin.
+`ListOptions` compone Popover, controles Select etiquetados y botones de aplicar/restablecer. El borrador vive solo mientras el panel está abierto; la selección aplicada procede de los parámetros del servidor. `orden` identifica opciones de una lista permitida por módulo; un valor desconocido usa el orden inicial. Los valores iniciales se omiten de la URL. Aplicar/restablecer construye una URL sin `pagina`; la paginación conserva filtros y orden. `list-sorting.ts` comparte etiquetas, normalización y criterios `orderBy` tipados. Las consultas ordenan en SQL antes de `LIMIT`/`OFFSET`, siempre con ID como desempate. Equipo aplica rol y estado en la consulta de usuarios, restringida a coach/admin.
 
 ### Vacíos de listados
 
 `ListEmptyBlock` centraliza la presentación de resultados vacíos con los primitives `Empty`, `EmptyHeader` y `EmptyContent`. Las tablas cliente reciben del servidor un `emptyState` contextual y lo renderizan antes de construir una tabla; `SearchEmptyState` reutiliza el mismo bloque para el filtrado de texto local. Las rutas generan enlaces de restablecimiento con `listOptionsHref` sin filtros ni página, conservando `orden`. No hay variantes visuales por módulo.
 
-### Persistencia de destino R3 completada; R4 detenida
+### Persistencia R3 y API R4 completadas
 
 `packages/db` contiene esquema Drizzle, migración inicial y pool pg.
 `packages/application` contiene consultas, transacciones, seed de catálogo/admin
@@ -736,14 +728,11 @@ username y credencial viven en las tablas Better Auth de cada ámbito.
 
 Se ha probado el adapter real Better Auth/Drizzle: alta atómica, correo compartido
 entre ámbitos, credenciales independientes y revocación al reset. También pasan
-la comparación de catálogos contra las 19 migraciones originales, reglas y
-carreras de reservas/tarifa/baja/edición, propagación de plantilla, biblioteca,
-pagos, imágenes privadas y materialización repetida/concurrente. Cierre y límites:
+índices parciales, checks, reglas y carreras de reservas/tarifa/baja/edición,
+propagación de plantilla, biblioteca, pagos, imágenes privadas y materialización
+repetida/concurrente. La comparación contra las 19 migraciones SQL anteriores
+quedó registrada en R3 y ya no se ejecuta. Cierre y límites:
 [PLAN-REFACTOR §14](../PLAN-REFACTOR.md#14-r3--cierre-de-persistencia-del-destino),
 [evidencia](refactor-r3/verificacion.md) y [bloqueos](refactor-r3/bloqueos.md).
 
-El runtime web y Compose siguen usando Prisma. El usuario ha detenido R4 tras
-el cierre R3: existen borradores de auth y contratos, sin servidor HTTP montado,
-OpenAPI/cliente generados ni worker operativo. No se ha sustituido JWT ni el cron,
-ni se han comprobado sus reemplazos por HTTP. R4 debe completarlos y efectuar su
-corte antes de iniciar R5; no hay dos autenticaciones o planificadores activados.
+El runtime local es Fastify, Better Auth, Drizzle y el worker. La web es la SPA Vite. Los contratos y el cliente generado se comprueban con `pnpm contracts:check`. [Aceptación R4](refactor-r4/verificacion.md), [SPA](../PLAN-REFACTOR.md) y corte R6 en el mismo plan.

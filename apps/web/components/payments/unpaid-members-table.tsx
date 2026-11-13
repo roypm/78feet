@@ -1,5 +1,3 @@
-"use client";
-
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { NavigationLink as Link } from "@/components/common/navigation/navigation-link";

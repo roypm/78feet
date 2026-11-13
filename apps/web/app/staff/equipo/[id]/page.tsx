@@ -1,58 +1,37 @@
-import { LoadingState } from "@/components/common/feedback/loading-state";
-import { Suspense } from "react";
-import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
-import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth/current";
-import { getStaff } from "@/lib/box/staff-users";
-import { BoxError } from "@/lib/box/errors";
+import { useParams } from "react-router";
 import { StaffProfile } from "@/components/team/staff-profile";
+import { LoadingState } from "@/components/common/feedback/loading-state";
 import { ModuleBody, ModuleHeader, ModulePage } from "@/components/common/layout/module-page";
+import { StaffCrumbs } from "@/components/common/navigation/staff-crumbs";
+import { getStaff } from "@/lib/server/queries";
+import { QueryBody, useAccountQuery } from "@/lib/spa/screen";
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
+const pending = (
+  <ModulePage>
+    <ModuleHeader title="Perfil de equipo" />
+    <ModuleBody width="full">
+      <LoadingState variant="profile" label="Cargando el perfil…" />
+    </ModuleBody>
+  </ModulePage>
+);
+
+export default function Page() {
+  const { id = "" } = useParams();
+  const { account, query } = useAccountQuery(["staff", id], () => getStaff(id));
   return (
-    <Suspense
-      fallback={
+    <QueryBody query={query} accountReady={account !== null} pending={pending} home="/staff/hoy" missing="staff">
+      {(person) => (
         <ModulePage>
-          <ModuleHeader title="Perfil de equipo" />
-          <ModuleBody width="full">
-            <LoadingState variant="profile" label="Cargando el perfil…" />
+          <ModuleHeader
+            title="Perfil de equipo"
+            description={`${person.firstName} ${person.lastName}`}
+            eyebrow={<StaffCrumbs items={[{ href: "/staff/equipo", label: "Equipo" }, { label: `${person.firstName} ${person.lastName}` }]} />}
+          />
+          <ModuleBody width="full" inset="content">
+            <StaffProfile person={person} />
           </ModuleBody>
         </ModulePage>
-      }
-    >
-      <StaffDetail params={params} />
-    </Suspense>
-  );
-}
-
-async function StaffDetail({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
-  const { id } = await params;
-  let person;
-  try {
-    person = await getStaff(id);
-  } catch (error) {
-    if (error instanceof BoxError && error.status === 404) notFound();
-    throw error;
-  }
-
-  return (
-    <ModulePage>
-      <ModuleHeader
-        title="Perfil de equipo"
-        description={`${person.firstName} ${person.lastName}`}
-        eyebrow={
-          <StaffCrumbs
-            items={[
-              { href: "/staff/equipo", label: "Equipo" },
-              { label: `${person.firstName} ${person.lastName}` },
-            ]}
-          />
-        }
-      />
-      <ModuleBody width="full" inset="content">
-        <StaffProfile person={person} />
-      </ModuleBody>
-    </ModulePage>
+      )}
+    </QueryBody>
   );
 }

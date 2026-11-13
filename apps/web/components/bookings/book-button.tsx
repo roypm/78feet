@@ -1,8 +1,7 @@
-"use client";
-
 import { PendingButton } from "@/components/common/feedback/pending-button";
 
 import { useActionFeedback } from "@/hooks/use-action-feedback";
+import { api } from "@/lib/box/api";
 import { toast } from "sonner";
 
 export function BookButton({ instanceId }: { instanceId: string }) {
@@ -11,22 +10,15 @@ export function BookButton({ instanceId }: { instanceId: string }) {
   async function reserve() {
     if (!begin()) return;
     try {
-      const response = await fetch("/api/v1/bookings", {
+      await api("/api/v1/bookings", {
         method: "POST",
-        credentials: "include",
-        headers: { "content-type": "application/json" },
         body: JSON.stringify({ instanceId }),
       });
-      const payload = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        toast.error(payload.error?.message ?? "No se pudo reservar");
-        return;
-      }
       toast.success("Reserva confirmada");
-      router.refresh();
-      router.push("/calendario");
-    } catch {
-      toast.error("No se pudo reservar");
+      void router.refresh("booking");
+      void router.push("/calendario");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo reservar");
     } finally {
       setPending(false);
     }

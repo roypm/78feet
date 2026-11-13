@@ -1,5 +1,3 @@
-"use client";
-
 import { useId, useRef, useState } from "react";
 import { ClockIcon } from "lucide-react";
 import { Field } from "@/components/common/forms/field";

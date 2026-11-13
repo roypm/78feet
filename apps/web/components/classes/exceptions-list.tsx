@@ -43,7 +43,6 @@ export function ExceptionsList({ items }: { items: ExceptionInstance[] }) {
           >
             <Link
               href={`/staff/clases/${item.id}?desde=excepciones`}
-              prefetch={true}
               aria-label={`${item.name}, ${status}, ${meta}`}
               className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/40"
             />

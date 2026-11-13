@@ -1,5 +1,3 @@
-"use client";
-
 import type { Ref } from "react";
 import { cn } from "cn";
 import { SearchInput } from "@/components/ui/search-input";

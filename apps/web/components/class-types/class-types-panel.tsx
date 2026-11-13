@@ -1,5 +1,3 @@
-"use client";
-
 import { PendingButton } from "@/components/common/feedback/pending-button";
 import { ClassTypeThumb } from "@/components/class-types/class-type-thumb";
 
@@ -65,7 +63,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
         form.reset();
       }
       setOpen(false);
-      router.refresh();
+      router.refresh("catalog");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : editing ? "No se pudo guardar" : "No se pudo crear");
     } finally {
@@ -80,7 +78,7 @@ export function ClassTypesPanel({ types }: { types: ClassType[] }) {
       await api(`/api/v1/admin/class-types/${deleting.id}`, { method: "DELETE" });
       setDeleting(null);
       toast.success("Tipo borrado");
-      router.refresh();
+      router.refresh("catalog");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo borrar");
     } finally {

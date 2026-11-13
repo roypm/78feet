@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, type FormEvent } from "react";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { toast } from "sonner";
@@ -23,7 +21,7 @@ export function useInstanceEdit(instanceId: string, onSaved?: () => void) {
       } else {
         toast.success("Clase actualizada");
       }
-      router.refresh();
+      router.refresh("schedule");
       onSaved?.();
     } catch (error) {
       if (error instanceof ApiError && error.code === "CONFIRM_REQUIRED") {

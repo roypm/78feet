@@ -1,5 +1,3 @@
-"use client";
-
 import { ListEmptyBlock } from "@/components/common/lists/list-empty-block";
 import { Button } from "@/components/ui/button";
 
